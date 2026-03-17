@@ -1,0 +1,22 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sales CoPilot API",
+    "version": "1.0.0",
+    "description": "API reference for Sales CoPilot by Demand IQ"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Returns the health status of the API.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "API is healthy"
+          }
+        }
+      }
+    }
+  }
+}

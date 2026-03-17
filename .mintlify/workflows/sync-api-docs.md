@@ -1,11 +1,11 @@
 ---
-title: Sync API Docs from Sales CoPilot
+name: Sync API Docs from Sales CoPilot
 description: Automatically updates documentation when changes are pushed to the Sales CoPilot repo
-triggers:
-  - type: github_push
-    repo: Demand-IQ/ai-presentations-demo
-    branch: main
-autoMerge: true
+on:
+  push:
+    - repo: Demand-IQ/ai-presentations-demo
+      branch: main
+automerge: true
 ---
 
 When this workflow triggers, review the changes pushed to `Demand-IQ/ai-presentations-demo` on the `main` branch.
