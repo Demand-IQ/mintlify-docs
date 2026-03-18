@@ -115,4 +115,9 @@ console.log(url); // Shareable presentation URL
 
 - Add pre-built FAQs with `POST /api/decks/{deckId}/faqs` so common questions are answered instantly
 - Customize Q&A prompts with `PUT /api/decks/{deckId}/qa-settings`
+- Configure product pricing tiers on slides with `PUT /api/slides/{slideId}/product-data`
+- Set up an intro landing page with `PUT /api/decks/{deckId}/intro`
+- Import a contract template with `POST /api/contracts/import` and configure signing with `POST /api/decks/{deckId}/action-configs`
+- Upload knowledge base documents via `POST /api/company/kb/documents/upload-init` to improve AI answers
+- Subscribe to presentation events with `POST /api/notifications/subscriptions` to get webhook or email alerts
 - Browse available narration voices at `GET /api/voices/list`
