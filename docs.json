@@ -8,9 +8,9 @@
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373"
+    "primary": "#15ABE6",
+    "light": "#4DC4F5",
+    "dark": "#0D8FBF"
   },
   "topbarLinks": [
     {
@@ -30,8 +30,17 @@
           {
             "group": "Overview",
             "pages": [
-              "introduction",
-              "quickstart"
+              "sales-copilot/introduction",
+              "sales-copilot/quickstart"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "sales-copilot/guides/deck-types",
+              "sales-copilot/guides/branding",
+              "sales-copilot/guides/faqs",
+              "sales-copilot/guides/narration"
             ]
           },
           {
