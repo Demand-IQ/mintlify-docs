@@ -1,22 +1,39 @@
 ---
 title: Introduction
-description: "Welcome to the documentation"
+description: Sales CoPilot API documentation for building and managing AI-powered sales presentations.
 ---
 
-## Overview
+Sales CoPilot by Demand IQ lets you create AI-narrated, personalized sales presentations that engage homeowners with dynamic content, voice-powered Q&A, and built-in contract signing.
 
-Add a short description of what you're documenting here. This is the first page users will land on.
+## Core concepts
 
-## Getting Started
+- **Decks** are reusable presentation templates containing slides, branding, FAQs, and Q&A settings.
+- **Slides** hold the content for each page of a presentation — titles, bullet points, narration scripts, and optional product pricing tiers.
+- **Presentations** are personalized instances of a deck created for a specific homeowner. Each presentation gets a unique shareable URL.
+- **Narration** is generated using text-to-speech. Narration scripts support personalization tokens like `{{first_name}}` that are replaced at presentation time.
+- **Q&A** uses AI to answer homeowner questions during the presentation, drawing from your FAQs and knowledge base.
 
-Get up and running quickly with the guides below.
+## What you can do with the API
 
 <CardGroup cols={2}>
-  <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/quickstart"
-  >
-    Get started in minutes
+  <Card title="Create decks" icon="layer-group" href="/quickstart">
+    Build presentation templates with slides, branding, and FAQs
+  </Card>
+  <Card title="Generate presentations" icon="wand-magic-sparkles">
+    Create personalized presentations for homeowners with dynamic pricing
+  </Card>
+  <Card title="Manage content" icon="images">
+    Upload images, import contracts, and configure knowledge base documents
+  </Card>
+  <Card title="Track engagement" icon="chart-line">
+    Subscribe to events like slide views, Q&A interactions, and contract signings
   </Card>
 </CardGroup>
+
+## Authentication
+
+All API endpoints (except the public presentation viewer) require session-based authentication. Call `POST /api/auth/login` with your credentials to establish a session, then include the session cookie on subsequent requests.
+
+## API reference
+
+Browse the full API reference in the sidebar to see every available endpoint, organized by domain: decks, slides, presentations, narration, Q&A, notifications, and more.
