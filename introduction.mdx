@@ -1,15 +1,24 @@
 ---
 title: Introduction
-description: "Welcome to the documentation"
+description: Sales CoPilot is an AI-powered presentation platform with narrated slides, live Q&A, and deck management.
 ---
 
-## Overview
+Sales CoPilot by Demand IQ lets you build AI-narrated sales presentations with interactive Q&A. Upload slide images or create structured decks, and Sales CoPilot generates narration scripts, synthesizes audio, and delivers a shareable presentation link your prospects can view on any device.
 
-Add a short description of what you're documenting here. This is the first page users will land on.
+## Key capabilities
 
-## Getting Started
+- **Deck management** — create structured or image-based decks with custom branding, colors, and fonts
+- **AI generation** — upload slide images and let GPT-4o extract content, write narration scripts, and generate FAQs automatically
+- **Text-to-speech** — narrate every slide with word-level timing for synchronized text highlighting
+- **Live Q&A** — viewers ask questions by voice or text; Sales CoPilot matches FAQs or generates answers in real time
+- **Personalized presentations** — create shareable links tailored to each homeowner with address validation and pricing inputs
+- **Multi-language support** — present in English, Spanish, French, German, Portuguese, Italian, Chinese, or Japanese
 
-Get up and running quickly with the guides below.
+## Authentication
+
+Most API endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.
+
+## Get started
 
 <CardGroup cols={2}>
   <Card
@@ -17,6 +26,13 @@ Get up and running quickly with the guides below.
     icon="rocket"
     href="/quickstart"
   >
-    Get started in minutes
+    Create your first deck and presentation in minutes
+  </Card>
+  <Card
+    title="API reference"
+    icon="code"
+    href="/quickstart"
+  >
+    Explore the full REST API in the sidebar
   </Card>
 </CardGroup>
