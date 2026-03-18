@@ -36,7 +36,7 @@
           },
           {
             "group": "API Reference",
-            "openapi": "openapi.json"
+            "openapi": "/sales-copilot/openapi.json"
           }
         ]
       }
