@@ -48,6 +48,17 @@
             "openapi": "/sales-copilot/openapi.json"
           }
         ]
+      },
+      {
+        "tab": "Journeys",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "journeys/introduction"
+            ]
+          }
+        ]
       }
     ]
   },
