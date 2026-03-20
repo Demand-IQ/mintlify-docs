@@ -35,6 +35,7 @@
     { "name": "Company", "description": "Organization contact info and knowledge base" },
     { "name": "Notifications", "description": "Event subscriptions and delivery log" },
     { "name": "Contracts", "description": "Contract template import and e-signature" },
+    { "name": "Appointments", "description": "Appointment scheduling for presentation viewers" },
     { "name": "Fonts", "description": "Available Google Fonts for branding" }
   ],
   "components": {
@@ -2935,7 +2936,7 @@
                 "required": ["name", "eventType", "channel", "channelConfig"],
                 "properties": {
                   "name": { "type": "string", "example": "Slack — new presentation" },
-                  "eventType": { "type": "string", "example": "presentation.created" },
+                  "eventType": { "type": "string", "example": "presentation.created", "description": "Event type to subscribe to (e.g. `presentation.opened`, `slide.viewed`, `cta.clicked`, `contract.signed`, `question.asked`, `appointment.booked`)" },
                   "channel": { "type": "string", "enum": ["webhook", "email", "console"] },
                   "channelConfig": { "type": "object", "description": "Channel-specific config. Webhook: `{ url }`. Email: `{ recipients: [\"a@b.com\"] }`." },
                   "deckId": { "type": "string", "format": "uuid", "description": "Scope to a specific deck (optional)" },
@@ -3302,6 +3303,116 @@
           "401": { "description": "Invalid token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/presentations/{presentationId}/appointment": {
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "Get available appointment slots",
+        "description": "Fetches available appointment time slots and any existing appointment for the presentation viewer. Slots are grouped by date in the prospect's timezone.\n\n**Authentication**: Requires a presentation token in the `x-presentation-token` header (not a session cookie).\n\n**Rate limit**: 30 requests per minute per presentation.",
+        "parameters": [
+          { "in": "path", "name": "presentationId", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "in": "header", "name": "x-presentation-token", "required": true, "schema": { "type": "string" }, "description": "Presentation authentication token" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slots and existing appointment",
+            "headers": {
+              "Cache-Control": { "schema": { "type": "string", "example": "no-store" } }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slotsByDate": {
+                      "type": "object",
+                      "description": "Available time slots grouped by date (YYYY-MM-DD keys)",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "start": { "type": "string", "format": "date-time", "example": "2026-03-21T15:00:00.000Z" },
+                            "end": { "type": "string", "format": "date-time", "example": "2026-03-21T16:00:00.000Z" }
+                          },
+                          "required": ["start", "end"]
+                        }
+                      }
+                    },
+                    "appointmentLength": { "type": "integer", "description": "Appointment duration in minutes", "example": 60 },
+                    "timezone": { "type": "string", "description": "IANA timezone for the prospect", "example": "America/Denver" },
+                    "existingAppointment": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "The prospect's existing appointment, if any",
+                      "properties": {
+                        "startTime": { "type": "string", "format": "date-time" },
+                        "endTime": { "type": "string", "format": "date-time" }
+                      }
+                    },
+                    "prospectEmail": { "type": "string", "format": "email", "nullable": true },
+                    "prospectPhone": { "type": "string", "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid presentation token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Presentation not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "503": { "description": "Scheduling unavailable (API key not configured or upstream error)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Book an appointment",
+        "description": "Books an appointment for the presentation viewer. Optionally updates the prospect's email and phone number.\n\n**Authentication**: Requires a presentation token in the `x-presentation-token` header (not a session cookie).\n\n**Rate limit**: 10 requests per minute per presentation.\n\nA successful booking emits an `appointment.booked` event, which can trigger webhook or email notifications if a matching subscription exists.",
+        "parameters": [
+          { "in": "path", "name": "presentationId", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "in": "header", "name": "x-presentation-token", "required": true, "schema": { "type": "string" }, "description": "Presentation authentication token" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["startTime", "endTime", "attendeeTZ"],
+                "properties": {
+                  "startTime": { "type": "string", "format": "date-time", "description": "Appointment start (ISO 8601, must be in the future)", "example": "2026-03-21T15:00:00.000Z" },
+                  "endTime": { "type": "string", "format": "date-time", "description": "Appointment end (must be after startTime)", "example": "2026-03-21T16:00:00.000Z" },
+                  "attendeeTZ": { "type": "string", "description": "Attendee's IANA timezone", "example": "America/Denver" },
+                  "email": { "type": "string", "format": "email", "description": "Prospect email (optional, synced to prospect record)" },
+                  "phone": { "type": "string", "minLength": 1, "description": "Prospect phone (optional, synced to prospect record)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment booked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "startTime": { "type": "string", "format": "date-time" },
+                    "endTime": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request body or time validation failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Missing or invalid presentation token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Presentation not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Conflict — prospect already has an appointment (`already_booked`) or the slot is no longer available (`slot_unavailable`)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "503": { "description": "Scheduling unavailable (API key not configured or upstream error)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
