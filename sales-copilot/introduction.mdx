@@ -20,7 +20,12 @@ Sales CoPilot by Demand IQ lets you build AI-narrated sales presentations with i
 
 ## Authentication
 
-Most API endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.
+Most API endpoints require a session cookie obtained from `POST /api/auth/login`. The `POST /api/decks/{deckId}/presentations` endpoint also accepts a Bearer token for programmatic access, making it easy to create presentations from CRM workflows or other automated systems. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) accept a `presentationId` for unauthenticated viewer access.
+
+| Method | Use case | Header / cookie |
+|---|---|---|
+| Session cookie | Admin UI, interactive use | `session` cookie from `POST /api/auth/login` |
+| Bearer token | CRM integrations, automated workflows | `Authorization: Bearer <token>` |
 
 ## Get started
 
