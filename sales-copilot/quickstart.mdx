@@ -59,6 +59,10 @@ Open the **Presentations** tab and click **New Presentation**. Enter the homeown
 
 You'll get a shareable link. Send it to the homeowner however you like — text, email, CRM, whatever fits your workflow. When they open it, they'll see a branded landing page with their name and address already in the narration.
 
+<Tip>
+If you're integrating with a CRM or automation platform, you can also create presentations programmatically via the API using a Bearer token. Call `POST /api/decks/{deckId}/presentations` with an `Authorization: Bearer <token>` header instead of a session cookie. See the [API reference](/sales-copilot/api-reference) for details.
+</Tip>
+
 ## What's next
 
 - [Setting Up Your First Deck](/sales-copilot/guides/deck-types) — deeper dive on deck creation and slide editing
