@@ -2801,7 +2801,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Presentation created",
             "content": {
               "application/json": {
