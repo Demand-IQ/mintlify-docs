@@ -2743,7 +2743,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation for a homeowner. The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
+        "description": "Creates a personalized presentation for a homeowner. The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.\n\nPrice inputs are optional. If a product pricing slide uses formula variables that are not supplied, the price is deferred — the slide displays a placeholder instead of failing. Deferred prices can be resolved later when the missing values become available (e.g., after roof measurements).",
         "security": [
           {
             "sessionCookie": []
@@ -2785,7 +2785,7 @@
                     "additionalProperties": {
                       "type": "number"
                     },
-                    "description": "Values for deck-level price variables (used to evaluate formulas)"
+                    "description": "Values for deck-level price variables (used to evaluate formulas). Optional — omitted variables result in deferred pricing rather than an error."
                   },
                   "measurement_strategy": {
                     "type": "string",
