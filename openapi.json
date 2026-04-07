@@ -115,7 +115,9 @@
           "primaryLight": { "type": "string", "example": "#4a9af5" },
           "accent": { "type": "string", "example": "#fbbc04" },
           "neutral": { "type": "string", "example": "#5f6368" },
-          "text": { "type": "string", "example": "#202124" }
+          "text": { "type": "string", "example": "#202124" },
+          "userMessage": { "type": "string", "nullable": true, "description": "Background color for homeowner chat message bubbles. Falls back to primary color if not set.", "example": "#1a73e8" },
+          "assistantMessage": { "type": "string", "nullable": true, "description": "Background color for AI assistant chat message bubbles.", "example": "#f1f3f4" }
         },
         "required": ["primary", "primaryLight", "accent", "neutral", "text"]
       },
@@ -2231,6 +2233,48 @@
           },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/auth/sso": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Portal SSO via auth code exchange",
+        "description": "Exchanges a short-lived authorization code for an access token via the Core API, creates a new session, and redirects to the requested path. Used by the portal to embed Sales CoPilot in an iframe.\n\nFlow:\n1. Exchange `code` via Core API `POST /auth/code/exchange` (Basic auth with SSO client credentials)\n2. Validate the returned access token via `/user/me` to get user/org info\n3. Create a new session (always — never reuses an existing one)\n4. Set session cookie (plus embedded cookie if `embedded=1`)\n5. Revoke any prior session (best-effort)\n6. Redirect to a clean URL (no `code` param in the final location)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Short-lived authorization code issued by the portal"
+          },
+          {
+            "in": "query",
+            "name": "redirect",
+            "required": false,
+            "schema": { "type": "string", "default": "/decks" },
+            "description": "Internal path to redirect to after successful authentication"
+          },
+          {
+            "in": "query",
+            "name": "embedded",
+            "required": false,
+            "schema": { "type": "string", "enum": ["0", "1"], "default": "0" },
+            "description": "Set to `1` when running inside a portal iframe. Enables embedded mode cookies and error handling."
+          },
+          {
+            "in": "query",
+            "name": "theme",
+            "required": false,
+            "schema": { "type": "string", "enum": ["light", "dark"] },
+            "description": "Portal theme preference. When set, a theme cookie is stored so the initial render matches the portal appearance without a flash."
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects to the `redirect` path on success, or to `/login?error=sso_failed` (standalone) / `/embedded-auth-error` (embedded) on failure. Returns a redirect on missing or invalid code, or Core API rejection."
+          }
         }
       }
     },
