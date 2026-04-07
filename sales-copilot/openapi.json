@@ -35,7 +35,10 @@
     { "name": "Company", "description": "Organization contact info and knowledge base" },
     { "name": "Notifications", "description": "Event subscriptions and delivery log" },
     { "name": "Contracts", "description": "Contract template import and e-signature" },
-    { "name": "Fonts", "description": "Available Google Fonts for branding" }
+    { "name": "Fonts", "description": "Available Google Fonts for branding" },
+    { "name": "Appointments", "description": "Prospect appointment scheduling during presentations" },
+    { "name": "Roof Measurements", "description": "Automated roof measurement requests via Demand IQ" },
+    { "name": "Viewer", "description": "Presentation viewer data and interaction classification" }
   ],
   "components": {
     "securitySchemes": {
@@ -3423,6 +3426,681 @@
               }
             }
           },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/deck_presentations/{deckPresentationId}": {
+      "get": {
+        "tags": ["Viewer"],
+        "summary": "Load presentation for viewer",
+        "description": "Returns the complete presentation data needed to render the viewer experience, including slides with audio URLs, live branding, FAQs, and Q&A settings. S3 keys are resolved to presigned URLs. Returns `410 Gone` if the parent deck was deleted.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckPresentationId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "UUID of the presentation"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full presentation data for the viewer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "deckId": { "type": "string", "format": "uuid" },
+                        "status": { "type": "string", "enum": ["pending", "ready", "failed"] },
+                        "homeownerData": { "$ref": "#/components/schemas/HomeownerData" },
+                        "voiceSettings": { "type": "object", "nullable": true },
+                        "languageSettings": { "type": "object", "nullable": true },
+                        "createdAt": { "type": "string", "format": "date-time" },
+                        "deck": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "name": { "type": "string" },
+                            "description": { "type": "string", "nullable": true },
+                            "type": { "type": "string", "enum": ["structured", "image-based"] }
+                          }
+                        }
+                      }
+                    },
+                    "slides": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "slideId": { "type": "string" },
+                          "title": { "type": "string" },
+                          "bullets": { "type": "array", "items": { "type": "string" } },
+                          "narrationScript": { "type": "string" },
+                          "audioUrl": { "type": "string", "nullable": true },
+                          "heroImg": { "type": "string", "nullable": true },
+                          "wordTimings": { "type": "array", "items": { "$ref": "#/components/schemas/WordTiming" } },
+                          "position": { "type": "integer" }
+                        }
+                      }
+                    },
+                    "branding": { "$ref": "#/components/schemas/Branding" },
+                    "faqs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "user_question": { "type": "string" },
+                          "canned_answer": { "type": "string" },
+                          "related_slide_id": { "type": "string", "nullable": true },
+                          "audio_url": { "type": "string", "nullable": true },
+                          "word_timings": { "type": "array", "items": { "$ref": "#/components/schemas/WordTiming" }, "nullable": true }
+                        }
+                      }
+                    },
+                    "qaSettings": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "resumePromptText": { "type": "string" },
+                        "resumePromptAudioUrl": { "type": "string", "nullable": true },
+                        "resumePromptWordTimings": { "type": "array", "items": { "$ref": "#/components/schemas/WordTiming" }, "nullable": true },
+                        "transitionPromptText": { "type": "string" },
+                        "transitionPromptAudioUrl": { "type": "string", "nullable": true },
+                        "transitionPromptWordTimings": { "type": "array", "items": { "$ref": "#/components/schemas/WordTiming" }, "nullable": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Presentation not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "410": { "description": "Deck was deleted — presentation is no longer available", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/presentations/{presentationId}/appointment": {
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "Get available appointment slots",
+        "description": "Returns available scheduling time slots and any existing appointment for the prospect. Resolves the prospect via the Demand IQ Core API and fetches scheduling settings, unavailability windows, and computes open slots grouped by date.\n\n**Authentication**: Requires a valid `x-presentation-token` header (HMAC-based).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "presentationId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "in": "header",
+            "name": "x-presentation-token",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "HMAC presentation token for viewer authentication"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slots and existing appointment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slotsByDate": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "start": { "type": "string", "format": "date-time" },
+                            "end": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      },
+                      "description": "Available time slots grouped by date (YYYY-MM-DD)"
+                    },
+                    "appointmentLength": { "type": "integer", "description": "Appointment duration in minutes" },
+                    "timezone": { "type": "string", "description": "Timezone offset identifier" },
+                    "existingAppointment": { "type": "object", "nullable": true, "description": "Existing booked appointment, if any" },
+                    "prospectEmail": { "type": "string", "nullable": true },
+                    "prospectPhone": { "type": "string", "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid or missing presentation token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Presentation not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "503": { "description": "Scheduling service unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Book an appointment",
+        "description": "Books a new appointment for the prospect. Validates the time slot, syncs contact information, and emits an `appointment.booked` event.\n\n**Authentication**: Requires a valid `x-presentation-token` header (HMAC-based).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "presentationId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "in": "header",
+            "name": "x-presentation-token",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "HMAC presentation token for viewer authentication"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["startTime", "endTime", "attendeeTZ"],
+                "properties": {
+                  "startTime": { "type": "string", "format": "date-time", "description": "Appointment start time (ISO 8601)" },
+                  "endTime": { "type": "string", "format": "date-time", "description": "Appointment end time (ISO 8601)" },
+                  "attendeeTZ": { "type": "string", "description": "Attendee timezone identifier", "example": "America/New_York" },
+                  "email": { "type": "string", "format": "email", "description": "Prospect email (optional, synced to CRM)" },
+                  "phone": { "type": "string", "description": "Prospect phone number (optional, synced to CRM)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment booked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "startTime": { "type": "string", "format": "date-time" },
+                    "endTime": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request body", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Invalid or missing presentation token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Presentation not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Slot unavailable or prospect already has an appointment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "503": { "description": "Scheduling service unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/presentations/{presentationId}/events-token": {
+      "post": {
+        "tags": ["Presentations"],
+        "summary": "Refresh event ingest token",
+        "description": "Exchanges an expired presentation event token for a fresh one. Accepts tokens up to 7 days past expiry. Returns a new 24-hour token for continued event logging.",
+        "parameters": [
+          { "in": "path", "name": "presentationId", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["_token"],
+                "properties": {
+                  "_token": { "type": "string", "description": "The expired HMAC token to exchange" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New token issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_token": { "type": "string", "description": "Fresh 24-hour HMAC token" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Token invalid or too old to refresh", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/roof-measurements": {
+      "post": {
+        "tags": ["Roof Measurements"],
+        "summary": "Start a roof measurement request",
+        "description": "Initiates an automated roof measurement for a homeowner address. Validates the address via geocoding and creates a measurement request that is processed asynchronously. Poll `/api/roof-measurements/{requestId}/status` for progress.",
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deckId", "homeowner"],
+                "properties": {
+                  "deckId": { "type": "string", "format": "uuid" },
+                  "homeowner": {
+                    "type": "object",
+                    "required": ["first_name", "address", "city", "country"],
+                    "properties": {
+                      "first_name": { "type": "string" },
+                      "last_name": { "type": "string" },
+                      "address": { "type": "string", "example": "123 Main St" },
+                      "city": { "type": "string", "example": "Phoenix" },
+                      "state": { "type": "string", "example": "AZ" },
+                      "zip": { "type": "string", "example": "85001" },
+                      "country": { "type": "string", "minLength": 2, "maxLength": 2, "example": "US", "description": "ISO 3166-1 alpha-2 country code" },
+                      "phone": { "type": "string" },
+                      "email": { "type": "string", "format": "email" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Measurement request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": { "type": "string", "format": "uuid" },
+                    "status": { "type": "string", "example": "pending" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing required fields", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Deck not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "422": { "description": "Address could not be verified", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "503": { "description": "Roof measurement service not configured", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/roof-measurements/{requestId}/status": {
+      "get": {
+        "tags": ["Roof Measurements"],
+        "summary": "Poll roof measurement status",
+        "description": "Returns the current status of a roof measurement request. Each poll also advances one step of the processing state machine (polling-driven orchestration).",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "in": "path", "name": "requestId", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Measurement request status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": { "type": "string", "format": "uuid" },
+                    "status": { "type": "string", "enum": ["pending", "creating_prospect", "polling_ev", "completed", "failed", "cancelled", "skipped"] },
+                    "result": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "squares": { "type": "number", "description": "Roof area in square feet" },
+                        "source": { "type": "string" }
+                      }
+                    },
+                    "attempts": { "type": "integer" },
+                    "elapsedMs": { "type": "integer", "description": "Time elapsed since request creation in milliseconds" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Request not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/roof-measurements/{requestId}/cancel": {
+      "post": {
+        "tags": ["Roof Measurements"],
+        "summary": "Cancel a roof measurement request",
+        "description": "Cancels or skips a roof measurement request. Use `cancel` to abort entirely, or `skip` to stop automated processing and allow manual entry of roof measurements.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "in": "path", "name": "requestId", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["action"],
+                "properties": {
+                  "action": { "type": "string", "enum": ["cancel", "skip"], "description": "`cancel` aborts entirely; `skip` stops processing but allows manual entry" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request cancelled or skipped",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid action", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Request not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/narration/qa-audio": {
+      "post": {
+        "tags": ["Narration"],
+        "summary": "Generate Q&A prompt audio",
+        "description": "Generates TTS audio for a Q&A resume or transition prompt and stores it in the deck's Q&A settings. Replaces any existing audio for the specified prompt type.",
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deckId", "type", "text"],
+                "properties": {
+                  "deckId": { "type": "string", "format": "uuid" },
+                  "type": { "type": "string", "enum": ["resume", "transition"], "description": "Which Q&A prompt to generate audio for" },
+                  "text": { "type": "string", "description": "The prompt text to synthesize" },
+                  "voiceId": { "type": "string", "description": "ElevenLabs voice ID (uses deck default if omitted)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio generated and stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "audioUrl": { "type": "string", "description": "Presigned URL for the generated audio" },
+                    "wordTimings": { "type": "array", "items": { "$ref": "#/components/schemas/WordTiming" } }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Deck not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/narration/generate-prompt": {
+      "post": {
+        "tags": ["Narration"],
+        "summary": "Get resume prompt for playback",
+        "description": "Returns the Q&A resume prompt text and pre-generated audio for a deck. Used by the presentation viewer to play the resume prompt after answering a question. Falls back to a default prompt if no custom one is configured.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deckId"],
+                "properties": {
+                  "deckId": { "type": "string", "format": "uuid" },
+                  "presentationId": { "type": "string", "format": "uuid", "description": "Required for unauthenticated viewer access" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resume prompt with optional audio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": { "type": "string", "description": "The resume prompt text" },
+                    "audioUrl": { "type": "string", "nullable": true, "description": "Presigned URL for the pre-generated audio" },
+                    "wordTimings": { "type": "array", "items": { "$ref": "#/components/schemas/WordTiming" }, "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/slides/analyze-and-generate": {
+      "post": {
+        "tags": ["Generation"],
+        "summary": "Analyze slide image and generate script",
+        "description": "Analyzes a slide image using GPT-4o Vision to extract content (title, key points), then generates a narration script. Optionally uses the deck context and slide-specific context to guide script generation. Does not generate audio — use the narration endpoints after saving the slide.",
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["imageUrl"],
+                "properties": {
+                  "imageUrl": { "type": "string", "description": "Accessible URL of the slide image to analyze" },
+                  "deckContext": { "type": "string", "description": "Background info about the deck's audience and purpose" },
+                  "slideContext": { "type": "string", "description": "Additional context specific to this slide" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis results and generated script",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string" },
+                    "bullets": { "type": "array", "items": { "type": "string" } },
+                    "narrationScript": { "type": "string" },
+                    "slideContext": { "type": "string", "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/actions": {
+      "post": {
+        "tags": ["Viewer"],
+        "summary": "Classify viewer input",
+        "description": "Classifies user input from the presentation viewer as either a system action (navigation, audio control, CTA trigger, continuation) or a question/statement. Uses GPT for classification with a regex-based fallback.\n\n**Authentication**: No session required. Protected by IP-based rate limiting per presentation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text", "presentationId"],
+                "properties": {
+                  "text": { "type": "string", "description": "The user's input text" },
+                  "presentationId": { "type": "string", "format": "uuid" },
+                  "slideId": { "type": "string", "description": "Current slide ID for context" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Classification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isAction": { "type": "boolean", "description": "Whether the input is a system action command" },
+                    "actionType": { "type": "string", "nullable": true, "enum": ["navigate_next", "navigate_prev", "navigate_slide", "audio_pause", "audio_resume", "cta", "continue", null] },
+                    "targetSlide": { "type": "string", "nullable": true, "description": "Target slide ID for navigation actions" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Rate limit exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/intent/continue": {
+      "post": {
+        "tags": ["Viewer"],
+        "summary": "Detect continuation intent",
+        "description": "Detects whether a viewer's response after Q&A indicates they want to continue the presentation, go back to a previous slide, or ask a new question. Uses GPT for classification with a regex fallback.\n\n**Authentication**: No session required. Used by the presentation viewer during Q&A flow.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": { "type": "string", "description": "The viewer's response text" },
+                  "mode": { "type": "string", "enum": ["post-navigation", "in-place"], "description": "`post-navigation` allows `go_back` intent; `in-place` only allows `continue` or `question`" },
+                  "presentationId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detected intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intent": { "type": "string", "enum": ["continue", "go_back", "question"], "description": "The detected intent" },
+                    "confidence": { "type": "number", "description": "Confidence score (0 to 1)" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/decks/{deckId}/generate-preview": {
+      "post": {
+        "tags": ["Narration"],
+        "summary": "Generate preview audio for deck",
+        "description": "Triggers generation of preview audio for all slides that contain personalization tokens but lack preview audio. Preview audio uses placeholder values so deck managers can hear how slides will sound before creating presentations.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "in": "path", "name": "deckId", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview audio generation started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "slidesUpdated": { "type": "integer", "description": "Number of slides that had preview audio generated" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Deck not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/decks/{deckId}/preview-status": {
+      "get": {
+        "tags": ["Narration"],
+        "summary": "Check preview audio status",
+        "description": "Checks whether a deck needs preview audio generation. Returns counts of slides that have personalization tokens, how many still need preview audio, and the total slide count.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "in": "path", "name": "deckId", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview audio status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "needsPreview": { "type": "integer", "description": "Slides with tokens but no preview audio" },
+                    "withTokens": { "type": "integer", "description": "Total slides containing personalization tokens" },
+                    "totalSlides": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Deck not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
