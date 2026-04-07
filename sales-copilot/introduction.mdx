@@ -16,11 +16,14 @@ Sales CoPilot by Demand IQ lets you build AI-narrated sales presentations with i
 - **Knowledge base** — upload company documents to improve AI-generated answers with your specific product and service information
 - **Contracts & e-signature** — import contract templates, configure signing requirements, and collect typed signatures during the presentation
 - **Notifications** — subscribe to presentation events via webhooks or email to track viewer engagement in real time
+- **Roof measurements** — request automated roof measurements for homeowner addresses and poll for results
+- **Appointment scheduling** — let viewers book appointments directly from the presentation
+- **Voice commands** — detect navigation, audio, and CTA commands from voice or text input during playback
 - **Multi-language support** — present in English, Spanish, French, German, Portuguese, Italian, Chinese, or Japanese
 
 ## Authentication
 
-Most API endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.
+Most API endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access. Appointment and event tracking endpoints use an HMAC-signed presentation token passed via the `x-presentation-token` header.
 
 For portal integrations, Sales CoPilot supports SSO via `GET /api/auth/sso?code={authCode}`. The portal redirects users with a short-lived authorization code that is exchanged for an access token server-side. Pass `embedded=1` when running inside an iframe and an optional `theme` parameter (`light` or `dark`) to match the portal appearance on first render.
 
@@ -35,10 +38,10 @@ For portal integrations, Sales CoPilot supports SSO via `GET /api/auth/sso?code=
     Create your first deck and presentation in minutes
   </Card>
   <Card
-    title="API reference"
-    icon="code"
-    href="/sales-copilot/quickstart"
+    title="Guides"
+    icon="book"
+    href="/sales-copilot/guides/deck-types"
   >
-    Explore the full REST API in the sidebar
+    Learn about deck types, branding, FAQs, and narration
   </Card>
 </CardGroup>
