@@ -22,6 +22,8 @@ Sales CoPilot by Demand IQ lets you build AI-narrated sales presentations with i
 
 Most API endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.
 
+For portal integrations, Sales CoPilot supports SSO via `GET /api/auth/sso?code={authCode}`. The portal redirects users with a short-lived authorization code that is exchanged for an access token server-side. Pass `embedded=1` when running inside an iframe and an optional `theme` parameter (`light` or `dark`) to match the portal appearance on first render.
+
 ## Get started
 
 <CardGroup cols={2}>

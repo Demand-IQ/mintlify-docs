@@ -289,6 +289,18 @@
           "text": {
             "type": "string",
             "example": "#202124"
+          },
+          "userMessage": {
+            "type": "string",
+            "nullable": true,
+            "description": "Background color for homeowner chat message bubbles. Falls back to primary color if not set.",
+            "example": "#1a73e8"
+          },
+          "assistantMessage": {
+            "type": "string",
+            "nullable": true,
+            "description": "Background color for AI assistant chat message bubbles.",
+            "example": "#f1f3f4"
           }
         },
         "required": [
