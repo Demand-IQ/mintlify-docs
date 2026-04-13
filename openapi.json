@@ -2249,7 +2249,7 @@
       "get": {
         "tags": ["Authentication"],
         "summary": "Portal SSO via auth code exchange",
-        "description": "Exchanges a short-lived authorization code for an access token via the Core API, creates a new session, and redirects to the requested path. Used by the portal to embed Sales CoPilot in an iframe.\n\nFlow:\n1. Exchange `code` via Core API `POST /auth/code/exchange` (Basic auth with SSO client credentials)\n2. Validate the returned access token via `/user/me` to get user/org info\n3. Create a new session (always — never reuses an existing one)\n4. Set session cookie (plus embedded cookie if `embedded=1`)\n5. Revoke any prior session (best-effort)\n6. Redirect to a clean URL (no `code` param in the final location)",
+        "description": "Exchanges a short-lived authorization code for an access token via the Core API, creates a new session, and redirects to the requested path. Used by the portal to embed Sales CoPilot in an iframe.\n\nFlow:\n1. Exchange `code` via Core API `POST /auth/code/exchange` (Basic auth with SSO client credentials)\n2. Validate the returned access token via `/user/me` to get user/org info\n3. Create a new session (always — never reuses an existing one)\n4. Set session cookie (plus embedded cookie if `embedded=1`)\n5. Revoke any prior session (best-effort)\n6. Redirect to a clean URL (no `code` param in the final location)\n\nRedirect URLs use the `APP_URL` environment variable as the canonical base origin when set. This is required for production deployments behind a load balancer where the internal hostname differs from the public URL.",
         "parameters": [
           {
             "in": "query",
