@@ -4014,6 +4014,51 @@
         }
       }
     },
+    "/api/intent/continue": {
+      "post": {
+        "tags": ["Q&A"],
+        "summary": "Classify viewer intent after Q&A",
+        "description": "Uses AI (with regex fallback) to classify a viewer's natural-language response during a Q&A pause. Returns whether the viewer wants to continue the presentation, go back to the previous slide, or ask another question.\n\nWhen the viewer was navigated to a different slide to answer a question, the classification includes a `go_back` option so they can return to where they were.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userResponse", "promptText"],
+                "properties": {
+                  "userResponse": { "type": "string", "minLength": 1, "description": "The viewer's spoken or typed response" },
+                  "promptText": { "type": "string", "minLength": 1, "description": "The prompt that was shown to the viewer (e.g. \"Would you like to continue?\")" },
+                  "didNavigateToNewSlide": { "type": "boolean", "default": false, "description": "Whether the viewer was navigated to a different slide to answer their question" },
+                  "currentSlideTitle": { "type": "string", "description": "Title of the slide currently displayed (used for context when classifying)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Classification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "intent": { "type": "string", "enum": ["continue", "go_back", "question"], "description": "`continue` — resume the presentation from the current slide. `go_back` — return to the slide before the Q&A detour (only when `didNavigateToNewSlide` is true). `question` — the viewer has a new question." },
+                    "shouldContinue": { "type": "boolean", "description": "`true` when intent is `continue` or `go_back`, `false` when `question`" }
+                  },
+                  "required": ["intent", "shouldContinue"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
     "/api/actions": {
       "post": {
         "tags": ["Actions"],
