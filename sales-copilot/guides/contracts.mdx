@@ -1,0 +1,83 @@
+---
+title: Contracts & e-signature
+description: Import contract templates, configure signing requirements, and collect typed signatures during presentations.
+---
+
+Contracts let homeowners sign agreements directly inside a presentation. You upload a contract document, Sales CoPilot converts it to a template with variable placeholders, and viewers sign with a typed signature at the end of the presentation.
+
+## How it works
+
+1. **Import** a contract (PDF or Word) — Sales CoPilot extracts the text and identifies variables like names, dates, and addresses
+2. **Edit the template** — refine the markdown template, add disclosures, and configure signing requirements
+3. **Publish** — once published, the contract appears as a signing step in the presentation
+4. **Viewer signs** — the homeowner reviews the contract with their details filled in, types their name as a signature, and submits
+
+Signed documents are stored with a full audit trail including timestamp, IP address, and the exact contract text the viewer agreed to.
+
+## Import a contract document
+
+In the deck editor, open the **Actions** tab and click **Import Contract**.
+
+Upload a PDF or Word document (max 10 MB). Sales CoPilot uses AI to analyze the document and convert it to a markdown template. It detects variables like `{{full_name}}`, `{{address}}`, and `{{date}}` that get replaced with the homeowner's real information when the contract is presented.
+
+After import, you'll see:
+- The generated **markdown template** — editable
+- A list of **detected variables** that will be auto-filled from homeowner data
+
+## Configure the template
+
+Each contract template (called an "action config") has several fields:
+
+- **Template Markdown** — the contract text with `{{variable}}` placeholders. Supports standard markdown formatting.
+- **Disclosures Markdown** — optional fine print shown below the contract
+- **Requirements** — controls what the signer must do:
+  - Typed signature required
+  - Signature must match the expected customer name
+  - "I agree" checkbox with custom label
+- **Rep Name** — the sales representative name shown on the contract
+- **Status** — `draft` or `published`. Only published templates are shown to presentation viewers.
+
+## Template variables
+
+Variables in double curly braces are replaced with real values when a homeowner views the contract. Available variables include:
+
+| Variable | Source |
+|----------|--------|
+| `{{full_name}}` | Homeowner's full name |
+| `{{first_name}}` | Homeowner's first name |
+| `{{last_name}}` | Homeowner's last name |
+| `{{address}}` | Street address |
+| `{{city}}` | City |
+| `{{state}}` | State |
+| `{{zip}}` | ZIP code |
+| `{{date}}` | Current date |
+| `{{company_name}}` | Your company name |
+| `{{rep_name}}` | Sales rep name |
+
+Product selections (from product pricing slides) are also available — if the homeowner selected a product tier during the presentation, the selected product name and price are included.
+
+## Signing flow
+
+When a viewer reaches the signing step:
+
+1. They see the contract with all variables filled in
+2. If requirements are configured, they must check the agreement checkbox
+3. They type their full name as a signature
+4. If name matching is enabled, the typed signature is validated against the homeowner's name
+5. On successful signing, an audit-trailed document is created and a `contract.signed` event is emitted
+
+## Multiple templates per deck
+
+A deck can have multiple action configs (contract templates), but only one should be published at a time. When a viewer signs, the published template is used by default. You can also specify a particular config by ID.
+
+## API reference
+
+Key contract endpoints:
+
+- `POST /api/contracts/import` — upload and analyze a contract document
+- `GET/POST /api/decks/{deckId}/action-configs` — list or create contract templates
+- `GET/PUT/DELETE /api/decks/{deckId}/action-configs/{configId}` — manage a specific template
+- `GET /api/presentations/{presentationId}/sign-contract` — get the rendered contract for signing
+- `POST /api/presentations/{presentationId}/sign-contract` — submit a signature
+
+See the **API Reference** tab for full request and response details.
