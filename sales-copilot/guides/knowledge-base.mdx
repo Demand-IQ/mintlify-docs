@@ -1,0 +1,87 @@
+---
+title: Knowledge base
+description: Upload company documents and configure your AI profile to improve how Sales CoPilot answers customer questions.
+---
+
+The knowledge base gives Sales CoPilot deeper knowledge about your company, products, and services. When a homeowner asks a question that isn't covered by your FAQs, Sales CoPilot searches your knowledge base documents for relevant information and uses it to generate a more accurate, on-brand answer.
+
+## Company profile
+
+The knowledge base profile tells Sales CoPilot how to represent your company when answering questions. Open the **Settings** page to configure these fields:
+
+- **Tagline** — a short description of your company, e.g. "Arizona's #1 rated solar installer since 2015"
+- **About** — a paragraph about what your company does, your specialties, and what sets you apart
+- **Trust signals** — certifications, awards, ratings, or other credibility markers (e.g. "BBB A+ rating, 500+ 5-star reviews")
+- **Service coverage** — the areas you serve (e.g. "Phoenix metro area, Tucson, and Southern Arizona")
+- **Answer style** — how you want the AI to sound when answering questions (e.g. "Friendly and professional. Use simple language. Avoid technical jargon unless the customer asks for details.")
+
+These fields are used as context whenever Sales CoPilot generates an answer, so they influence the tone and content of every AI response.
+
+## Upload documents
+
+You can upload up to 5 documents per organization. Supported formats:
+
+| Format | Extensions |
+|--------|-----------|
+| PDF | `.pdf` |
+| Word | `.docx`, `.doc` |
+| Plain text | `.txt` |
+| Markdown | `.md` |
+| HTML | `.html` |
+| Spreadsheets | `.xlsx`, `.xls`, `.csv` |
+| Images | `.png`, `.jpg`, `.webp` |
+
+Maximum file size is 25 MB per document.
+
+### How uploads work
+
+Document upload is a two-step process:
+
+1. **Initiate** — you tell Sales CoPilot about the file (name, type, size) and receive a presigned upload URL
+2. **Upload and complete** — you upload the file directly to storage using the presigned URL, then notify Sales CoPilot that the upload is finished
+
+After you complete the upload, Sales CoPilot automatically processes the document in the background:
+
+- Extracts text from the document
+- Splits it into smaller chunks
+- Creates embeddings for semantic search
+
+You can check the document status to track processing progress. Status values are:
+
+| Status | Meaning |
+|--------|---------|
+| `uploading` | Upload initiated, waiting for file |
+| `pending` | File received, queued for processing |
+| `processing` | Text extraction and embedding in progress |
+| `ready` | Document is searchable |
+| `failed` | Processing failed — try re-uploading |
+
+## How the knowledge base improves Q&A
+
+When a homeowner asks a question during a presentation:
+
+1. Sales CoPilot first checks your **FAQs** for an exact or semantic match
+2. If no FAQ matches, it searches your **knowledge base documents** for relevant passages
+3. It combines the relevant passages with the current **slide context** and your **company profile**
+4. The AI generates an answer using all of this context
+
+This means your knowledge base documents fill in the gaps that FAQs don't cover — product specifications, warranty details, pricing structures, installation procedures, or anything else your customers might ask about.
+
+## Best practices
+
+- **Upload your most-asked-about documents first** — product brochures, warranty terms, and pricing guides give the AI the most useful context
+- **Keep documents current** — if your pricing or product lineup changes, replace the old document with an updated version
+- **Write a clear answer style** — the more specific your answer style guidance, the more consistent the AI's responses will be
+- **Use FAQs for your top questions** — FAQs give exact, word-for-word control. Use the knowledge base for the long tail of questions you can't predict
+
+## API reference
+
+Key knowledge base endpoints:
+
+- `GET/PUT /api/company/kb/profile` — get or update the company AI profile
+- `GET /api/company/kb/documents` — list uploaded documents with usage metadata
+- `POST /api/company/kb/documents/upload-init` — initiate a document upload
+- `POST /api/company/kb/documents/complete` — mark an upload as complete to trigger processing
+- `GET/DELETE /api/company/kb/documents/{documentId}` — get or remove a specific document
+
+See the **API Reference** tab for full request and response details.

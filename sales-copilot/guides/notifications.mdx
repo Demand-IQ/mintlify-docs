@@ -1,0 +1,114 @@
+---
+title: Notifications
+description: Subscribe to presentation events via webhooks or email to track viewer engagement in real time.
+---
+
+Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and Sales CoPilot delivers them to your webhook endpoint, email inbox, or console log.
+
+## Event types
+
+Sales CoPilot emits these events:
+
+| Event type | Fired when |
+|------------|------------|
+| `presentation.opened` | A viewer opens a presentation link |
+| `slide.viewed` | A viewer watches a slide (includes duration) |
+| `cta.clicked` | A viewer clicks a call-to-action button |
+| `contract.signed` | A viewer signs a contract |
+| `question.asked` | A viewer asks a question during Q&A |
+| `appointment.booked` | A viewer books an appointment |
+
+Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it.
+
+## Create a subscription
+
+In the deck editor, open the **Settings** tab to manage notification subscriptions. You can also create subscriptions via the API.
+
+Each subscription needs:
+
+- **Name** — a label for your reference, e.g. "Slack — new presentation opened"
+- **Event type** — which event to listen for (e.g. `presentation.opened`)
+- **Channel** — how to deliver the notification
+- **Channel config** — channel-specific settings (see below)
+- **Deck scope** (optional) — limit to events from a specific deck, or leave blank for all decks
+
+## Delivery channels
+
+### Webhook
+
+Sends an HTTP POST request to your URL with the event payload as JSON.
+
+Channel config:
+```json
+{
+  "url": "https://your-server.com/webhooks/sales-copilot",
+  "headers": {
+    "Authorization": "Bearer your-secret-token"
+  }
+}
+```
+
+The webhook payload follows this structure:
+
+```json
+{
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_type": "presentation.opened",
+  "event_version": 1,
+  "organization_id": "org-uuid",
+  "occurred_at": "2026-01-15T10:30:00Z",
+  "payload": {
+    "presentationId": "pres-uuid",
+    "deckId": "deck-uuid"
+  }
+}
+```
+
+Webhook deliveries that fail are retried with exponential backoff.
+
+### Email
+
+Sends a formatted email notification to one or more recipients.
+
+Channel config:
+```json
+{
+  "toEmails": ["sales@yourcompany.com", "manager@yourcompany.com"]
+}
+```
+
+You can add up to 20 email recipients per subscription.
+
+### Console
+
+Logs events to the server console. Useful for development and debugging.
+
+```json
+{}
+```
+
+## Event log
+
+Sales CoPilot keeps a log of all events for your organization. You can query the log to see what happened during a presentation, filter by event type, or look at events within a time range.
+
+The event log supports filtering by:
+
+- **Event type** — e.g. only `contract.signed` events
+- **Aggregate type** — e.g. only presentation-level events
+- **Aggregate ID** — events for a specific presentation
+- **Time range** — `since` and `until` parameters
+- **Pagination** — `limit` (max 100) and `offset`
+
+## Managing subscriptions
+
+You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
+
+## API reference
+
+Key notification endpoints:
+
+- `GET/POST /api/notifications/subscriptions` — list or create subscriptions
+- `GET/PUT/DELETE /api/notifications/subscriptions/{subscriptionId}` — manage a specific subscription
+- `GET /api/notifications/events` — query the event log with filters and pagination
+
+See the **API Reference** tab for full request and response details.
