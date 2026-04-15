@@ -385,7 +385,7 @@
           "name": { "type": "string" },
           "eventType": { "type": "string" },
           "channel": { "type": "string", "enum": ["webhook", "email", "console"] },
-          "channelConfig": { "type": "object", "description": "Channel-specific configuration (e.g. URL for webhook, recipients for email)" },
+          "channelConfig": { "type": "object", "description": "Channel-specific configuration (e.g. URL for webhook, toEmails for email)" },
           "deckId": { "type": "string", "format": "uuid", "nullable": true },
           "isActive": { "type": "boolean" },
           "createdAt": { "type": "string", "format": "date-time" },
@@ -2988,9 +2988,9 @@
                 "required": ["name", "eventType", "channel", "channelConfig"],
                 "properties": {
                   "name": { "type": "string", "example": "Slack — new presentation" },
-                  "eventType": { "type": "string", "example": "presentation.created" },
+                  "eventType": { "type": "string", "example": "presentation.opened" },
                   "channel": { "type": "string", "enum": ["webhook", "email", "console"] },
-                  "channelConfig": { "type": "object", "description": "Channel-specific config. Webhook: `{ url }`. Email: `{ recipients: [\"a@b.com\"] }`." },
+                  "channelConfig": { "type": "object", "description": "Channel-specific config. Webhook: `{ url }`. Email: `{ toEmails: [\"a@b.com\"] }`." },
                   "deckId": { "type": "string", "format": "uuid", "description": "Scope to a specific deck (optional)" },
                   "isActive": { "type": "boolean", "default": true }
                 }
