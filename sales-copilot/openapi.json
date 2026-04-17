@@ -20,50 +20,26 @@
     }
   ],
   "tags": [
-    {
-      "name": "Decks",
-      "description": "Manage presentation decks"
-    },
-    {
-      "name": "Slides",
-      "description": "Manage slides within a deck"
-    },
-    {
-      "name": "FAQs",
-      "description": "Manage pre-built Q&A pairs"
-    },
-    {
-      "name": "Branding",
-      "description": "Colors, logo, and call-to-action configuration"
-    },
-    {
-      "name": "Q&A",
-      "description": "Live question answering and Q&A settings"
-    },
-    {
-      "name": "Narration",
-      "description": "Text-to-speech synthesis"
-    },
-    {
-      "name": "Presentations",
-      "description": "Create and manage personalized presentation instances"
-    },
-    {
-      "name": "Generation",
-      "description": "AI-powered content generation from slide images"
-    },
-    {
-      "name": "Images",
-      "description": "Image upload and management"
-    },
-    {
-      "name": "Voices",
-      "description": "Available TTS voices"
-    },
-    {
-      "name": "Utility",
-      "description": "Health check and diagnostics"
-    }
+    { "name": "Decks", "description": "Manage presentation decks" },
+    { "name": "Slides", "description": "Manage slides within a deck" },
+    { "name": "FAQs", "description": "Manage pre-built Q&A pairs" },
+    { "name": "Branding", "description": "Colors, logo, and call-to-action configuration" },
+    { "name": "Q&A", "description": "Live question answering and Q&A settings" },
+    { "name": "Narration", "description": "Text-to-speech synthesis" },
+    { "name": "Presentations", "description": "Create and manage personalized presentation instances" },
+    { "name": "Generation", "description": "AI-powered content generation from slide images" },
+    { "name": "Images", "description": "Image upload and management" },
+    { "name": "Voices", "description": "Available TTS voices" },
+    { "name": "Utility", "description": "Health check and diagnostics" },
+    { "name": "Authentication", "description": "Session-based login, logout, and identity" },
+    { "name": "Company", "description": "Organization contact info and knowledge base" },
+    { "name": "Notifications", "description": "Event subscriptions and delivery log" },
+    { "name": "Contracts", "description": "Contract template import and e-signature" },
+    { "name": "Fonts", "description": "Available Google Fonts for branding" },
+    { "name": "Roof Measurements", "description": "Request and track automated roof measurements" },
+    { "name": "Actions", "description": "Voice/text command detection for presentation control" },
+    { "name": "Appointments", "description": "Appointment scheduling for presentation viewers" },
+    { "name": "Activity", "description": "Recent presentation activity feed" }
   ],
   "components": {
     "securitySchemes": {
@@ -75,6 +51,20 @@
       }
     },
     "schemas": {
+      "ActivityEvent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "eventType": { "type": "string", "description": "Event type, e.g. presentation.opened, slide.viewed, contract.signed" },
+          "payload": { "type": "object", "nullable": true, "description": "Event-specific data" },
+          "occurredAt": { "type": "string", "format": "date-time" },
+          "presentationId": { "type": "string", "format": "uuid", "nullable": true },
+          "presentationName": { "type": "string", "description": "Homeowner full name derived from presentation data" },
+          "address": { "type": "string", "nullable": true, "description": "Homeowner address (street, city, state)" },
+          "deckId": { "type": "string", "format": "uuid", "nullable": true, "description": "Template ID for deep-linking to the template editor" }
+        },
+        "required": ["id", "eventType", "occurredAt", "presentationName"]
+      },
       "WordTiming": {
         "type": "object",
         "properties": {
@@ -798,6 +788,35 @@
     }
   },
   "paths": {
+    "/api/activity": {
+      "get": {
+        "tags": ["Activity"],
+        "summary": "List recent activity",
+        "description": "Returns the 10 most recent presentation events for your organization, enriched with the homeowner name, address, and template ID for deep-linking.",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "List of recent activity events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ActivityEvent"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not authenticated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
     "/api/decks": {
       "get": {
         "tags": [
