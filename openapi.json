@@ -3937,7 +3937,7 @@
       "get": {
         "tags": ["Roof Measurements"],
         "summary": "Get roof measurement status",
-        "description": "Returns the current status and results of a roof measurement request. Poll this endpoint until the status reaches `completed`, `failed`, `timed_out`, or `cancelled`.",
+        "description": "Returns the current status and results of a roof measurement request. Poll this endpoint until the status reaches a terminal state (`completed`, `failed`, `timed_out`, `cancelled`, or `skipped`).\n\nA request moves through `pending` → `creating_prospect` → `requesting_ev` → `polling_ev` → `completed`. If the EagleView request fails (for example, when the address is unserviceable or the upstream API rejects it), the status transitions to `fetching_fallback` and the system attempts a calculated roof measurement before failing. When fallback succeeds, the result's `source` is `calc` instead of `ev`; the `error` field retains the original EagleView error message for debugging.",
         "parameters": [
           { "in": "path", "name": "requestId", "required": true, "schema": { "type": "string", "format": "uuid" }, "description": "UUID of the measurement request" }
         ],
