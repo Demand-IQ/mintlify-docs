@@ -55,9 +55,16 @@ Narration scripts support tokens that get replaced with the homeowner's real inf
 
 For example: `"Hi {{first_name}}, I'm reaching out about your home at {{address}}..."`
 
+## Journey-backed product slides
+
+Product pricing slides can be bound to a Demand IQ journey profile so their product names, prices, monthly payments, highlights, and images come directly from the live journey instead of being maintained manually. Open the product slide editor and pick a journey profile (for example, `roofing_v1` for residential roofing) — the journey-owned fields become read-only and refresh automatically for each homeowner. Any remaining fields (narration, CTA copy, supporting imagery) can still be edited in the deck.
+
+Product data for a slide is available via `GET /api/slides/{slideId}/product-data` and updated via `PUT /api/slides/{slideId}/product-data`. See the API Reference for full request and response shapes.
+
 ## Next steps
 
 With your slides in place, set up your branding and FAQs before creating presentations:
 
 - [Branding](/sales-copilot/guides/branding) — your colors, logo, and the landing page homeowners see first
 - [FAQs](/sales-copilot/guides/faqs) — pre-built answers to common questions
+- [Notifications](/sales-copilot/guides/notifications) — configure automated email delivery and subscribe to presentation events
