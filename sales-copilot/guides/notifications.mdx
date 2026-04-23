@@ -1,9 +1,9 @@
 ---
 title: Notifications
-description: Subscribe to presentation events via webhooks or email to track viewer engagement in real time.
+description: Subscribe to presentation events via webhooks or email, send presentation emails to homeowners, and track opens in real time.
 ---
 
-Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and Sales CoPilot delivers them to your webhook endpoint, email inbox, or console log.
+Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and Sales CoPilot delivers them to your webhook endpoint, email inbox, or console log. Sales CoPilot can also send the presentation link to homeowners on your behalf and emit events when the email is sent and opened.
 
 ## Event types
 
@@ -17,8 +17,10 @@ Sales CoPilot emits these events:
 | `contract.signed` | A viewer signs a contract |
 | `question.asked` | A viewer asks a question during Q&A |
 | `appointment.booked` | A viewer books an appointment |
+| `email.sent` | Sales CoPilot sends a presentation email to a homeowner |
+| `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
 
-Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it.
+Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. The `email.sent` and `email.opened` events include the delivery attempt ID and recipient addresses so you can correlate opens back to a specific send.
 
 ## Create a subscription
 
@@ -103,6 +105,21 @@ The event log supports filtering by:
 
 You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
 
+## Automated email delivery
+
+Sales CoPilot can email the presentation link directly to homeowners when a presentation is created. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. When delivery is enabled on a deck, calling the send endpoint triggers a SendGrid email and records a delivery attempt.
+
+Configure per-deck delivery settings from the **Delivery** tab in the deck editor, or via the API:
+
+- `GET /api/decks/{deckId}/delivery` — read the current delivery config
+- `PUT /api/decks/{deckId}/delivery` — enable delivery and set sender, subject, body, and CTA label
+
+Trigger a send (or resend) for a specific presentation:
+
+- `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`.
+
+Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, Sales CoPilot records the open on the delivery attempt and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track open rates in real time.
+
 ## API reference
 
 Key notification endpoints:
@@ -110,5 +127,7 @@ Key notification endpoints:
 - `GET/POST /api/notifications/subscriptions` — list or create subscriptions
 - `GET/PUT/DELETE /api/notifications/subscriptions/{subscriptionId}` — manage a specific subscription
 - `GET /api/notifications/events` — query the event log with filters and pagination
+- `GET/PUT /api/decks/{deckId}/delivery` — manage per-deck email delivery settings
+- `POST /api/presentations/{presentationId}/send` — send or resend the homeowner email
 
 See the **API Reference** tab for full request and response details.
