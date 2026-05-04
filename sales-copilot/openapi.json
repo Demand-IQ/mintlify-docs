@@ -63,6 +63,14 @@
     {
       "name": "Utility",
       "description": "Health check and diagnostics"
+    },
+    {
+      "name": "Templates",
+      "description": "Browse the global template library and instantiate templates into your organization"
+    },
+    {
+      "name": "Activity",
+      "description": "Recent presentation events for the authenticated organization"
     }
   ],
   "components": {
@@ -782,6 +790,330 @@
           "voice_id",
           "name",
           "category"
+        ]
+      },
+      "TemplateSummary": {
+        "type": "object",
+        "description": "A deck published to the global template library.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "free",
+              "premium"
+            ],
+            "description": "Entitlement tier. Premium templates require an active subscription to instantiate."
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "previewImageUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "Accessible URL for the first slide image in the template"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tier",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TemplatePreview": {
+        "type": "object",
+        "description": "Rich preview data for a global template, including slide thumbnails and example questions.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "free",
+              "premium"
+            ]
+          },
+          "slideCount": {
+            "type": "integer"
+          },
+          "faqCount": {
+            "type": "integer"
+          },
+          "slides": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "bullets": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "orderIndex": {
+                  "type": "integer"
+                },
+                "heroImgUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "nullable": true,
+                  "description": "Accessible URL for the slide thumbnail"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "bullets",
+                "orderIndex"
+              ]
+            }
+          },
+          "faqSamples": {
+            "type": "array",
+            "description": "Up to five example questions surfaced in the preview dialog.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "question": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "question"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tier",
+          "slideCount",
+          "faqCount",
+          "slides",
+          "faqSamples"
+        ]
+      },
+      "AdminTemplate": {
+        "type": "object",
+        "description": "A template owned by the current author org, returned from the moderation list.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "free",
+              "premium"
+            ],
+            "nullable": true
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "global"
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "publishedByOrganizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "visibility",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PresentationListItem": {
+        "type": "object",
+        "description": "A single presentation in the org-wide list, joined with deck name.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "deckName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Resolved deck name, or null if the deck was deleted"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "pending",
+              "processing",
+              "ready",
+              "failed"
+            ]
+          },
+          "firstViewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "homeownerData": {
+            "$ref": "#/components/schemas/HomeownerData"
+          },
+          "voiceSettings": {
+            "type": "object",
+            "nullable": true
+          },
+          "languageSettings": {
+            "type": "object",
+            "nullable": true
+          },
+          "snapshotMetadata": {
+            "type": "object",
+            "nullable": true,
+            "description": "Snapshot of deck metadata at presentation creation time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ActivityEvent": {
+        "type": "object",
+        "description": "A presentation event enriched with homeowner and deck context for display.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Event name, for example `presentation.created` or `email.opened`"
+          },
+          "payload": {
+            "type": "object",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "presentationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "presentationName": {
+            "type": "string",
+            "description": "Homeowner full name, or `Unknown` if not set"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true,
+            "description": "Concatenated homeowner address, city, and state"
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "deckName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Resolved deck name, falling back to the snapshot if the deck was deleted"
+          }
+        },
+        "required": [
+          "id",
+          "eventType",
+          "occurredAt",
+          "presentationName"
         ]
       },
       "Error": {
@@ -3784,6 +4116,616 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Voice"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presentations": {
+      "get": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "List all presentations for the organization",
+        "description": "Returns every non-deleted presentation across all decks in the authenticated organization, joined with the deck name. Ordered by most recently updated. Used by the My Presentations dashboard.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of presentations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "presentations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PresentationListItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/library": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List global templates",
+        "description": "Returns every active template published to the global library, sorted by tier (free first) then most recent. The owning author org is intentionally not included so customers cannot see who published each template.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TemplateSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/{deckId}/preview": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Preview a template",
+        "description": "Returns slide thumbnails, slide and FAQ counts, and up to five example questions so customers can evaluate a template before instantiating it. Returns 404 for any deck that is not visibility=`global` and active, even when the caller is signed in (defense-in-depth so private decks never leak).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the template deck"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+                      "$ref": "#/components/schemas/TemplatePreview"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found, not global, or inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/{deckId}/use": {
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Instantiate a template",
+        "description": "Deep-copies the global template into the caller's organization. Both database rows and S3 assets are duplicated, so the new deck is fully independent of the source and can be edited freely. Returns 403 with `code: PREMIUM_LOCKED` when the source template is `tier=premium` until a subscription entitlement is attached.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the source template"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Optional override for the new deck's name. Defaults to the source name; collisions are renamed automatically."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template instantiated as a new deck in the caller's organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Premium template requires an active subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "PREMIUM_LOCKED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found, not global, or inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/templates": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List templates owned by your organization",
+        "description": "Moderation list for library author orgs. Returns the global templates owned by the authenticated org so you can see exactly which rows you can edit, republish, or unpublish. Requires the `is_library_author` flag on the organization.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates owned by the current author org",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminTemplate"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization is not a library author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/publish": {
+      "put": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Publish or republish a deck to the library",
+        "description": "Publishes the deck to the global template library, or bumps `publishedAt` if it is already published. The same endpoint serves both initial publish and the explicit Republish action used after edits. Requires the caller's organization to own the deck and have `is_library_author` set.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck to publish"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tier"
+                ],
+                "properties": {
+                  "tier": {
+                    "type": "string",
+                    "enum": [
+                      "free",
+                      "premium"
+                    ],
+                    "description": "Entitlement tier for the published template"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deck published or republished",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid `tier`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization is not a library author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found or not owned by the current organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Unpublish a deck from the library",
+        "description": "Reverts the deck to `visibility=private` and clears its tier and publish timestamps. Customer-instantiated copies are unaffected — they live as separate rows in their own organizations.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck to unpublish"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deck unpublished",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization is not a library author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found or not owned by the current organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Recent presentation activity",
+        "description": "Returns the ten most recent presentation events for the authenticated organization, enriched with homeowner name, address, and deck name for deep-linking. The deck name falls back to the snapshot stored on the presentation if the deck has since been deleted.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent presentation events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ActivityEvent"
                       }
                     }
                   }
