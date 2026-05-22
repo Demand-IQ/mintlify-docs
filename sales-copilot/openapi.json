@@ -1360,12 +1360,12 @@
                   },
                   "audioUrl": {
                     "type": "string",
-                    "description": "S3 key for pre-recorded audio"
+                    "description": "S3 key for pre-recorded audio. A presigned URL is also accepted; the server extracts and stores the key."
                   },
                   "heroImg": {
                     "type": "string",
                     "nullable": true,
-                    "description": "S3 key for slide image"
+                    "description": "S3 key for slide image. A presigned URL is also accepted; the server extracts and stores the key."
                   },
                   "orderIndex": {
                     "type": "integer"
