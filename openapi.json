@@ -95,6 +95,26 @@
           "type": { "type": "string", "enum": ["structured", "image-based"] },
           "isActive": { "type": "boolean" },
           "previewImageUrl": { "type": "string", "format": "uri", "nullable": true, "description": "Presigned URL for the first slide image" },
+          "firstSlideType": {
+            "type": "string",
+            "enum": ["standard", "product_pricing_v1"],
+            "nullable": true,
+            "description": "Slide type of the deck's first slide, or `null` if the deck has no slides. Used by clients to decide whether to render a product tier-card preview instead of the hero image."
+          },
+          "firstSlideProductData": {
+            "allOf": [{ "$ref": "#/components/schemas/ProductSlideData" }],
+            "nullable": true,
+            "description": "Product slide configuration for the deck's first slide when `firstSlideType` is `product_pricing_v1`. `null` otherwise."
+          },
+          "brandingColors": {
+            "type": "object",
+            "nullable": true,
+            "description": "Subset of the deck's branding palette used to render product slide previews. `null` if the deck has no branding configured.",
+            "properties": {
+              "primary": { "type": "string", "nullable": true, "example": "#1a73e8" },
+              "neutral": { "type": "string", "nullable": true, "example": "#5f6368" }
+            }
+          },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         },
