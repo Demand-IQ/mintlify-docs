@@ -115,10 +115,11 @@
               "neutral": { "type": "string", "nullable": true, "example": "#5f6368" }
             }
           },
+          "tags": { "type": "array", "items": { "type": "string" }, "description": "Free-form labels stored on the deck metadata. Defaults to an empty array.", "default": [] },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         },
-        "required": ["id", "name", "type", "isActive", "createdAt", "updatedAt"]
+        "required": ["id", "name", "type", "isActive", "tags", "createdAt", "updatedAt"]
       },
       "Slide": {
         "type": "object",
@@ -606,7 +607,8 @@
                   "description": { "type": "string", "nullable": true },
                   "type": { "type": "string", "enum": ["structured", "image-based"] },
                   "isActive": { "type": "boolean" },
-                  "deckContext": { "type": "string", "nullable": true }
+                  "deckContext": { "type": "string", "nullable": true },
+                  "tags": { "type": "array", "items": { "type": "string" }, "nullable": true, "description": "Replaces the deck's tag list. Pass an empty array or `null` to clear all tags. Falsy entries are filtered out." }
                 }
               }
             }
