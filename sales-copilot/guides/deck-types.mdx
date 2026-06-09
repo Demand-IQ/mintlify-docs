@@ -42,6 +42,17 @@ The **Slides** tab shows each slide with its generated title, narration script, 
 
 Slides can be reordered by dragging them into the order you want.
 
+## Start from a template
+
+Instead of building a deck from scratch, you can start from a published template or duplicate one of your existing decks:
+
+- **Browse the library** — `GET /api/templates/library` returns the catalog of free and premium templates, each with a thumbnail and tier.
+- **Preview before you commit** — `GET /api/templates/{deckId}/preview` returns the slide list, sample FAQs, and counts so you can review the contents.
+- **Instantiate** — `POST /api/templates/{deckId}/use` deep-copies the template into your organization. The new deck is fully independent — edits to the source template do not propagate. Premium templates require an active subscription.
+- **Duplicate one of your decks** — `POST /api/decks/{deckId}/duplicate` copies a deck you already own, including all slides, FAQs, branding, and uploaded images. The duplicate is private and never inherits the source's published or library state.
+
+Both endpoints accept an optional `name` in the request body to override the default copy name. If a name collision occurs, the new deck is auto-renamed (for example, `Spring Pitch (Copy 2)`).
+
 ## Personalization tokens
 
 Narration scripts support tokens that get replaced with the homeowner's real information when a presentation is created. Type `{` in any script field to insert one:
