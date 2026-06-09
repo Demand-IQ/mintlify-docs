@@ -3,7 +3,7 @@
   "info": {
     "title": "Sales CoPilot API",
     "version": "1.0.0",
-    "description": "REST API for Sales CoPilot — an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
+    "description": "REST API for Sales CoPilot \u2014 an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
     "contact": {
       "name": "Demand IQ",
       "url": "https://demand-iq.com"
@@ -63,6 +63,10 @@
     {
       "name": "Utility",
       "description": "Health check and diagnostics"
+    },
+    {
+      "name": "Templates",
+      "description": "Browse and instantiate shared deck templates"
     }
   ],
   "components": {
@@ -2495,7 +2499,7 @@
           "Generation"
         ],
         "summary": "Start AI generation from images",
-        "description": "Accepts uploaded slide images, runs them through GPT-4o Vision to extract content, generates narration scripts, and synthesizes audio. Returns a job ID — poll `/api/decks/{deckId}/generate/status` for progress.",
+        "description": "Accepts uploaded slide images, runs them through GPT-4o Vision to extract content, generates narration scripts, and synthesizes audio. Returns a job ID \u2014 poll `/api/decks/{deckId}/generate/status` for progress.",
         "security": [
           {
             "sessionCookie": []
@@ -3133,7 +3137,7 @@
           "Q&A"
         ],
         "summary": "Answer a question",
-        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at ≥ 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
+        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at \u2265 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
         "requestBody": {
           "required": true,
           "content": {
@@ -3833,6 +3837,444 @@
                       "type": "boolean"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/duplicate": {
+      "post": {
+        "tags": [
+          "Decks"
+        ],
+        "summary": "Duplicate a deck",
+        "description": "Creates an independent copy of one of your own decks in the same organization, including all slides, FAQs, branding, Q&A settings, and uploaded images. The copy is private and never inherits the source's published or library state. If a name collision occurs, the new deck is auto-renamed (for example, \"Spring Pitch (Copy)\", \"Spring Pitch (Copy 2)\").",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Override name for the duplicate. Defaults to \"<source name> (Copy)\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deck duplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source deck not found in your organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/library": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List library templates",
+        "description": "Returns the catalog of globally published deck templates available to your organization, ordered by tier (free first) then by most recently published. Each entry includes a preview image taken from the first slide.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "tier": {
+                            "type": "string",
+                            "enum": [
+                              "free",
+                              "premium"
+                            ],
+                            "description": "Pricing tier. Premium templates require an active subscription to instantiate."
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "previewImageUrl": {
+                            "type": "string",
+                            "format": "uri",
+                            "nullable": true,
+                            "description": "Signed URL for a thumbnail taken from the first slide."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/{deckId}/preview": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Preview a template",
+        "description": "Returns rich preview data for a globally published template so you can review its contents before instantiating it. Only returns templates with global visibility \u2014 private decks belonging to other organizations are not exposed.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "tier": {
+                          "type": "string",
+                          "enum": [
+                            "free",
+                            "premium"
+                          ]
+                        },
+                        "slideCount": {
+                          "type": "integer"
+                        },
+                        "faqCount": {
+                          "type": "integer"
+                        },
+                        "slides": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "bullets": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "orderIndex": {
+                                "type": "integer"
+                              },
+                              "heroImgUrl": {
+                                "type": "string",
+                                "format": "uri",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "faqSamples": {
+                          "type": "array",
+                          "description": "Up to five sample FAQ questions from the template.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "question": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found or not globally published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/{deckId}/use": {
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Instantiate a template",
+        "description": "Creates a new deck in your organization by deep-copying a globally published template, including all slides, FAQs, branding, Q&A settings, and uploaded images. The new deck is fully independent \u2014 future edits to the source template do not propagate. Premium templates require an active subscription; calls against a premium template return 403 with `code: \"PREMIUM_LOCKED\"`.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Override name for the new deck. Defaults to the template name (auto-renamed on collision)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template instantiated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Premium template \u2014 subscription required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "PREMIUM_LOCKED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found or not globally published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
