@@ -107,12 +107,14 @@ You can enable, disable, update, or delete subscriptions at any time. Disabling 
 
 ## Automated email delivery
 
-Sales CoPilot can email the presentation link directly to homeowners when a presentation is created. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. When delivery is enabled on a deck, calling the send endpoint triggers a SendGrid email and records a delivery attempt.
+Sales CoPilot emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
+
+A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
 
 Configure per-deck delivery settings from the **Delivery** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
-- `PUT /api/decks/{deckId}/delivery` — enable delivery and set sender, subject, body, and CTA label
+- `PUT /api/decks/{deckId}/delivery` — set sender, subject, body, and CTA label
 
 Trigger a send (or resend) for a specific presentation:
 
