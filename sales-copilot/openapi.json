@@ -3,7 +3,7 @@
   "info": {
     "title": "Sales CoPilot API",
     "version": "1.0.0",
-    "description": "REST API for Sales CoPilot \u2014 an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
+    "description": "REST API for Sales CoPilot — an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
     "contact": {
       "name": "Demand IQ",
       "url": "https://demand-iq.com"
@@ -47,10 +47,6 @@
     {
       "name": "Presentations",
       "description": "Create and manage personalized presentation instances"
-    },
-    {
-      "name": "Ingest",
-      "description": "Create presentations from upstream journey completion events"
     },
     {
       "name": "Generation",
@@ -2499,7 +2495,7 @@
           "Generation"
         ],
         "summary": "Start AI generation from images",
-        "description": "Accepts uploaded slide images, runs them through GPT-4o Vision to extract content, generates narration scripts, and synthesizes audio. Returns a job ID \u2014 poll `/api/decks/{deckId}/generate/status` for progress.",
+        "description": "Accepts uploaded slide images, runs them through GPT-4o Vision to extract content, generates narration scripts, and synthesizes audio. Returns a job ID — poll `/api/decks/{deckId}/generate/status` for progress.",
         "security": [
           {
             "sessionCookie": []
@@ -2889,152 +2885,6 @@
         }
       }
     },
-    "/api/decks/{deckId}/ingest": {
-      "post": {
-        "tags": [
-          "Ingest"
-        ],
-        "summary": "Ingest a journey completion",
-        "description": "Creates a personalized presentation from a Demand IQ journey completion event. Pass the prospect identifier and the upstream event ID; Sales CoPilot fetches the authoritative homeowner, pricing, and product data from the Core API and provisions a presentation against the specified deck.\n\n**Idempotency**: a duplicate `source_event_id` for the same deck returns the existing `presentation_id` without creating a new presentation or sending any email.\n\n**Delivery**: if delivery is enabled on the deck, the presentation link is emailed to the homeowner automatically. The `send_status` field reports the outcome.",
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "deckId",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "UUID of the deck to create the presentation from"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "prospect_id",
-                  "source_event_id"
-                ],
-                "properties": {
-                  "prospect_id": {
-                    "type": "string",
-                    "description": "Identifier of the prospect in the Core API.",
-                    "example": "prospect_8c2f4e1a"
-                  },
-                  "source_event_id": {
-                    "type": "string",
-                    "description": "Identifier of the upstream journey completion event. Used as the idempotency key for `(deck_id, source_event_id)`.",
-                    "example": "evt_01HXYZ2K9M"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Presentation created or existing presentation returned for a duplicate event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "presentation_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "ID of the created (or existing) presentation."
-                    },
-                    "presentation_url": {
-                      "type": "string",
-                      "format": "uri",
-                      "description": "Shareable URL to the homeowner-facing presentation."
-                    },
-                    "send_status": {
-                      "type": "string",
-                      "enum": [
-                        "sent",
-                        "skipped",
-                        "failed",
-                        "not_requested"
-                      ],
-                      "description": "Outcome of the automatic email delivery. `not_requested` is returned for idempotent replays; `skipped` is returned when delivery is disabled on the deck."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing or invalid `prospect_id` / `source_event_id`, or formula evaluation failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Deck not found for the authenticated tenant.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Address validation failure (`INVALID_ADDRESS`) or journey ingest constraint violation (`JOURNEY_INGEST_ERROR`) \u2014 for example, a journey-backed slide whose product block returned the wrong number of options.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Core API is unavailable \u2014 the upstream call to validate the session or fetch the prospect journey failed. Safe to retry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/presentations/{presentationId}": {
       "patch": {
         "tags": [
@@ -3283,7 +3133,7 @@
           "Q&A"
         ],
         "summary": "Answer a question",
-        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at \u2265 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
+        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at ≥ 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
         "requestBody": {
           "required": true,
           "content": {
