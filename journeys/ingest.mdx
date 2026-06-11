@@ -1,0 +1,100 @@
+---
+title: Journey ingest
+description: Trigger a personalized Sales CoPilot presentation when a Demand IQ journey completes.
+---
+
+When a homeowner finishes a Demand IQ journey, you can call the ingest endpoint to automatically build a personalized presentation for that prospect from your existing deck. Sales CoPilot pulls the prospect's data — homeowner details, roof, and product blocks — directly from the journey, then creates the presentation and (if delivery is configured) emails the link.
+
+## Endpoint
+
+```
+POST https://presentations.demand-iq.com/api/decks/{deckId}/ingest
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json Request body
+{
+  "prospect_id": "f7c2b5d9-8e3a-4b6c-9d1e-2a4f8b6c0d3e",
+  "source_event_id": "journey-completion-2026-06-11-001"
+}
+```
+
+Send only those two IDs. Sales CoPilot ignores any other fields in the body and fetches the authoritative prospect, roof, and product data from the Demand IQ Core API itself.
+
+| Field | Description |
+| --- | --- |
+| `prospect_id` | UUID of the prospect in Demand IQ Core. |
+| `source_event_id` | Stable per-journey-completion ID. Reuse the same value when retrying — see [Idempotency](#idempotency). |
+
+## Authentication
+
+The ingest endpoint authenticates the caller using a bearer token and uses **that same token** to read the prospect from Core. This means Core's tenancy rules apply to whoever triggered the ingest — a tenant-credentialed caller can only ingest prospects its own organization can see.
+
+Three credential types are accepted:
+
+- **Core user access token** — for user-credentialed automations (Zapier, GoHighLevel, internal tools). The token must have the `prospects:read` scope.
+- **Session token** — for browser or iframe clients that have already exchanged an SSO code via `POST /api/auth/sso/exchange`.
+- **Core service (M2M) token** — for trusted Core services that dispatch journey completions automatically. Service callers are not bound to a single organization and may ingest into any deck by UUID.
+
+Tenant-credentialed callers can only ingest into decks owned by their own organization. Other decks return 404.
+
+## Idempotency
+
+Sales CoPilot deduplicates on `(source_event_id, deck_id)`. A duplicate call returns the existing presentation with no side effects — no new presentation, no extra email. This makes retries safe: on a 5xx or 503 response, back off and retry with the same `source_event_id`.
+
+## Response
+
+```json 200 OK
+{
+  "presentation_id": "p_8f2c4a1e9b6d",
+  "presentation_url": "https://presentations.demand-iq.com/p/p_8f2c4a1e9b6d",
+  "send_status": "sent"
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `presentation_id` | The created (or existing) presentation's ID. |
+| `presentation_url` | Shareable homeowner link. |
+| `send_status` | Delivery outcome: `sent`, `skipped`, `failed`, or `not_requested`. |
+
+`send_status` reports what happened with email delivery. Journey-backed decks auto-send; other decks send only when delivery is enabled on the deck. A `failed` send still returns 200 — the presentation exists, and you can retry delivery manually with `POST /api/presentations/{presentationId}/send`.
+
+## Status codes
+
+| Status | Meaning | Retry? |
+| --- | --- | --- |
+| 200 | Presentation created (or already existed for this `source_event_id`). | — |
+| 400 | `prospect_id` or `source_event_id` missing or invalid. | No — fix the request. |
+| 401 | Credential rejected (expired, wrong type, or Core refused it). | No — fix the credential. |
+| 404 | Deck does not exist or is not owned by the caller's organization. | No. |
+| 422 `INVALID_ADDRESS` | The prospect's address could not be validated. | No — fix the prospect data in Core. |
+| 422 `JOURNEY_INGEST_ERROR` | A journey or deck constraint was violated (for example, a journey-backed product slide is missing required options). | No — fix the deck or journey configuration. |
+| 422 `PROSPECT_NOT_FOUND` | Core has no such prospect, or the caller's token cannot see it. | No — check the ID or use a credential that has access. |
+| 503 | The Core API was unreachable. | **Yes** — back off and retry with the same `source_event_id`. |
+
+## Example
+
+```typescript
+const res = await fetch(
+  `https://presentations.demand-iq.com/api/decks/${deckId}/ingest`,
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${coreAccessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prospect_id: 'f7c2b5d9-8e3a-4b6c-9d1e-2a4f8b6c0d3e',
+      source_event_id: `journey-${journeyCompletionId}`,
+    }),
+  }
+);
+
+if (res.status === 503) {
+  // Transient — retry with the same source_event_id after backoff.
+}
+
+const { presentation_id, presentation_url, send_status } = await res.json();
+```
