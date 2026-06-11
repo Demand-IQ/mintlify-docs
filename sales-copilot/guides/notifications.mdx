@@ -20,7 +20,7 @@ Sales CoPilot emits these events:
 | `email.sent` | Sales CoPilot sends a presentation email to a homeowner |
 | `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
 
-Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. The `email.sent` and `email.opened` events include the delivery attempt ID and recipient addresses so you can correlate opens back to a specific send.
+Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID so you can correlate opens back to a specific send; `email.sent` additionally lists the recipient addresses on that delivery.
 
 ## Create a subscription
 
