@@ -60,6 +60,12 @@
             "pages": [
               "journeys/introduction"
             ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "journeys/ingest"
+            ]
           }
         ]
       }
