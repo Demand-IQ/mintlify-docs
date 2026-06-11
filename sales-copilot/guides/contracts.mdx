@@ -12,13 +12,13 @@ Contracts let homeowners sign agreements directly inside a presentation. You upl
 3. **Publish** — once published, the contract appears as a signing step in the presentation
 4. **Viewer signs** — the homeowner reviews the contract with their details filled in, types their name as a signature, and submits
 
-Signed documents are stored with a full audit trail including timestamp, IP address, and the exact contract text the viewer agreed to.
+Signed documents are stored with a full audit trail including timestamp, user agent, and the exact contract text the viewer agreed to.
 
 ## Import a contract document
 
 In the deck editor, open the **Actions** tab and click **Import Contract**.
 
-Upload a PDF or Word document (max 10 MB). Sales CoPilot uses AI to analyze the document and convert it to a markdown template. It detects variables like `{{full_name}}`, `{{address}}`, and `{{date}}` that get replaced with the homeowner's real information when the contract is presented.
+Upload a PDF or Word document (max 10 MB). Sales CoPilot uses AI to analyze the document and convert it to a markdown template. It detects variables like `{{full_name}}` and `{{address}}` that get replaced with the homeowner's real information when the contract is presented.
 
 After import, you'll see:
 - The generated **markdown template** — editable
@@ -50,7 +50,6 @@ Variables in double curly braces are replaced with real values when a homeowner 
 | `{{city}}` | City |
 | `{{state}}` | State |
 | `{{zip}}` | ZIP code |
-| `{{date}}` | Current date |
 | `{{company_name}}` | Your company name |
 | `{{rep_name}}` | Sales rep name |
 
@@ -61,14 +60,14 @@ Product selections (from product pricing slides) are also available — if the h
 When a viewer reaches the signing step:
 
 1. They see the contract with all variables filled in
-2. If requirements are configured, they must check the agreement checkbox
+2. If the agreement checkbox is enabled in requirements, they check it to confirm
 3. They type their full name as a signature
-4. If name matching is enabled, the typed signature is validated against the homeowner's name
+4. The typed signature is validated against the homeowner's name — this check is always enforced
 5. On successful signing, an audit-trailed document is created and a `contract.signed` event is emitted
 
 ## Multiple templates per deck
 
-A deck can have multiple action configs (contract templates), but only one should be published at a time. When a viewer signs, the published template is used by default. You can also specify a particular config by ID.
+A deck can have multiple action configs (contract templates), but only one should be published at a time. Pass the `configId` of the template you want to sign against when calling the signing endpoint. If you omit `configId`, Sales CoPilot signs against a built-in default template — set `configId` explicitly to use your deck's published contract.
 
 ## API reference
 
@@ -77,7 +76,7 @@ Key contract endpoints:
 - `POST /api/contracts/import` — upload and analyze a contract document
 - `GET/POST /api/decks/{deckId}/action-configs` — list or create contract templates
 - `GET/PUT/DELETE /api/decks/{deckId}/action-configs/{configId}` — manage a specific template
-- `GET /api/presentations/{presentationId}/sign-contract` — get the rendered contract for signing
+- `GET /api/presentations/{presentationId}/sign-contract` — fetch the template, requirements, and homeowner context to render the contract client-side
 - `POST /api/presentations/{presentationId}/sign-contract` — submit a signature
 
 See the **API Reference** tab for full request and response details.
