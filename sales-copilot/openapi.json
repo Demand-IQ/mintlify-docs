@@ -72,6 +72,12 @@
         "in": "cookie",
         "name": "session",
         "description": "Session cookie obtained from `POST /api/auth/login`."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Bearer token for server-to-server (M2M) callers, passed as `Authorization: Bearer <token>`. Accepted on the journey ingest endpoint for backend services dispatching journey completions. Use a session cookie for browser-based integrations."
       }
     },
     "schemas": {
@@ -2874,6 +2880,155 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/ingest": {
+      "post": {
+        "tags": [
+          "Ingest"
+        ],
+        "summary": "Ingest a journey completion",
+        "description": "Creates a personalized presentation from a Demand IQ journey completion event. Pass the prospect identifier and the upstream event ID; Sales CoPilot fetches the authoritative homeowner, pricing, and product data from the Core API and provisions a presentation against the specified deck.\n\n**Authentication**: accepts either a session cookie (browser/portal integrations) or a Bearer JWT (server-to-server integrations). Server-to-server callers are treated as trusted system principals and may ingest into any deck by UUID; session-authenticated callers can only ingest into decks owned by their organization.\n\n**Idempotency**: a duplicate `source_event_id` for the same deck returns the existing `presentation_id` without creating a new presentation or sending any email.\n\n**Delivery**: if delivery is enabled on the deck, the presentation link is emailed to the homeowner automatically. The `send_status` field reports the outcome.",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck to create the presentation from"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prospect_id",
+                  "source_event_id"
+                ],
+                "properties": {
+                  "prospect_id": {
+                    "type": "string",
+                    "description": "Identifier of the prospect in the Core API.",
+                    "example": "prospect_8c2f4e1a"
+                  },
+                  "source_event_id": {
+                    "type": "string",
+                    "description": "Identifier of the upstream journey completion event. Used as the idempotency key for `(deck_id, source_event_id)`.",
+                    "example": "evt_01HXYZ2K9M"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presentation created or existing presentation returned for a duplicate event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "presentation_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of the created (or existing) presentation."
+                    },
+                    "presentation_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Shareable URL to the homeowner-facing presentation."
+                    },
+                    "send_status": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "skipped",
+                        "failed",
+                        "not_requested"
+                      ],
+                      "description": "Outcome of the automatic email delivery. `not_requested` is returned for idempotent replays; `skipped` is returned when delivery is disabled on the deck."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid `prospect_id` / `source_event_id`, or formula evaluation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Deck not found. For session-authenticated callers, this is also returned when the deck is not owned by the caller's organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Address validation failure (`INVALID_ADDRESS`) or journey ingest constraint violation (`JOURNEY_INGEST_ERROR`) \u2014 for example, a journey-backed slide whose product block returned the wrong number of options.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Core API is unavailable \u2014 the upstream call to validate the session or fetch the prospect journey failed. Safe to retry.",
             "content": {
               "application/json": {
                 "schema": {
