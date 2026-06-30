@@ -18,3 +18,12 @@ When this workflow triggers, review the changes pushed to `Demand-IQ/ai-presenta
 4. If endpoints were removed, remove or update any docs that referenced them.
 5. Keep all writing consistent with the style guidelines in `.mintlify/AGENTS.md`.
 6. Do not rewrite pages that are unaffected by the code changes.
+
+## Scope
+
+Only generate documentation for **Sales CoPilot**. Do not create documentation for Journeys, even when Journeys-related code is added or changed in `Demand-IQ/ai-presentations-demo`. Specifically:
+
+- Do not create or restore any Journeys pages or a Journeys navigation tab.
+- Do not document Journeys-specific endpoints, including `POST /api/decks/{deckId}/ingest` (journey ingest). Never add them to `openapi.json` or `sales-copilot/openapi.json`, and do not create pages for them.
+
+This exclusion is about standalone Journeys documentation. Sales CoPilot features that integrate with journeys (for example, journey-backed product slides) are still in scope and should be documented as part of Sales CoPilot.
