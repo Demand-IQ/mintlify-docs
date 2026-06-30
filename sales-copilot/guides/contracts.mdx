@@ -16,7 +16,7 @@ Signed documents are stored with a full audit trail including timestamp, user ag
 
 ## Import a contract document
 
-In the deck editor, open the **Actions** tab and click **Import Contract**.
+In the template editor, open the **Actions** tab and click **Import Contract**.
 
 Upload a PDF or Word document (max 10 MB). Sales CoPilot uses AI to analyze the document and convert it to a markdown template. It detects variables like `{{full_name}}` and `{{address}}` that get replaced with the homeowner's real information when the contract is presented.
 
@@ -65,9 +65,9 @@ When a viewer reaches the signing step:
 4. The typed signature is validated against the homeowner's name — this check is always enforced
 5. On successful signing, an audit-trailed document is created and a `contract.signed` event is emitted
 
-## Multiple templates per deck
+## Multiple contract templates per template
 
-A deck can have multiple action configs (contract templates), but only one should be published at a time. Pass the `configId` of the template you want to sign against when calling the signing endpoint. If you omit `configId`, Sales CoPilot signs against a built-in default template — set `configId` explicitly to use your deck's published contract.
+A template can have multiple action configs (contract templates), but only one should be published at a time. Pass the `configId` of the template you want to sign against when calling the signing endpoint. If you omit `configId`, Sales CoPilot signs against a built-in default template — set `configId` explicitly to use your template's published contract.
 
 ## API reference
 
