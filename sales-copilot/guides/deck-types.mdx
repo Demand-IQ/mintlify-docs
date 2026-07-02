@@ -72,6 +72,8 @@ Product pricing slides can be bound to a Demand IQ journey profile so their prod
 
 Product data for a slide is available via `GET /api/slides/{slideId}/product-data` and updated via `PUT /api/slides/{slideId}/product-data`. See the API Reference for full request and response shapes.
 
+Tier display order (left to right on the rendered slide) is controlled by the editor's drag-to-reorder handles and persisted with the slide. The `product-data` payload exposes this as a `tierOrder` array (for example, `["better", "good", "best"]`); when omitted or invalid, the slide falls back to the default `good`, `better`, `best` order.
+
 ## Next steps
 
 With your slides in place, set up your branding and FAQs before creating presentations:
