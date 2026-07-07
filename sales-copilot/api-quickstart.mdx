@@ -1,0 +1,204 @@
+---
+title: API Quickstart
+description: Create and send a personalized presentation to a homeowner using the REST API.
+---
+
+This guide walks through the same flow as the [Quickstart](/sales-copilot/quickstart) — build a template, generate narrated slides, and send a homeowner their personalized presentation link — but entirely over the REST API. Use it as the starting point for integrating Sales CoPilot into your own CRM, lead platform, or backend.
+
+<Note>
+The dashboard calls them **Templates**, but the API uses the original term **deck**. A deck in the API is the same thing as a template in the UI. A **presentation** is a personalized instance of a deck, created for one homeowner.
+</Note>
+
+## Before you start
+
+- Your organization must be provisioned in Sales CoPilot. If you're not sure, contact your Demand IQ account manager.
+- You'll need dashboard login credentials — the API authenticates with a session cookie.
+- All requests go to the production base URL: `https://presentations.demand-iq.com`
+
+## Step 1: Authenticate
+
+Deck and presentation endpoints authenticate with a session cookie obtained from `POST /api/auth/login`. Log in once and store the cookie — the examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
+
+```bash
+curl -c cookies.txt -X POST https://presentations.demand-iq.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@yourcompany.com",
+    "password": "••••••••"
+  }'
+```
+
+A `401 Unauthorized` on any later request means the session has expired — log in again to refresh the cookie.
+
+## Step 2: Create a deck
+
+A deck holds your slides, narration, FAQs, and branding. Create one with a name and a `deckContext` — background about the audience and purpose that guides the AI narration, so the more specific the better.
+
+Set `"type": "image-based"` — the AI generation endpoint in the next step only works on image-based decks and returns a `400` for the default `structured` type:
+
+```bash
+curl -b cookies.txt -X POST https://presentations.demand-iq.com/api/decks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Spring Solar Pitch",
+    "type": "image-based",
+    "deckContext": "Residential solar for storm-damage leads. Audience: homeowners aged 40-65 in the Southeast US."
+  }'
+```
+
+The response includes the new deck:
+
+```json
+{
+  "deck": {
+    "id": "3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d42",
+    "name": "Spring Solar Pitch",
+    "type": "image-based",
+    "isActive": true,
+    "createdAt": "2026-07-06T17:04:00.000Z",
+    "updatedAt": "2026-07-06T17:04:00.000Z"
+  }
+}
+```
+
+Save the `id` — it's the `{deckId}` used in every request that follows.
+
+## Step 3: Generate slides from your images
+
+Send your slide images to the generate endpoint as `multipart/form-data`. Sales CoPilot runs each image through vision analysis, writes a narration script, and synthesizes spoken audio. Images are processed in the order you attach them, and each must be PNG, JPG, or WebP under 10 MB:
+
+```bash
+curl -b cookies.txt -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/generate \
+  -F "images=@slide-01.png" \
+  -F "images=@slide-02.png" \
+  -F "images=@slide-03.png"
+```
+
+Generation runs in the background — the endpoint returns immediately with a job ID:
+
+```json
+{
+  "jobId": "9b1d4e7a-2c3f-4a5b-8d6e-0f1a2b3c4d5e",
+  "status": "started",
+  "totalSlides": 3
+}
+```
+
+Poll the status endpoint until `status` is `completed`. Generation usually takes under a minute:
+
+```bash
+curl -b cookies.txt \
+  https://presentations.demand-iq.com/api/decks/{deckId}/generate/status
+```
+
+```json
+{
+  "jobId": "9b1d4e7a-2c3f-4a5b-8d6e-0f1a2b3c4d5e",
+  "status": "processing",
+  "currentSlide": 2,
+  "totalSlides": 3,
+  "createdAt": "2026-07-06T17:05:00.000Z",
+  "updatedAt": "2026-07-06T17:05:20.000Z"
+}
+```
+
+If `status` comes back `failed`, the `error` field explains why. To review or tweak what was generated, list the slides with `GET /api/decks/{deckId}/slides` and edit scripts with `PUT /api/slides/{slideId}`.
+
+## Step 4: Set up branding (recommended)
+
+Branding controls what homeowners see when they open their presentation — colors, logo, and the call-to-action on the landing page. `palette` and `cta` are required:
+
+```bash
+curl -b cookies.txt -X PUT \
+  https://presentations.demand-iq.com/api/decks/{deckId}/branding \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Solar",
+    "palette": {
+      "primary": "#1a73e8",
+      "primaryLight": "#4a9af5",
+      "accent": "#fbbc04",
+      "neutral": "#5f6368",
+      "text": "#202124"
+    },
+    "cta": {
+      "headline": "Ready to go solar?",
+      "body": "Lock in your quote before the spring rush.",
+      "buttonText": "Get My Quote",
+      "buttonUrl": "https://acmesolar.example.com/quote"
+    }
+  }'
+```
+
+To add a logo or rep avatar, upload the image first with `POST /api/images/upload` (multipart, `file` field) and pass the returned S3 key as `logo` or `avatar`.
+
+You can also seed the live Q&A with your own answers — Sales CoPilot matches these during the presentation and responds with your exact wording:
+
+```bash
+curl -b cookies.txt -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/faqs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userQuestion": "How long does installation take?",
+    "cannedAnswer": "Most installations are completed in a single day once permits are approved."
+  }'
+```
+
+## Step 5: Create and send a presentation
+
+Create a personalized presentation for the homeowner. `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` means it couldn't be resolved:
+
+```bash
+curl -b cookies.txt -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "homeowner": {
+      "first_name": "Dana",
+      "last_name": "Rivera",
+      "address": "1234 Maple Street",
+      "city": "Charlotte",
+      "state": "NC",
+      "zip": "28205",
+      "country": "US",
+      "email": "dana@example.com",
+      "phone": "+1 704 555 0123"
+    }
+  }'
+```
+
+The shareable URL comes back immediately:
+
+```json
+{
+  "deck_presentation_id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "url": "https://presentations.demand-iq.com/p/7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "status": "pending"
+}
+```
+
+Personalized audio may still be rendering in the background. If you want to wait until everything is ready before sending the link, poll the presentation status — it moves through `pending` → `generating` → `ready` (with a `phase` field showing what's happening while it generates):
+
+```bash
+curl https://presentations.demand-iq.com/api/presentations/{presentationId}/status
+```
+
+```json
+{
+  "id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "status": "ready",
+  "deck_id": "3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d42",
+  "created_at": "2026-07-06T17:10:00.000Z",
+  "updated_at": "2026-07-06T17:11:30.000Z"
+}
+```
+
+Once it's `ready`, deliver the `url` to the homeowner however your platform sends messages — text, email, or straight from your CRM. When they open it, they'll see your branded landing page with their name and address woven into the narration.
+
+## What's next
+
+- **API Reference** — every endpoint in this guide, plus slides, Q&A settings, narration, voices, and activity, is documented in full in the sidebar
+- [Setting up your first template](/sales-copilot/guides/deck-types) — template library, duplication, and personalization tokens
+- [Branding](/sales-copilot/guides/branding) — full walkthrough of every branding option
+- [FAQs](/sales-copilot/guides/faqs) — how to get the most out of the Q&A system

@@ -31,7 +31,8 @@
             "group": "Overview",
             "pages": [
               "sales-copilot/introduction",
-              "sales-copilot/quickstart"
+              "sales-copilot/quickstart",
+              "sales-copilot/api-quickstart"
             ]
           },
           {
