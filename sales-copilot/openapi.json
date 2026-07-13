@@ -20,26 +20,50 @@
     }
   ],
   "tags": [
-    { "name": "Decks", "description": "Manage presentation decks" },
-    { "name": "Slides", "description": "Manage slides within a deck" },
-    { "name": "FAQs", "description": "Manage pre-built Q&A pairs" },
-    { "name": "Branding", "description": "Colors, logo, and call-to-action configuration" },
-    { "name": "Q&A", "description": "Live question answering and Q&A settings" },
-    { "name": "Narration", "description": "Text-to-speech synthesis" },
-    { "name": "Presentations", "description": "Create and manage personalized presentation instances" },
-    { "name": "Generation", "description": "AI-powered content generation from slide images" },
-    { "name": "Images", "description": "Image upload and management" },
-    { "name": "Voices", "description": "Available TTS voices" },
-    { "name": "Utility", "description": "Health check and diagnostics" },
-    { "name": "Authentication", "description": "Session-based login, logout, and identity" },
-    { "name": "Company", "description": "Organization contact info and knowledge base" },
-    { "name": "Notifications", "description": "Event subscriptions and delivery log" },
-    { "name": "Contracts", "description": "Contract template import and e-signature" },
-    { "name": "Fonts", "description": "Available Google Fonts for branding" },
-    { "name": "Roof Measurements", "description": "Request and track automated roof measurements" },
-    { "name": "Actions", "description": "Voice/text command detection for presentation control" },
-    { "name": "Appointments", "description": "Appointment scheduling for presentation viewers" },
-    { "name": "Activity", "description": "Recent presentation activity feed" }
+    {
+      "name": "Decks",
+      "description": "Manage presentation decks"
+    },
+    {
+      "name": "Slides",
+      "description": "Manage slides within a deck"
+    },
+    {
+      "name": "FAQs",
+      "description": "Manage pre-built Q&A pairs"
+    },
+    {
+      "name": "Branding",
+      "description": "Colors, logo, and call-to-action configuration"
+    },
+    {
+      "name": "Q&A",
+      "description": "Live question answering and Q&A settings"
+    },
+    {
+      "name": "Narration",
+      "description": "Text-to-speech synthesis"
+    },
+    {
+      "name": "Presentations",
+      "description": "Create and manage personalized presentation instances"
+    },
+    {
+      "name": "Generation",
+      "description": "AI-powered content generation from slide images"
+    },
+    {
+      "name": "Images",
+      "description": "Image upload and management"
+    },
+    {
+      "name": "Voices",
+      "description": "Available TTS voices"
+    },
+    {
+      "name": "Utility",
+      "description": "Health check and diagnostics"
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -48,29 +72,9 @@
         "in": "cookie",
         "name": "session",
         "description": "Session cookie obtained from `POST /api/auth/login`."
-      },
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Bearer token for server-to-server (M2M) callers, passed as `Authorization: Bearer <token>`. Accepted on the journey ingest endpoint for backend services dispatching journey completions. Use a session cookie for browser-based integrations."
       }
     },
     "schemas": {
-      "ActivityEvent": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "eventType": { "type": "string", "description": "Event type, e.g. presentation.opened, slide.viewed, contract.signed" },
-          "payload": { "type": "object", "nullable": true, "description": "Event-specific data" },
-          "occurredAt": { "type": "string", "format": "date-time" },
-          "presentationId": { "type": "string", "format": "uuid", "nullable": true },
-          "presentationName": { "type": "string", "description": "Homeowner full name derived from presentation data" },
-          "address": { "type": "string", "nullable": true, "description": "Homeowner address (street, city, state)" },
-          "deckId": { "type": "string", "format": "uuid", "nullable": true, "description": "Template ID for deep-linking to the template editor" }
-        },
-        "required": ["id", "eventType", "occurredAt", "presentationName"]
-      },
       "WordTiming": {
         "type": "object",
         "properties": {
@@ -794,35 +798,6 @@
     }
   },
   "paths": {
-    "/api/activity": {
-      "get": {
-        "tags": ["Activity"],
-        "summary": "List recent activity",
-        "description": "Returns the 10 most recent presentation events for your organization, enriched with the homeowner name, address, and template ID for deep-linking.",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
-          "200": {
-            "description": "List of recent activity events",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "events": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ActivityEvent"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": { "description": "Not authenticated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
     "/api/decks": {
       "get": {
         "tags": [
@@ -2899,155 +2874,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/decks/{deckId}/ingest": {
-      "post": {
-        "tags": [
-          "Ingest"
-        ],
-        "summary": "Ingest a journey completion",
-        "description": "Creates a personalized presentation from a Demand IQ journey completion event. Pass the prospect identifier and the upstream event ID; Sales CoPilot fetches the authoritative homeowner, pricing, and product data from the Core API and provisions a presentation against the specified deck.\n\n**Authentication**: accepts either a session cookie (browser/portal integrations) or a Bearer JWT (server-to-server integrations). Server-to-server callers are treated as trusted system principals and may ingest into any deck by UUID; session-authenticated callers can only ingest into decks owned by their organization.\n\n**Idempotency**: a duplicate `source_event_id` for the same deck returns the existing `presentation_id` without creating a new presentation or sending any email.\n\n**Delivery**: if delivery is enabled on the deck, the presentation link is emailed to the homeowner automatically. The `send_status` field reports the outcome.",
-        "security": [
-          {
-            "sessionCookie": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "deckId",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "UUID of the deck to create the presentation from"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "prospect_id",
-                  "source_event_id"
-                ],
-                "properties": {
-                  "prospect_id": {
-                    "type": "string",
-                    "description": "Identifier of the prospect in the Core API.",
-                    "example": "prospect_8c2f4e1a"
-                  },
-                  "source_event_id": {
-                    "type": "string",
-                    "description": "Identifier of the upstream journey completion event. Used as the idempotency key for `(deck_id, source_event_id)`.",
-                    "example": "evt_01HXYZ2K9M"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Presentation created or existing presentation returned for a duplicate event.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "presentation_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "ID of the created (or existing) presentation."
-                    },
-                    "presentation_url": {
-                      "type": "string",
-                      "format": "uri",
-                      "description": "Shareable URL to the homeowner-facing presentation."
-                    },
-                    "send_status": {
-                      "type": "string",
-                      "enum": [
-                        "sent",
-                        "skipped",
-                        "failed",
-                        "not_requested"
-                      ],
-                      "description": "Outcome of the automatic email delivery. `not_requested` is returned for idempotent replays; `skipped` is returned when delivery is disabled on the deck."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing or invalid `prospect_id` / `source_event_id`, or formula evaluation failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Deck not found. For session-authenticated callers, this is also returned when the deck is not owned by the caller's organization.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Address validation failure (`INVALID_ADDRESS`) or journey ingest constraint violation (`JOURNEY_INGEST_ERROR`) \u2014 for example, a journey-backed slide whose product block returned the wrong number of options.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Core API is unavailable \u2014 the upstream call to validate the session or fetch the prospect journey failed. Safe to retry.",
             "content": {
               "application/json": {
                 "schema": {
