@@ -13,7 +13,11 @@ Pick the option that fits your use case — premium voices sound more natural bu
 
 ## Regenerating audio after edits
 
-If you update a slide's narration script, the audio needs to be regenerated to match. Open the slide editor and click **Regenerate Audio from Script** after making your changes. The updated audio replaces the old version.
+When you save a slide with a changed narration script, the audio and word timings regenerate automatically as part of the save. You never have to remember a separate step to keep audio in sync with the script — if the save succeeds, the stored audio matches what you just wrote. If audio generation fails, the save fails too, so a slide is never persisted with a script that doesn't match its audio.
+
+Saves that only change other fields — title, image, or context — don't trigger any new synthesis.
+
+If you want to preview the new narration before saving, click **Regenerate Audio from Script** in the slide editor and listen to the result. When you then save the slide, the editor reuses the audio you just generated instead of synthesizing it again.
 
 If you'd rather have the AI rewrite the script entirely from the slide image, click **Use AI to Generate Script** — this rewrites the narration based on what's in the image, using your template context as guidance.
 
