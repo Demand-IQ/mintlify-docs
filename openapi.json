@@ -342,7 +342,9 @@
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" }
+          "name": { "type": "string" },
+          "isLibraryAuthor": { "type": "boolean", "description": "Whether this organization can publish shared library templates." },
+          "welcomeSeenAt": { "type": "string", "format": "date-time", "nullable": true, "description": "Timestamp when the org first exited the welcome wizard (saved or skipped the confirm-info step). `null` for organizations that have never completed the wizard." }
         },
         "required": ["id", "name"]
       },
@@ -2405,6 +2407,33 @@
             }
           },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/company/welcome-seen": {
+      "post": {
+        "tags": ["Company"],
+        "summary": "Mark the welcome wizard as seen",
+        "description": "Records that this organization deliberately exited the first-time welcome wizard by saving or explicitly skipping the confirm-info step. Idempotent — the timestamp is written only on the first successful call (subsequent calls preserve the original value via `COALESCE`). Merely viewing the welcome screen does not count; the client should call this only after a user action that ends the wizard.",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Welcome-seen timestamp for the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "welcomeSeenAt": { "type": "string", "format": "date-time", "nullable": true }
+                  },
+                  "required": ["welcomeSeenAt"]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Organization not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
