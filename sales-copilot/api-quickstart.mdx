@@ -147,7 +147,7 @@ curl -b cookies.txt -X POST \
 
 ## Step 5: Create and send a presentation
 
-Create a personalized presentation for the homeowner. `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` means it couldn't be resolved:
+Create a personalized presentation for the homeowner. Provide **either** a `homeowner` object (creates a new Core prospect) **or** an existing `prospect_id` (reuses a Core prospect's contact and roof data) — not both. For the `homeowner` path, `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` means it couldn't be resolved:
 
 ```bash
 curl -b cookies.txt -X POST \
@@ -165,6 +165,17 @@ curl -b cookies.txt -X POST \
       "email": "dana@example.com",
       "phone": "+1 704 555 0123"
     }
+  }'
+```
+
+Or, to build the presentation from an existing Core prospect:
+
+```bash
+curl -b cookies.txt -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospect_id": "prospect_01H8XYZ..."
   }'
 ```
 
