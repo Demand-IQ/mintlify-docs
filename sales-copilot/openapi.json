@@ -3,7 +3,7 @@
   "info": {
     "title": "Sales CoPilot API",
     "version": "1.0.0",
-    "description": "REST API for Sales CoPilot — an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
+    "description": "REST API for Sales CoPilot \u2014 an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
     "contact": {
       "name": "Demand IQ",
       "url": "https://demand-iq.com"
@@ -2495,7 +2495,7 @@
           "Generation"
         ],
         "summary": "Start AI generation from images",
-        "description": "Accepts uploaded slide images, runs them through GPT-4o Vision to extract content, generates narration scripts, and synthesizes audio. Returns a job ID — poll `/api/decks/{deckId}/generate/status` for progress.",
+        "description": "Accepts uploaded slide images, runs them through GPT-4o Vision to extract content, generates narration scripts, and synthesizes audio. Returns a job ID \u2014 poll `/api/decks/{deckId}/generate/status` for progress.",
         "security": [
           {
             "sessionCookie": []
@@ -2743,7 +2743,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation for a homeowner. The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
+        "description": "Creates a personalized presentation for a homeowner. Provide **exactly one** of `homeowner` (creates a new Core prospect on the caller's behalf) or `prospect_id` (loads an existing Core prospect and reuses its contact and roof data). The address is validated via Google Geocoding, so an unresolvable address returns `422`. Returns a shareable URL immediately; audio generation may continue in the background.",
         "security": [
           {
             "sessionCookie": []
@@ -2763,37 +2763,100 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "Provide exactly one of `homeowner` or `prospect_id`.",
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "homeowner"
-                ],
-                "properties": {
-                  "homeowner": {
-                    "$ref": "#/components/schemas/HomeownerData"
-                  },
-                  "voice_settings": {
-                    "type": "object"
-                  },
-                  "language_settings": {
-                    "type": "object"
-                  },
-                  "price_inputs": {
+                "oneOf": [
+                  {
                     "type": "object",
-                    "additionalProperties": {
-                      "type": "number"
-                    },
-                    "description": "Values for deck-level price variables (used to evaluate formulas)"
-                  },
-                  "measurement_strategy": {
-                    "type": "string",
-                    "enum": [
-                      "manual",
-                      "auto"
+                    "required": [
+                      "homeowner"
                     ],
-                    "default": "manual"
+                    "properties": {
+                      "homeowner": {
+                        "$ref": "#/components/schemas/HomeownerData",
+                        "description": "Full homeowner details. Creates a new Core prospect scoped to the caller's own Core credential."
+                      },
+                      "voice_settings": {
+                        "type": "object"
+                      },
+                      "language_settings": {
+                        "type": "object"
+                      },
+                      "price_inputs": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "number"
+                        },
+                        "description": "Values for deck-level price variables (used to evaluate formulas)."
+                      },
+                      "measurement_strategy": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "auto"
+                        ],
+                        "default": "manual"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "prospect_id"
+                    ],
+                    "properties": {
+                      "prospect_id": {
+                        "type": "string",
+                        "description": "ID of an existing Core prospect. Homeowner contact and roof data are loaded from Core."
+                      },
+                      "voice_settings": {
+                        "type": "object"
+                      },
+                      "language_settings": {
+                        "type": "object"
+                      },
+                      "price_inputs": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "number"
+                        },
+                        "description": "Values for deck-level price variables (used to evaluate formulas)."
+                      },
+                      "measurement_strategy": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "auto"
+                        ],
+                        "default": "manual"
+                      }
+                    }
+                  }
+                ]
+              },
+              "examples": {
+                "homeowner": {
+                  "summary": "Create from full homeowner data",
+                  "value": {
+                    "homeowner": {
+                      "first_name": "Dana",
+                      "last_name": "Rivera",
+                      "address": "1234 Maple Street",
+                      "city": "Charlotte",
+                      "state": "NC",
+                      "zip": "28205",
+                      "country": "US",
+                      "email": "dana@example.com",
+                      "phone": "+1 704 555 0123"
+                    }
+                  }
+                },
+                "prospectId": {
+                  "summary": "Create from an existing Core prospect",
+                  "value": {
+                    "prospect_id": "prospect_01H8XYZ..."
                   }
                 }
               }
@@ -2801,8 +2864,8 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Presentation created",
+          "200": {
+            "description": "Presentation created.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2815,7 +2878,7 @@
                     "url": {
                       "type": "string",
                       "format": "uri",
-                      "description": "Shareable presentation URL"
+                      "description": "Shareable presentation URL."
                     },
                     "status": {
                       "type": "string",
@@ -2833,7 +2896,7 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request \u2014 missing/invalid body, or both `homeowner` and `prospect_id` provided.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2843,7 +2906,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
+            "description": "Unauthorized \u2014 missing session cookie/service token, or the caller's Core credential was rejected (retry after re-authenticating).",
             "content": {
               "application/json": {
                 "schema": {
@@ -2853,7 +2916,7 @@
             }
           },
           "404": {
-            "description": "Not found",
+            "description": "Deck not found, or not owned by the caller.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2863,7 +2926,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable entity",
+            "description": "Unprocessable \u2014 address failed geocoding (`INVALID_ADDRESS`), the given `prospect_id` was not found for this caller (`PROSPECT_NOT_FOUND`), or Core rejected the prospect create with a 4xx (`PROSPECT_CREATE_FAILED`).",
             "content": {
               "application/json": {
                 "schema": {
@@ -2873,7 +2936,17 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Upstream Core service unreachable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3133,7 +3206,7 @@
           "Q&A"
         ],
         "summary": "Answer a question",
-        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at ≥ 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
+        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at \u2265 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
         "requestBody": {
           "required": true,
           "content": {
