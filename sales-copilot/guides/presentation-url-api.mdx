@@ -159,14 +159,14 @@ Both return the same response, immediately:
 | `first_name` | **Yes**  | Used in the narration greeting                                  |
 | `address`    | **Yes**  | Street address                                                  |
 | `city`       | **Yes**  |                                                                 |
+| `state`      | **Yes**  | Required by Demand IQ's prospect lookup                         |
+| `zip`        | **Yes**  | Required by Demand IQ's prospect lookup                         |
 | `last_name`  | No       |                                                                 |
-| `state`      | No       | Recommended — improves address matching                         |
-| `zip`        | No       | Recommended — improves address matching                         |
 | `country`    | No       | Two-letter ISO code, e.g. `"US"`. Defaults to `"US"` if omitted |
 | `email`      | No       | Needed if you want Sales CoPilot to email the link              |
 | `phone`      | No       |                                                                 |
 
-Behind the scenes, Sales CoPilot creates a matching prospect record in Demand IQ from these details as part of this same call (or reuses an existing one already at that address) — that's why the API key needs the **Write Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ itself is unreachable, a `503`. Separately, Sales CoPilot also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos and add `state`/`zip`.
+Behind the scenes, Sales CoPilot creates a matching prospect record in Demand IQ from these details as part of this same call (or reuses an existing one already at that address) — that's why `state` and `zip` are required here (Demand IQ's own prospect API needs them) even though they aren't required on the `prospect_id` path. It's also why the API key needs the **Write Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ itself is unreachable, a `503`. Separately, Sales CoPilot also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos.
 
 <Note>
 If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available.
