@@ -1,0 +1,217 @@
+---
+title: Get a Presentation URL via API
+description: Send a prospect ID or prospect details to the API and get back a personalized presentation link — from your own code or a no-code tool like Zapier.
+---
+
+This guide shows the fastest way to turn a lead into a personalized presentation link:
+
+```
+Prospect ID or prospect details  →  Create Presentation API  →  Link for that prospect
+```
+
+You send Sales CoPilot **either** a Demand IQ prospect ID (when the lead already exists in Demand IQ) **or** the prospect's details (name, address, contact info), and you get back a shareable URL. Open that URL and the prospect sees your branded, narrated presentation — personalized with their name and address.
+
+It's written for two audiences:
+
+- **Developers** integrating Sales CoPilot into a CRM, lead platform, or backend — follow the numbered steps with the `curl` examples.
+- **Non-technical users automating with Zapier** — read [How it works](#how-it-works) and [Key terms](#key-terms-for-non-technical-readers), then jump to the [Zapier walkthrough](#zapier-walkthrough-no-code), which spells out every field to fill in.
+
+<Note>
+  This guide assumes you already have a template with slides. If you don't yet,
+  build one in the dashboard first ([Quickstart](/sales-copilot/quickstart)) or
+  over the API ([API Quickstart](/sales-copilot/api-quickstart)).
+</Note>
+
+## How it works
+
+Creating a presentation is one API call to one endpoint — `POST /api/decks/{deckId}/presentations`. What you send in the body depends on where your lead lives:
+
+| You have...                                                                  | Send                                                            |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Lead details in your CRM, a form, or a spreadsheet                           | A `homeowner` object with their name, address, and contact info |
+| A prospect that already exists in Demand IQ (e.g. from your Journeys funnel) | Their Demand IQ `prospect_id`                                   |
+
+Send exactly one of the two — `homeowner` or `prospect_id`, never both and never neither. The request returns a presentation URL immediately. The link is live as soon as you get it — narration audio may still be rendering in the background for a short while, and you can [check on that](#step-4-share-the-link) if you want to wait until everything is ready.
+
+<Note>
+  **How this relates to prospects in Demand IQ.** Either way, the presentation
+  ends up linked to a Demand IQ prospect record. Send `prospect_id` and Sales
+  CoPilot personalizes the presentation from that existing prospect's contact
+  info. Send `homeowner` details instead and Sales CoPilot creates the prospect
+  record in Demand IQ for you as part of the same call — matching an existing
+  prospect at that address if one already exists, rather than creating a
+  duplicate.
+</Note>
+
+## What you'll need
+
+1. **A Sales CoPilot account.** Your organization must be provisioned — if you're not sure, ask your Demand IQ account manager.
+2. **An API key**, generated from the dashboard. Covered in [Step 1](#step-1-generate-an-api-key).
+3. **A template with slides.** Presentations are created _from_ a template (the API calls it a **deck**).
+4. **Your template's deck ID.** Covered in [Step 2](#step-2-find-your-deck-id).
+
+All presentation API requests go to the production base URL:
+
+```
+https://presentations.demand-iq.com
+```
+
+## Step 1: Generate an API key
+
+API keys are generated in the Demand IQ dashboard, not created over the API:
+
+1. Log in at `app.demand-iq.com` and go to **Settings → Company → API Keys** (`/company/settings/apiKeys`).
+2. Click **Add New API Key**.
+3. Choose what you'll use it for. None of the presets are specifically about presentations, so pick **Custom**, then check the permissions your integration needs: **Write Prospects**, if you'll [send prospect details](#sending-prospect-details-homeowner) — creating a presentation this way also creates the matching prospect record in Demand IQ. **Read Prospects**, if you'll [send an existing `prospect_id`](#sending-a-prospect-id-prospect_id) instead — the key needs to look up that prospect's contact info. Check both if you'll use either path interchangeably.
+4. Give it a name (e.g. "Zapier — presentation links") and confirm the expiration date. Keys default to expiring two years out; pick sooner if you'd rather rotate more often.
+5. Click **Create**, then **copy the key immediately** — it's shown only once and can't be retrieved again later.
+
+Send that key on every presentation API request as a header:
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+## Step 2: Find your deck ID
+
+Every request that creates a presentation names the template — the **deck** — it's created from. Two ways to find its ID:
+
+**From the dashboard:** open your template in the editor and copy the ID from the browser's address bar:
+
+```
+https://presentations.demand-iq.com/templates/3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d42/edit
+                                              └──────────── this is the deck ID ───────┘
+```
+
+**From the API:** list your decks and pick by name:
+
+```bash
+curl https://presentations.demand-iq.com/api/decks \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```json
+{
+  "decks": [
+    {
+      "id": "3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d42",
+      "name": "Spring Solar Pitch",
+      "isActive": true
+    }
+  ]
+}
+```
+
+## Step 3: Create the presentation
+
+Send exactly one of `homeowner` or `prospect_id` to the same endpoint; sending both, or neither, returns a `400` ("Provide homeowner or prospect_id").
+
+If the lead's details live in your CRM, a web form, a spreadsheet — anywhere outside Demand IQ — send them in a `homeowner` object:
+
+```bash
+curl -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "homeowner": {
+      "first_name": "Dana",
+      "last_name": "Rivera",
+      "address": "1234 Maple Street",
+      "city": "Charlotte",
+      "state": "NC",
+      "zip": "28205",
+      "country": "US",
+      "email": "dana@example.com",
+      "phone": "+1 704 555 0123"
+    }
+  }'
+```
+
+Or, if the prospect already exists in Demand IQ — for example, they came through your Journeys funnel — send their ID instead:
+
+```bash
+curl -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospect_id": "b8a3d9e1-4c2f-4a7b-9e5d-6f1c8a2b3d4e"
+  }'
+```
+
+Both return the same response, immediately:
+
+```json
+{
+  "deck_presentation_id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "url": "https://presentations.demand-iq.com/p/7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "status": "pending"
+}
+```
+
+`url` is the link you deliver to the prospect. `deck_presentation_id` is its ID for status checks and other API calls.
+
+### Sending prospect details (`homeowner`)
+
+| Field        | Required | Notes                                                           |
+| ------------ | -------- | --------------------------------------------------------------- |
+| `first_name` | **Yes**  | Used in the narration greeting                                  |
+| `address`    | **Yes**  | Street address                                                  |
+| `city`       | **Yes**  |                                                                 |
+| `last_name`  | No       |                                                                 |
+| `state`      | No       | Recommended — improves address matching                         |
+| `zip`        | No       | Recommended — improves address matching                         |
+| `country`    | No       | Two-letter ISO code, e.g. `"US"`. Defaults to `"US"` if omitted |
+| `email`      | No       | Needed if you want Sales CoPilot to email the link              |
+| `phone`      | No       |                                                                 |
+
+Behind the scenes, Sales CoPilot creates a matching prospect record in Demand IQ from these details as part of this same call (or reuses an existing one already at that address) — that's why the API key needs the **Write Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ itself is unreachable, a `503`. Separately, Sales CoPilot also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos and add `state`/`zip`.
+
+<Note>
+If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available.
+</Note>
+
+### Sending a prospect ID (`prospect_id`)
+
+| Field         | Required | Notes                       |
+| ------------- | -------- | --------------------------- |
+| `prospect_id` | **Yes**  | The prospect's Demand IQ ID |
+
+Looking up the prospect uses the **Read Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID doesn't exist in Demand IQ or isn't visible to your account — don't retry the same ID; send their details with `homeowner` instead.
+
+<Note>
+  This only pulls the prospect's **contact info** — it doesn't pull in pricing
+  data or product selections from their journey (utility bill, roof
+  measurements, etc.), so if your template has pricing formulas you still need
+  to supply `price_inputs` explicitly, the same as with `homeowner`. If you need
+  journey data pulled in automatically, and idempotent, auto-emailed delivery
+  for a high-volume webhook integration, see `POST /api/decks/{deckId}/ingest`
+  in the **API Reference** — that endpoint is purpose-built for automated
+  journey-completion events rather than one-off calls like this guide covers.
+</Note>
+
+## Step 4: Share the link
+
+The URL works the moment you receive it. Personalized narration audio can take a little while to render, and for some templates generation doesn't start until the prospect opens the link — either way, the viewer experience handles it gracefully.
+
+If you'd rather hold delivery until everything is pre-rendered, poll the status endpoint (no auth required):
+
+```bash
+curl https://presentations.demand-iq.com/api/presentations/{presentationId}/status
+```
+
+```json
+{
+  "id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "status": "ready"
+}
+```
+
+`status` moves through `pending` → `generating` → `ready` (a `not_started` status means generation kicks off when the prospect opens the link — the link is still ready to share). Once you have the URL, deliver it however you reach your prospects: text, email, a CRM field, or let Sales CoPilot send it (see [Notifications](/sales-copilot/guides/notifications) for delivery and open tracking).
+
+## What's next
+
+- [Notifications](/sales-copilot/guides/notifications) — have Sales CoPilot email the link for you, get webhooks when the prospect opens it, and track engagement
+- [API Quickstart](/sales-copilot/api-quickstart) — build the template itself over the API: create a deck, generate narrated slides from images, set branding
+- **API Reference** — full request/response details for every endpoint, in the sidebar
