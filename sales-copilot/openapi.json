@@ -1334,8 +1334,7 @@
                 "type": "object",
                 "required": [
                   "slideId",
-                  "title",
-                  "narrationScript"
+                  "title"
                 ],
                 "properties": {
                   "slideId": {
@@ -1352,7 +1351,9 @@
                     }
                   },
                   "narrationScript": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional at creation — slides can be uploaded first (e.g. via PDF import) and narrated later. Defaults to an empty string.",
+                    "default": ""
                   },
                   "slideContext": {
                     "type": "string",
@@ -3677,6 +3678,109 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/images/upload-pdf": {
+      "post": {
+        "tags": [
+          "Images"
+        ],
+        "summary": "Upload a PDF as slide images",
+        "description": "Rasterizes each page of an uploaded PDF to a JPEG (via Poppler `pdftoppm`), optimizes with Sharp (max 1920px width, JPEG quality 85), and stores one image per page in S3. Returns one image record per page — the client typically turns each into a standard slide. PDF pages arrive as images (not editable text or layout).\n\n**Limits:** 25 MB per file, 50 pages per PDF (extra pages are dropped and reported in `droppedPages`).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF file (max 25 MB, first 50 pages processed)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "One image record per rasterized page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "images": {
+                      "type": "array",
+                      "description": "Uploaded page images in page order",
+                      "items": {
+                        "$ref": "#/components/schemas/Image"
+                      }
+                    },
+                    "pageCount": {
+                      "type": "integer",
+                      "description": "Number of pages processed (equals `images.length`)"
+                    },
+                    "droppedPages": {
+                      "type": "integer",
+                      "description": "Pages beyond the 50-page limit that were skipped (0 when the PDF fits)."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing file, wrong MIME type, file over 25 MB, corrupt/password-protected PDF, or conversion timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "PDF conversion unavailable on this server (Poppler/`pdftoppm` not installed)",
             "content": {
               "application/json": {
                 "schema": {
