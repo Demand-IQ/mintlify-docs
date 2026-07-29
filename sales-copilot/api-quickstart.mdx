@@ -207,6 +207,16 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 
 Once it's `ready`, deliver the `url` to the homeowner however your platform sends messages — text, email, or straight from your CRM. When they open it, they'll see your branded landing page with their name and address woven into the narration.
 
+## Fetching the OpenAPI spec
+
+Every environment serves its own live OpenAPI 3.0 document at `/presentations/openapi.json`. The spec always matches the code the environment is running, so you can point client-side codegen (OpenAPI Generator, `openapi-typescript`, and similar tools) at it directly:
+
+```bash
+curl https://presentations.demand-iq.com/presentations/openapi.json
+```
+
+The route is public, cached for 5 minutes, and the first entry in `servers` reflects the origin that served the request — so a `curl` against stage returns a spec whose `servers[0]` is the stage URL.
+
 ## What's next
 
 - **API Reference** — every endpoint in this guide, plus slides, Q&A settings, narration, voices, and activity, is documented in full in the sidebar
