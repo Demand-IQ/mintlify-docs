@@ -953,6 +953,117 @@
         }
       }
     },
+    "/api/decks/import": {
+      "post": {
+        "tags": [
+          "Decks"
+        ],
+        "summary": "Import a deck from an external source",
+        "description": "Imports a presentation file into a new deck through a source-specific importer. The `source` query parameter selects the importer (currently `pptx`; Google Slides, Gamma, and Canva are planned). Requests are multipart form data and are capped at 30 MB. Persistence is not yet implemented — successful parsing currently returns `501 import_persistence_unavailable` while the import boundary is validated.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "description": "Importer to use for the uploaded file.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pptx"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "file"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "Deck name."
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "description": "Optional deck description."
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Source presentation file. For `source=pptx`, a single `.pptx` file up to 25 MB. Password-protected files are rejected."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad request — missing source, unsupported source, invalid metadata, invalid form data, or an invalid or encrypted source file. The response body includes a `code` field such as `source_required`, `unsupported_source`, `invalid_metadata`, `invalid_form_data`, `invalid_pptx_file_count`, `invalid_file_type`, `invalid_pptx`, or `encrypted_pptx`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request too large — the request body exceeds 30 MB or the source file exceeds the importer limit (`request_too_large` or `file_too_large`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Import parsed successfully but persistence is not yet available (`import_persistence_unavailable`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/decks/{deckId}": {
       "get": {
         "tags": [
