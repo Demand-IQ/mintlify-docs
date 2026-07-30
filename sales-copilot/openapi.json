@@ -542,10 +542,7 @@
             ]
           },
           "homeownerData": {
-            "allOf": [
-              { "$ref": "#/components/schemas/HomeownerData" }
-            ],
-            "description": "Live-fetched from Demand IQ's prospects service. May be empty if the prospect lookup fails or the presentation has no linked prospect."
+            "$ref": "#/components/schemas/HomeownerData"
           },
           "voiceSettings": {
             "type": "object",
@@ -2746,7 +2743,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation for a prospect. Provide either a `homeowner` object (creates a new Demand IQ prospect) or an existing `prospect_id` (reuses an existing prospect's contact and roof data) — send exactly one. The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
+        "description": "Creates a personalized presentation for a homeowner. The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
         "security": [
           {
             "sessionCookie": []
@@ -2770,14 +2767,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "homeowner"
+                ],
                 "properties": {
                   "homeowner": {
-                    "$ref": "#/components/schemas/HomeownerData",
-                    "description": "Prospect details. Send this or `prospect_id`, never both."
-                  },
-                  "prospect_id": {
-                    "type": "string",
-                    "description": "ID of an existing Demand IQ prospect. Send this or `homeowner`, never both."
+                    "$ref": "#/components/schemas/HomeownerData"
                   },
                   "voice_settings": {
                     "type": "object"
@@ -2800,11 +2795,7 @@
                     ],
                     "default": "manual"
                   }
-                },
-                "oneOf": [
-                  { "required": ["homeowner"] },
-                  { "required": ["prospect_id"] }
-                ]
+                }
               }
             }
           }
@@ -2895,78 +2886,12 @@
       }
     },
     "/api/presentations/{presentationId}": {
-      "get": {
-        "tags": [
-          "Presentations"
-        ],
-        "summary": "Get a presentation's homeowner data",
-        "description": "Returns the prospect/homeowner data for a presentation, live-fetched from Demand IQ's prospects service so it reflects any updates since the presentation was created. Updates to the prospect must be made through Demand IQ's prospects API — this endpoint is read-only.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "presentationId",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "UUID of the presentation"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Homeowner data for the presentation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "homeownerData": {
-                      "$ref": "#/components/schemas/HomeownerData"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
       "patch": {
         "tags": [
           "Presentations"
         ],
         "summary": "Update a presentation",
-        "description": "Partial update for voice settings, language settings, or price inputs. Homeowner data is sourced from Demand IQ's prospects service and cannot be edited through this endpoint — update the prospect in Demand IQ instead.",
+        "description": "Partial update for homeowner data, voice settings, language, or price inputs.",
         "parameters": [
           {
             "in": "path",
@@ -2986,6 +2911,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "homeownerData": {
+                    "type": "object"
+                  },
                   "voiceSettings": {
                     "type": "object",
                     "nullable": true
