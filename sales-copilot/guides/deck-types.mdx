@@ -70,6 +70,8 @@ For example: `"Hi {{first_name}}, I'm reaching out about your home at {{address}
 
 Product pricing slides can be bound to a Demand IQ journey profile so their product names, prices, monthly payments, highlights, and images come directly from the live journey instead of being maintained manually. Open the product slide editor and pick a journey profile (for example, `roofing_v1` for residential roofing) — the journey-owned fields become read-only and refresh automatically for each homeowner. Any remaining fields (narration, CTA copy, supporting imagery) can still be edited in the deck.
 
+The journey block must return at least three product options. The first three map positionally onto the `good`, `better`, and `best` tiers, exactly as the deck-editor preview shows. If the journey returns more than three, the extras render after the tiers in a horizontally scrollable row (with a scrollable pill row on portrait mobile), and homeowners can select any of them — including an extra — as the product carried through to narration, the confirmation modal, and the contract. Only `{{product.good|better|best.*}}` narration tokens are available for the first three tiers; extras are selectable but not individually addressable by tier token. Use `{{product.selected.*}}` to reference whichever card the homeowner picks.
+
 Product data for a slide is available via `GET /api/slides/{slideId}/product-data` and updated via `PUT /api/slides/{slideId}/product-data`. See the API Reference for full request and response shapes.
 
 ## Next steps
