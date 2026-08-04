@@ -2663,13 +2663,13 @@
         }
       }
     },
-    "/api/decks/{deckId}/presentations": {
+    "/api/presentations": {
       "get": {
         "tags": [
           "Presentations"
         ],
-        "summary": "List presentations",
-        "description": "Returns all non-deleted presentations created from this deck.",
+        "summary": "List all presentations for the org",
+        "description": "Returns all non-deleted presentations across every deck the authenticated org owns, ordered by `updatedAt` descending. Homeowner contact fields (`first_name`, `last_name`, `address`, `city`, `state`, `zip`, `email`, `phone`) are looked up live from the Demand IQ prospect record — the response never returns a stale locally-cached copy. When `search` is supplied, rows whose prospect doesn't match are omitted from `presentations` while `totalCount` still reflects the unfiltered org total (so callers can distinguish \"no presentations yet\" from \"no matches for this search\").",
         "security": [
           {
             "sessionCookie": []
@@ -2677,14 +2677,13 @@
         ],
         "parameters": [
           {
-            "in": "path",
-            "name": "deckId",
-            "required": true,
+            "in": "query",
+            "name": "search",
+            "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "UUID of the deck"
+            "description": "Free-text filter applied by Demand IQ across the prospect's name, address, and city (email is not matched). Rows that don't match are dropped from `presentations`; `totalCount` is unaffected."
           }
         ],
         "responses": {
@@ -2700,6 +2699,99 @@
                       "items": {
                         "$ref": "#/components/schemas/Presentation"
                       }
+                    },
+                    "totalCount": {
+                      "type": "integer",
+                      "description": "Unfiltered count of non-deleted presentations for the org, regardless of `search`."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Search is temporarily unavailable because the prospect lookup upstream failed. Only returned when `search` is supplied; without `search`, prospect-lookup failures degrade to blank homeowner fields with a 200.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/presentations": {
+      "get": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "List presentations",
+        "description": "Returns all non-deleted presentations created from this deck, ordered by `createdAt` descending. Homeowner contact fields are looked up live from the Demand IQ prospect record — the response never returns a stale locally-cached copy. When `search` is supplied, rows whose prospect doesn't match are omitted from `presentations` while `totalCount` still reflects the unfiltered deck total (so callers can distinguish \"no presentations yet\" from \"no matches for this search\").",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free-text filter applied by Demand IQ across the prospect's name, address, and city (email is not matched). Rows that don't match are dropped from `presentations`; `totalCount` is unaffected."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of presentations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "presentations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Presentation"
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer",
+                      "description": "Unfiltered count of non-deleted presentations for this deck, regardless of `search`."
                     }
                   }
                 }
@@ -2728,6 +2820,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Search is temporarily unavailable because the prospect lookup upstream failed. Only returned when `search` is supplied; without `search`, prospect-lookup failures degrade to blank homeowner fields with a 200.",
             "content": {
               "application/json": {
                 "schema": {
