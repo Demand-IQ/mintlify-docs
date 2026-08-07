@@ -1355,24 +1355,29 @@
       },
       "TourState": {
         "type": "object",
-        "description": "Per-user state for the presentations onboarding tour modal. The modal is shown at most once per user across devices \u2014 set either timestamp and it never shows again. `tourCompletedAt` means the user clicked through to the final \"Get Started\" step; `tourDismissedAt` covers every other close (X, Esc, backdrop, or a silent legacy backfill from the old per-browser `localStorage` flag).",
+        "description": "Per-user state for the presentations onboarding modal (ENG-641; versioned in ENG-636). The modal shows at most once per user across devices per content version. The show/hide decision keys on `tourVersion`: whenever it is less than the current content version, the modal is shown. `tourCompletedAt` means the user clicked the \"Get Started\" button on the single-screen video modal; `tourDismissedAt` covers every other close (X, Esc, navigation, or a silent legacy backfill from the old per-browser `localStorage` flag). Both timestamps are written once and never cleared, so they preserve the first-ever moment even after later content versions are acknowledged.",
         "properties": {
           "tourCompletedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Timestamp of a full click-through of the tour. `null` until the user reaches and confirms the final step."
+            "description": "Timestamp of the first-ever completion. `null` until the user clicks \"Get Started\" for the first time. Never overwritten by a later version acknowledgement."
           },
           "tourDismissedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Timestamp of the first close before completing. `null` until dismissed."
+            "description": "Timestamp of the first-ever dismissal. `null` until dismissed. Never overwritten by a later version acknowledgement."
+          },
+          "tourVersion": {
+            "type": "integer",
+            "description": "Highest onboarding content version the user has acknowledged. `0` = never onboarded, `1` = illustrated multi-step tour (ENG-641), `2` = Wistia explainer video (ENG-636). The modal shows whenever this is below the current content version. Bumping the current version re-shows the modal to every user exactly once."
           }
         },
         "required": [
           "tourCompletedAt",
-          "tourDismissedAt"
+          "tourDismissedAt",
+          "tourVersion"
         ]
       }
     }
@@ -9281,8 +9286,8 @@
         "tags": [
           "Onboarding"
         ],
-        "summary": "Record a presentations tour completion or dismissal",
-        "description": "Records that the current user completed or dismissed the presentations onboarding tour modal (ENG-641). Idempotent per `(organization, user, action)` \u2014 repeat calls preserve the original timestamp. A PostHog `onboarding_milestone` event (`tour_completed` or `tour_dismissed`, keyed on organization ID) is captured only on the first transition; subsequent calls emit no analytics. Pass `legacy: true` (only valid with `action: \"dismissed\"`) to silently backfill users carrying the old per-browser `templates_onboarding_seen_v1` localStorage flag \u2014 the row is written but no event fires.",
+        "summary": "Record a presentations onboarding completion or dismissal",
+        "description": "Records that the current user completed or dismissed the presentations onboarding modal (ENG-641; versioned in ENG-636). The server records the acknowledged content version (`CURRENT_ONBOARDING_VERSION`, currently `2`) on the user's row and returns the full updated `TourState` so callers can write it straight into the shared `/api/auth/me` cache. Idempotent per `(organization, user, version)`: the underlying upsert only fires when the stored `tourVersion` is behind the incoming version, so a repeat call at the same version is a no-op and never overwrites `tourCompletedAt` or `tourDismissedAt`. A PostHog `onboarding_milestone` event (`tour_completed` or `tour_dismissed`, keyed on organization ID, carrying a `tour_version` property) is captured only on the first transition to a new version; subsequent calls emit no analytics. Pass `legacy: true` (only valid with `action: \"dismissed\"`) to silently backfill users carrying the old per-browser `templates_onboarding_seen_v1` localStorage flag: the row is written at `LEGACY_TOUR_VERSION` (`1`) so the user stays eligible for newer content, and no event fires.",
         "security": [
           {
             "sessionCookie": []
@@ -9301,7 +9306,7 @@
                       "completed",
                       "dismissed"
                     ],
-                    "description": "`completed` \u2014 user clicked \"Get Started\" on the final tour step. `dismissed` \u2014 any other close (X, Esc, backdrop, navigation)."
+                    "description": "`completed` \u2014 user clicked the \"Get Started\" button on the onboarding modal. `dismissed` \u2014 any other close (X, Esc, or navigation). Overlay clicks do not dismiss the modal."
                   },
                   "source": {
                     "type": "string",
