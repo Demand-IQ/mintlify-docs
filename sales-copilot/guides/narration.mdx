@@ -36,3 +36,9 @@ Throughout the template editor you'll see status indicators on audio content:
 - **Failed** — generation didn't complete; try regenerating
 
 Each slide and FAQ has an audio preview player so you can listen before sending anything to a homeowner.
+
+## Slides without narration
+
+A slide can reach a live presentation without a narration script — for example, a bulk-uploaded image you haven't gotten to yet. Sales CoPilot handles these gracefully during playback: the slide dwells on screen for a few seconds and then advances to the next slide automatically, so the deck never stalls on a silent frame.
+
+To catch these before you send anything, the Slides tab flags every slide missing a script with a **Needs narration** marker and shows a running count beneath the rail. The marker clears as soon as you save a narration script for that slide.
