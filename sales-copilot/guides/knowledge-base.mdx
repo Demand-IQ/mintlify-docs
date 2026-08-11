@@ -14,8 +14,16 @@ The knowledge base profile tells Sales CoPilot how to represent your company whe
 - **Trust signals** — certifications, awards, ratings, or other credibility markers (e.g. "BBB A+ rating, 500+ 5-star reviews")
 - **Service coverage** — the areas you serve (e.g. "Phoenix metro area, Tucson, and Southern Arizona")
 - **Answer style** — how you want the AI to sound when answering questions (e.g. "Friendly and professional. Use simple language. Avoid technical jargon unless the customer asks for details.")
+- **Assistant name** — the default name your AI assistant uses in Q&A when a deck doesn't set its own (`assistantName` in the API).
+- **Greeting** — the default first message the assistant sends when a deck doesn't set its own (`greeting` in the API).
 
 These fields are used as context whenever Sales CoPilot generates an answer, so they influence the tone and content of every AI response.
+
+Assistant name and greeting are company-wide defaults. If a deck sets its own **Assistant Name** or **Initial Greeting Message** under [Branding](/sales-copilot/guides/branding), those deck-level values win. Otherwise the presentation viewer falls back to the company profile values here, so onboarding a new company gives every deck a sensible identity out of the box.
+
+<Note>
+`PUT /api/company/kb/profile` writes only the fields present in the request body. Omitted fields are left untouched, and sending `null` clears a field. Callers can safely update one setting without needing to re-send the rest of the profile.
+</Note>
 
 ## Upload documents
 
