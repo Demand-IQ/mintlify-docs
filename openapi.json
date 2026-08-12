@@ -110,8 +110,8 @@
       "sessionCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "session",
-        "description": "Session cookie obtained from `POST /api/auth/login`."
+        "name": "session_id",
+        "description": "Session cookie obtained from `POST /api/auth/login`. The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`."
       },
       "presentationToken": {
         "type": "apiKey",
