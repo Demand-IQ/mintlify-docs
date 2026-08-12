@@ -1,6 +1,6 @@
 ---
 name: Sync API Docs from Sales CoPilot
-description: Automatically updates documentation when changes are pushed to the Sales CoPilot repo
+description: Updates documentation when a release ships in the Sales CoPilot repo
 on:
   push:
     - repo: Demand-IQ/ai-presentations-demo
@@ -9,6 +9,14 @@ automerge: true
 ---
 
 When this workflow triggers, review the changes pushed to `Demand-IQ/ai-presentations-demo` on the `main` branch.
+
+## When to act
+
+Documentation tracks the **released** API surface, not in-flight work on `main`. Releases are cut as `release/X.Y.Z` branches and merged back, so each release arrives on `main` as a merge commit.
+
+Only proceed when the pushed changes contain a release merge — a commit whose subject matches `Release: X.Y.Z`, or a merge of a `release/X.Y.Z` or `chore/release-X.Y.Z` branch. If the push contains no such commit, stop without changing anything, even when API routes changed.
+
+When a release merge is present, document the API surface as of that release, covering every API change that landed on `main` since the previous release merge — not just the changes in the triggering push.
 
 ## Instructions
 
@@ -24,6 +32,6 @@ When this workflow triggers, review the changes pushed to `Demand-IQ/ai-presenta
 Only generate documentation for **Sales CoPilot**. Do not create documentation for Journeys, even when Journeys-related code is added or changed in `Demand-IQ/ai-presentations-demo`. Specifically:
 
 - Do not create or restore any Journeys pages or a Journeys navigation tab.
-- Do not document Journeys-specific endpoints, including `POST /api/decks/{deckId}/ingest` (journey ingest). Never add them to `openapi.json` or `sales-copilot/openapi.json`, and do not create pages for them.
+- Do not document Journeys-specific endpoints, including `POST /api/decks/{deckId}/ingest` (journey ingest). Never add them to `openapi.json`, and do not create pages for them.
 
 This exclusion is about standalone Journeys documentation. Sales CoPilot features that integrate with journeys (for example, journey-backed product slides) are still in scope and should be documented as part of Sales CoPilot.
