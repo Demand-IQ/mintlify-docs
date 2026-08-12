@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Sales CoPilot API",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "REST API for Sales CoPilot — an AI-powered presentation platform with narrated slides, live Q&A, and deck management.\n\n**Authentication**: Most endpoints require a session cookie obtained from `POST /api/auth/login`. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access.",
     "contact": {
       "name": "Demand IQ",
