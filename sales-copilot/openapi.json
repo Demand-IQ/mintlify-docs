@@ -2911,9 +2911,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "homeownerData": {
-                    "type": "object"
-                  },
                   "voiceSettings": {
                     "type": "object",
                     "nullable": true
