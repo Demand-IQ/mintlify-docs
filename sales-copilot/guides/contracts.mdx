@@ -79,6 +79,6 @@ Key contract endpoints:
 - `GET /api/presentations/{presentationId}/sign-contract` — fetch the template, requirements, and homeowner context to render the contract client-side
 - `POST /api/presentations/{presentationId}/sign-contract` — submit a signature
 
-Both verbs require an `x-presentation-token` header scoped to the presentation, the same token used by `/events` and `/appointment`. Mint one with `POST /api/presentations/{presentationId}/events-token`, then send it on every call. Calls without a valid token return `401 Unauthorized`. Signing a soft-deleted presentation returns `404`, even if the token is still within its 24-hour TTL.
+Both verbs are callable without authentication using the `presentationId` in the URL. The typed signature is validated against the homeowner's name on the presentation, so a caller cannot sign under a different name.
 
 The server keeps only whitelisted keys from `variables` before storing them. Non-whitelisted keys and non-string values are silently dropped, so a caller cannot persist arbitrary fields onto `resolvedVariables`. See the **API Reference** tab for the exact allow-list and full request and response details.
