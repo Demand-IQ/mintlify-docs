@@ -7197,8 +7197,12 @@
           "Contracts"
         ],
         "summary": "Get contract for signing",
-        "description": "Returns the contract template, company branding, and product data needed to render the signing view. Callable without authentication using the `presentationId` in the URL.",
-        "security": [],
+        "description": "Returns the contract template, company branding, and product data needed to render the signing view. Requires an `x-presentation-token` scoped to this presentation, matching the sibling `events` and `appointment` routes. Obtain the token from `POST /api/presentations/{presentationId}/events-token`.",
+        "security": [
+          {
+            "presentationToken": []
+          }
+        ],
         "parameters": [
           {
             "in": "path",
@@ -7260,6 +7264,16 @@
               }
             }
           },
+          "401": {
+            "description": "Missing, malformed, or wrong-presentation `x-presentation-token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not found",
             "content": {
@@ -7287,8 +7301,12 @@
           "Contracts"
         ],
         "summary": "Sign a contract",
-        "description": "Submits a contract signature. Validates the typed signature against the customer name, resolves the template with variables, and creates an audit-trailed signed document. Callable without authentication using the `presentationId` in the URL. Client-supplied `variables` are filtered through an allow-list before storage. Non-whitelisted keys are dropped rather than persisted to `resolvedVariables`.",
-        "security": [],
+        "description": "Submits a contract signature. Validates the typed signature against the customer name, resolves the template with variables, and creates an audit-trailed signed document. Requires an `x-presentation-token` scoped to this presentation, matching the sibling `events` and `appointment` routes. Obtain the token from `POST /api/presentations/{presentationId}/events-token`. Soft-deleted presentations are refused with `404` even when the caller holds a still-valid token minted before the delete. Client-supplied `variables` are filtered through an allow-list before storage. Non-whitelisted keys are dropped rather than persisted to `resolvedVariables`.",
+        "security": [
+          {
+            "presentationToken": []
+          }
+        ],
         "parameters": [
           {
             "in": "path",
@@ -7385,8 +7403,18 @@
               }
             }
           },
+          "401": {
+            "description": "Missing, malformed, or wrong-presentation `x-presentation-token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Presentation, deck, or contract template not found.",
+            "description": "Presentation not found, presentation soft-deleted, deck missing, or contract template not found.",
             "content": {
               "application/json": {
                 "schema": {
