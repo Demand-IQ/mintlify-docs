@@ -15,16 +15,21 @@ Sales CoPilot emits these events:
 | `slide.viewed` | A viewer watches a slide (includes duration) |
 | `cta.clicked` | A viewer clicks a call-to-action button |
 | `contract.signed` | A viewer signs a contract |
-| `question.asked` | A viewer asks a question during Q&A |
+| `question.asked` | A viewer asks a question and the AI answers confidently |
+| `question.escalated` | A viewer asks a question the AI could not confidently answer (either it deflected to a human callback, or it hedged with a low-confidence answer). Emitted **instead of** `question.asked`, never both |
 | `appointment.booked` | A viewer books an appointment |
 | `email.sent` | Sales CoPilot sends a presentation email to a homeowner |
 | `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
 
 Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID so you can correlate opens back to a specific send; `email.sent` additionally lists the recipient addresses on that delivery.
 
+`question.escalated` carries the same payload shape as `question.asked` plus an `escalationReason` field: `no_answer` when the AI deflected to a human callback, or `low_confidence` when the AI answered but flagged the answer as uncertain. Any given question emits exactly one of `question.asked` or `question.escalated`, so a single question never triggers two notifications.
+
 ## Create a subscription
 
-In the template editor, open the **Settings** tab to manage notification subscriptions. You can also create subscriptions via the API.
+Sales CoPilot provisions a default set of email subscriptions for your organization the first time a user signs in, so the standard "someone opened your presentation" and "someone asked your AI a question" emails start working without any setup. When new event types ship, they're added to existing organizations on the next sign-in and inherit the org's prevailing posture — if you've muted every other email, the new type is muted too.
+
+To add or change recipients, open the **Settings** tab in the template editor. You can also create subscriptions via the API.
 
 Each subscription needs:
 
