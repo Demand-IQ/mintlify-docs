@@ -3613,7 +3613,7 @@
           "Images"
         ],
         "summary": "Upload an image",
-        "description": "Uploads and optimizes an image (Sharp: max 1920px width; JPEG quality 85, or WebP quality 80 when `format=webp`). Returns the S3 key and a presigned URL.",
+        "description": "Uploads and optimizes an image (Sharp: max 1920px width; JPEG quality 85, or WebP quality 80 when format=webp). Returns the S3 key and a presigned URL.",
         "security": [
           {
             "sessionCookie": []
@@ -3636,7 +3636,9 @@
                   },
                   "format": {
                     "type": "string",
-                    "enum": ["webp"],
+                    "enum": [
+                      "webp"
+                    ],
                     "description": "Opt into WebP output, for slide imagery. Omit for anything that may be embedded in an email — Outlook desktop cannot render WebP. Default output is JPEG, or PNG when the source has transparency."
                   }
                 }

@@ -4270,7 +4270,9 @@
                   },
                   "format": {
                     "type": "string",
-                    "enum": ["webp"],
+                    "enum": [
+                      "webp"
+                    ],
                     "description": "Opt into WebP output, for slide imagery. Omit for anything that may be embedded in an email — Outlook desktop cannot render WebP. Default output is JPEG, or PNG when the source has transparency."
                   }
                 }
