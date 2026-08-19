@@ -185,6 +185,12 @@
             "nullable": true,
             "description": "Presigned URL for the first slide image"
           },
+          "previewImageThumbUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "Presigned URL for the first slide thumbnail rendition (the full image when no thumbnail exists)"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -238,6 +244,11 @@
             "type": "string",
             "nullable": true,
             "description": "S3 key for the slide image"
+          },
+          "hero_img_thumb": {
+            "type": "string",
+            "nullable": true,
+            "description": "Presigned URL for the thumbnail rendition (the full image URL when no thumbnail exists). Deck read endpoints only — omitted from slide create/update responses"
           },
           "wordTimings": {
             "type": "array",
