@@ -279,6 +279,12 @@
             "nullable": true,
             "description": "Presigned URL for the first slide image"
           },
+          "previewImageThumbUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "Presigned URL for the 480px WebP thumbnail rendition of the first slide, sized for deck and template preview cards. Falls back to the full image URL when no thumbnail exists."
+          },
           "firstSlideType": {
             "type": "string",
             "enum": [
@@ -376,6 +382,11 @@
             "type": "string",
             "nullable": true,
             "description": "S3 key for the slide image"
+          },
+          "hero_img_thumb": {
+            "type": "string",
+            "nullable": true,
+            "description": "Presigned URL for the 480px WebP thumbnail rendition of the hero image, sized for editor rails and library grid tiles. Falls back to the full image URL when no thumbnail exists (legacy uploads, SVGs, and images already at or below 480px). Present on deck read endpoints only; omitted from slide create/update responses."
           },
           "wordTimings": {
             "type": "array",
