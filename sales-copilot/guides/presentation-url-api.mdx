@@ -9,7 +9,7 @@ This guide shows the fastest way to turn a lead into a personalized presentation
 Prospect ID or prospect details  →  Create Presentation API  →  Link for that prospect
 ```
 
-You send Sales CoPilot **either** a Demand IQ prospect ID (when the lead already exists in Demand IQ) **or** the prospect's details (name, address, contact info), and you get back a shareable URL. Open that URL and the prospect sees your branded, narrated presentation — personalized with their name and address.
+You send Sales CoPilot a Demand IQ prospect ID (when the lead already exists in Demand IQ), the prospect's details (name, address, contact info), or both, and you get back a shareable URL. Open that URL and the prospect sees your branded, narrated presentation — personalized with their name and address.
 
 It's written for two audiences:
 
@@ -26,21 +26,16 @@ It's written for two audiences:
 
 Creating a presentation is one API call to one endpoint — `POST /api/decks/{deckId}/presentations`. What you send in the body depends on where your lead lives:
 
-| You have...                                                                  | Send                                                            |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Lead details in your CRM, a form, or a spreadsheet                           | A `homeowner` object with their name, address, and contact info |
-| A prospect that already exists in Demand IQ (e.g. from your Journeys funnel) | Their Demand IQ `prospect_id`                                   |
+| You have...                                                                  | Send                                                                                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Lead details in your CRM, a form, or a spreadsheet                           | A `homeowner` object with their name, address, and contact info                                               |
+| A prospect that already exists in Demand IQ (e.g. from your Journeys funnel) | Their Demand IQ `prospect_id`                                                                                 |
+| Both — an existing prospect, but you want the presentation to use your own contact fields | `prospect_id` **and** `homeowner`. The prospect is attached; the `homeowner` fields you send are used as-is  |
 
-Send exactly one of the two — `homeowner` or `prospect_id`, never both and never neither. The request returns a presentation URL immediately. The link is live as soon as you get it — narration audio may still be rendering in the background for a short while, and you can [check on that](#step-4-share-the-link) if you want to wait until everything is ready.
+At least one of the two must be present — sending neither returns a `400` ("Provide homeowner or prospect_id"). The request returns a presentation URL immediately. The link is live as soon as you get it — narration audio may still be rendering in the background for a short while, and you can [check on that](#step-4-share-the-link) if you want to wait until everything is ready.
 
 <Note>
-  **How this relates to prospects in Demand IQ.** Either way, the presentation
-  ends up linked to a Demand IQ prospect record. Send `prospect_id` and Sales
-  CoPilot personalizes the presentation from that existing prospect's contact
-  info. Send `homeowner` details instead and Sales CoPilot creates the prospect
-  record in Demand IQ for you as part of the same call — matching an existing
-  prospect at that address if one already exists, rather than creating a
-  duplicate.
+  **How this relates to prospects in Demand IQ.** Every presentation is linked to a Demand IQ prospect record. Send `prospect_id` alone and Sales CoPilot personalizes the presentation from that existing prospect's contact info. Send `homeowner` details alone and Sales CoPilot creates a new prospect record in Demand IQ for you as part of the same call. Send both and Sales CoPilot attaches the existing prospect to the presentation but takes the homeowner fields you send as authoritative.
 </Note>
 
 ## What you'll need
@@ -62,7 +57,7 @@ API keys are generated in the Demand IQ dashboard, not created over the API:
 
 1. Log in at `app.demand-iq.com` and go to **Settings → Company → API Keys** (`/company/settings/apiKeys`).
 2. Click **Add New API Key**.
-3. Choose what you'll use it for. None of the presets are specifically about presentations, so pick **Custom**. If you'll only [send prospect details](#sending-prospect-details-homeowner), you don't need to check any prospect permissions. Sales CoPilot creates the underlying prospect record itself using its own service credential, so your key doesn't need to. If you'll [send an existing `prospect_id`](#sending-a-prospect-id-prospect_id), check **Read Prospects** so the key can look up that prospect's contact info. Check **Read Prospects** if you'll use either path interchangeably.
+3. Choose what you'll use it for. None of the presets are specifically about presentations, so pick **Custom**. Sales CoPilot forwards your API key to Demand IQ to look up or create the prospect on your behalf, so your key needs the underlying prospect permissions. Check **Write Prospects** if you'll [send prospect details](#sending-prospect-details-homeowner) (a new Demand IQ prospect gets created for the presentation). Check **Read Prospects** if you'll [send an existing `prospect_id`](#sending-a-prospect-id-prospect_id) or use both fields together. If you'll use both paths interchangeably, check both. A `401` with code `CORE_AUTH_REJECTED` at request time means one of these scopes is missing (or the credential expired).
 4. Give it a name (e.g. "Zapier — presentation links") and confirm the expiration date. Keys default to expiring two years out; pick sooner if you'd rather rotate more often.
 5. Click **Create**, then **copy the key immediately** — it's shown only once and can't be retrieved again later.
 
@@ -104,7 +99,7 @@ curl https://presentations.demand-iq.com/api/decks \
 
 ## Step 3: Create the presentation
 
-Send exactly one of `homeowner` or `prospect_id` to the same endpoint; sending both, or neither, returns a `400` ("Provide homeowner or prospect_id").
+Send `homeowner`, `prospect_id`, or both to the same endpoint. Sending neither returns a `400` ("Provide homeowner or prospect_id").
 
 If the lead's details live in your CRM, a web form, a spreadsheet — anywhere outside Demand IQ — send them in a `homeowner` object:
 
@@ -166,7 +161,7 @@ Both return the same response, immediately:
 | `email`      | No       | Needed if you want Sales CoPilot to email the link              |
 | `phone`      | No       |                                                                 |
 
-Behind the scenes, Sales CoPilot creates a matching prospect record in Demand IQ from these details as part of this same call (or reuses an existing one already at that address). That's why `state` and `zip` are required here (Demand IQ's own prospect API needs them) even though they aren't required on the `prospect_id` path. Sales CoPilot performs that prospect creation with its own service credential, so your API key does **not** need Write Prospects for this path — the resulting prospect is attributed to Sales CoPilot in Demand IQ regardless of which key you used. If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ itself is unreachable, a `503`. Separately, Sales CoPilot also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos.
+Behind the scenes, Sales CoPilot creates a new prospect record in Demand IQ from these details as part of this same call, using **your** API key. That's why the key needs **Write Prospects** for this path, and it's why `state` and `zip` are required here (Demand IQ's own prospect API needs them) even though they aren't required on the `prospect_id` path. If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ rejects the credential itself, a `401` with code `CORE_AUTH_REJECTED` (check the scopes on your API key); if Demand IQ is unreachable, a `503`. Separately, Sales CoPilot also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos.
 
 <Note>
 If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available.
@@ -178,7 +173,11 @@ If your template uses pricing formulas, you can pass values for its price variab
 | ------------- | -------- | --------------------------- |
 | `prospect_id` | **Yes**  | The prospect's Demand IQ ID |
 
-Looking up the prospect uses the **Read Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID doesn't exist in Demand IQ or isn't visible to your account — don't retry the same ID; send their details with `homeowner` instead.
+Looking up the prospect uses the **Read Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID doesn't exist in Demand IQ or isn't visible to your account — don't retry the same ID; send their details with `homeowner` instead. A `401` with code `CORE_AUTH_REJECTED` means the key is missing **Read Prospects** (or the credential expired).
+
+### Sending both (`prospect_id` + `homeowner`)
+
+Send both when the prospect already exists in Demand IQ but you want the presentation to use **your** contact details rather than whatever's on that prospect record — for example, when your CRM has a fresher phone number or email than Demand IQ does. The `prospect_id` is attached to the presentation (Demand IQ verifies it exists and is visible to your key, so this path also needs **Read Prospects**), and the `homeowner` fields you send are used as-is for personalization. No new prospect is created, so **Write Prospects** is not required for this path. A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID isn't visible to your key.
 
 <Note>
   This only pulls the prospect's **contact info** — it doesn't pull in pricing

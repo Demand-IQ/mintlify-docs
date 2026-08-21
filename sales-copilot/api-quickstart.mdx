@@ -147,7 +147,7 @@ curl -b cookies.txt -X POST \
 
 ## Step 5: Create and send a presentation
 
-Create a personalized presentation for the homeowner. Provide **either** a `homeowner` object (creates a new Core prospect) **or** an existing `prospect_id` (reuses a Core prospect's contact and roof data) — not both. For the `homeowner` path, `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` means it couldn't be resolved:
+Create a personalized presentation for the homeowner. Provide a `homeowner` object (creates a new Core prospect from those details), an existing `prospect_id` (reuses a Core prospect's contact and roof data), or both (attaches the existing prospect but uses the `homeowner` fields you send as-is for personalization). At least one of the two is required. For the `homeowner` path, `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` with code `INVALID_ADDRESS` means it couldn't be resolved. A `422` with code `PROSPECT_NOT_FOUND` means the `prospect_id` isn't visible to your credential, and a `401` with code `CORE_AUTH_REJECTED` means your session or API key doesn't have the required Core prospect scopes.
 
 ```bash
 curl -b cookies.txt -X POST \
