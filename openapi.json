@@ -4795,13 +4795,15 @@
                     "expiresAt": {
                       "type": "string",
                       "format": "date-time",
-                      "description": "Absolute session expiry"
+                      "description": "Session deadline at mint time. Rolling: it moves forward on every successful renewal (`POST /api/auth/session/renew`), so a live client's real expiry drifts past this value. Never a hard cap."
                     },
                     "idleTimeoutSeconds": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Sliding idle window measured against the session's last activity. Default `25200` (7h). Independent of `absoluteMaxAgeSeconds` — either can force re-auth first."
                     },
                     "absoluteMaxAgeSeconds": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Rolling session lifetime in seconds (`SESSION_LIFETIME`, default `86400`). Re-set at creation and on every renewal, so this is the size of the rolling window, not an absolute cap. The wire key stays `absoluteMaxAgeSeconds` for portal compatibility."
                     },
                     "user": {
                       "type": "object",
