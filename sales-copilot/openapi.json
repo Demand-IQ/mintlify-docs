@@ -2754,7 +2754,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both — at least one is required. With only `homeowner`, a Core prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's Core journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential — otherwise 422 PROSPECT_NOT_FOUND). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
+        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both — at least one is required. With only `homeowner`, a new prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential — otherwise 422 PROSPECT_NOT_FOUND). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
         "security": [
           {
             "sessionCookie": []
@@ -2785,7 +2785,7 @@
                   "prospect_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "Core prospect to attach the presentation to. Alone, homeowner data is fetched from the prospect's journey; with `homeowner`, the prospect is attached and the supplied data is used as-is. Must be visible to your credential."
+                    "description": "Prospect to attach the presentation to. Alone, homeowner data is fetched from the prospect's journey; with `homeowner`, the prospect is attached and the supplied data is used as-is. Must be visible to your credential."
                   },
                   "voice_settings": {
                     "type": "object"
@@ -2876,7 +2876,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable: `INVALID_ADDRESS` (address could not be verified), `PROSPECT_NOT_FOUND` (prospect_id does not exist or belongs to another organization — permanent, do not retry), or `PROSPECT_CREATE_FAILED` (Core rejected the prospect data)",
+            "description": "Unprocessable: `INVALID_ADDRESS` (address could not be verified), `PROSPECT_NOT_FOUND` (prospect_id does not exist or belongs to another organization — permanent, do not retry), or `PROSPECT_CREATE_FAILED` (prospect data was rejected upstream)",
             "content": {
               "application/json": {
                 "schema": {
