@@ -215,7 +215,7 @@ Every environment serves its own live OpenAPI 3.0 document at `/presentations/op
 curl https://presentations.demand-iq.com/presentations/openapi.json
 ```
 
-The route is public, cached for 5 minutes, and the first entry in `servers` reflects the origin that served the request — so a `curl` against stage returns a spec whose `servers[0]` is the stage URL.
+The route is public and cached for 5 minutes. The first entry in `servers` reflects the environment serving the request, so a `curl` against stage returns a spec whose `servers[0]` is the stage URL.
 
 ## What's next
 
