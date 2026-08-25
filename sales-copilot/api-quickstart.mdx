@@ -98,10 +98,14 @@ curl -b cookies.txt \
   "status": "processing",
   "currentSlide": 2,
   "totalSlides": 3,
+  "progress": 33,
+  "error": null,
   "createdAt": "2026-07-06T17:05:00.000Z",
-  "updatedAt": "2026-07-06T17:05:20.000Z"
+  "completedAt": null
 }
 ```
+
+`progress` counts only finished slides, so it shows 33 while slide 2 of 3 is still generating. A completed or failed job always reports 100.
 
 If `status` comes back `failed`, the `error` field explains why. To review or tweak what was generated, list the slides with `GET /api/decks/{deckId}/slides` and edit scripts with `PUT /api/slides/{slideId}`.
 

@@ -842,6 +842,10 @@
             "type": "integer",
             "nullable": true
           },
+          "progress": {
+            "type": "integer",
+            "description": "0-100, derived from currentSlide/totalSlides"
+          },
           "error": {
             "type": "string",
             "nullable": true
@@ -850,16 +854,19 @@
             "type": "string",
             "format": "date-time"
           },
-          "updatedAt": {
+          "completedAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "nullable": true
           }
         },
         "required": [
           "jobId",
           "status",
-          "createdAt",
-          "updatedAt"
+          "currentSlide",
+          "totalSlides",
+          "progress",
+          "createdAt"
         ]
       },
       "Image": {
