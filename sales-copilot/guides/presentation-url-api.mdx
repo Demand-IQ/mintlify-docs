@@ -42,7 +42,7 @@ At least one of the two must be present — sending neither returns a `400` ("Pr
 
 1. **A Sales CoPilot account.** Your organization must be provisioned — if you're not sure, ask your Demand IQ account manager.
 2. **An API key**, generated from the dashboard. Covered in [Step 1](#step-1-generate-an-api-key).
-3. **A template with slides.** Presentations are created _from_ a template (the API calls it a **deck**).
+3. **A template with slides.** Presentations are created _from_ a template (the API calls it a **deck**). The template must have at least one slide. Creating a presentation from an empty template returns a `400` ("Deck has no slides").
 4. **Your template's deck ID.** Covered in [Step 2](#step-2-find-your-deck-id).
 
 All presentation API requests go to the production base URL:
