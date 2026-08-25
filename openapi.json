@@ -736,6 +736,120 @@
           "updatedAt"
         ]
       },
+      "PresentationSlide": {
+        "type": "object",
+        "description": "A slide as served to the presentation viewer. Media URLs are presigned and expire, so responses containing this schema must not be cached.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deckSlideId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slideId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "narrationScript": {
+            "type": "string"
+          },
+          "audioUrl": {
+            "type": "string",
+            "description": "Presigned URL for the slide's narration audio. Expires after a short window."
+          },
+          "heroImg": {
+            "type": "string",
+            "description": "Presigned URL for the slide image. Expires after a short window."
+          },
+          "wordTimings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordTiming"
+            }
+          },
+          "position": {
+            "type": "integer"
+          },
+          "slideType": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "product_pricing_v1"
+            ],
+            "description": "Defaults to `standard` when omitted."
+          },
+          "productData": {
+            "$ref": "#/components/schemas/ProductSlideData"
+          }
+        },
+        "required": [
+          "id",
+          "slideId",
+          "title",
+          "bullets",
+          "narrationScript",
+          "position"
+        ]
+      },
+      "PresentationQaSettings": {
+        "type": "object",
+        "description": "Q&A prompt configuration as served to the presentation viewer, with presigned audio URLs.",
+        "properties": {
+          "resumePromptText": {
+            "type": "string",
+            "description": "Spoken prompt asking if the viewer wants to continue the presentation"
+          },
+          "resumePromptAudioUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Presigned URL for the resume prompt audio"
+          },
+          "resumePromptWordTimings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordTiming"
+            },
+            "nullable": true
+          },
+          "resumePromptVoiceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transitionPromptText": {
+            "type": "string",
+            "description": "Spoken bridge from Q&A back into the presentation"
+          },
+          "transitionPromptAudioUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Presigned URL for the transition prompt audio"
+          },
+          "transitionPromptWordTimings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordTiming"
+            },
+            "nullable": true
+          },
+          "transitionPromptVoiceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "resumePromptText",
+          "transitionPromptText"
+        ]
+      },
       "NarrationResponse": {
         "type": "object",
         "properties": {
@@ -3490,7 +3604,7 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request \u2014 malformed input, or the deck has no slides (`\"Deck has no slides\"`). A presentation cannot be created from an empty deck.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7217,6 +7331,113 @@
           },
           "410": {
             "description": "Presentation deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presentations/{presentationId}/content": {
+      "get": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "Get presentation slides and Q&A settings",
+        "description": "Returns the slide payload and Q&A settings for a presentation. The presentation viewer fetches this behind the intro or loading screen so the initial page load stays small. Requires an `x-presentation-token` scoped to this presentation. Expired tokens are rejected with `401` — reload the presentation page to obtain a fresh one. Audio and image URLs in the response are freshly signed on every call and expire, so the response is marked `Cache-Control: private, no-store` and must not be cached.",
+        "security": [
+          {
+            "presentationToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "presentationId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Presentation content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not_started",
+                        "pending",
+                        "generating",
+                        "ready",
+                        "failed"
+                      ]
+                    },
+                    "slides": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PresentationSlide"
+                      }
+                    },
+                    "qaSettings": {
+                      "$ref": "#/components/schemas/PresentationQaSettings"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "slides"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired presentation token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Presentation no longer available",
             "content": {
               "application/json": {
                 "schema": {
