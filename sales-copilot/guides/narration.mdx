@@ -42,3 +42,9 @@ Each slide and FAQ has an audio preview player so you can listen before sending 
 A slide can reach a live presentation without a narration script — for example, a bulk-uploaded image you haven't gotten to yet. Sales CoPilot handles these gracefully during playback: the slide dwells on screen for a few seconds and then advances to the next slide automatically, so the deck never stalls on a silent frame.
 
 To catch these before you send anything, the Slides tab flags every slide missing a script with a **Needs narration** marker and shows a running count beneath the rail. The marker clears as soon as you save a narration script for that slide.
+
+## If audio fails during playback
+
+If a slide's narration audio fails to load during a live presentation — for example, because its audio link has expired — the viewer recovers on its own. It fetches a fresh audio link once and resumes playback from where the audio stopped. The homeowner sees nothing beyond a brief pause; the transcript panel keeps showing the narration script throughout.
+
+If the retry also fails, the slide stays on screen for about as long as its narration would have run (between 6 and 30 seconds) before advancing, so the deck keeps its intended pacing instead of rushing past silent slides.
