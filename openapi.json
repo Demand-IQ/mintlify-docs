@@ -5781,7 +5781,7 @@
           "Contracts"
         ],
         "summary": "Import a contract document",
-        "description": "Uploads a contract document (PDF or Word), extracts text, and uses AI to analyze it for template conversion. Returns detected variables that can be used in contract templates.",
+        "description": "Uploads a contract document (PDF or Word) and uses AI to analyze the full document for template conversion. Returns a markdown template with variable placeholders, the list of detected variables, and a one-sentence summary of the contract.",
         "security": [
           {
             "sessionCookie": []
@@ -5814,12 +5814,58 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": [
+                    "markdownTemplate",
+                    "detectedVariables",
+                    "summary"
+                  ],
                   "properties": {
+                    "markdownTemplate": {
+                      "type": "string",
+                      "description": "The complete contract converted to Markdown, with detected values replaced by {{variable}} placeholders.",
+                      "example": "# Solar Installation Agreement\n\nThis agreement is between {{full_name}} of {{address}} and {{company_name}}..."
+                    },
                     "detectedVariables": {
                       "type": "array",
+                      "description": "Variables detected in the document and replaced in the template.",
                       "items": {
-                        "type": "string"
+                        "type": "object",
+                        "required": [
+                          "originalText",
+                          "suggestedVariable",
+                          "confidence",
+                          "context"
+                        ],
+                        "properties": {
+                          "originalText": {
+                            "type": "string",
+                            "description": "The exact text that was replaced.",
+                            "example": "John Doe"
+                          },
+                          "suggestedVariable": {
+                            "type": "string",
+                            "description": "The variable name used in the template.",
+                            "example": "full_name"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "description": "Detection confidence between 0 and 1.",
+                            "example": 0.95
+                          },
+                          "context": {
+                            "type": "string",
+                            "description": "Where this value appears in the contract.",
+                            "example": "Customer name in the agreement header"
+                          }
+                        }
                       }
+                    },
+                    "summary": {
+                      "type": "string",
+                      "description": "One sentence describing the contract type.",
+                      "example": "A residential solar installation agreement."
                     }
                   }
                 }

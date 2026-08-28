@@ -7,7 +7,7 @@ Contracts let homeowners sign agreements directly inside a presentation. You upl
 
 ## How it works
 
-1. **Import** a contract (PDF or Word) — Sales CoPilot extracts the text and identifies variables like names, dates, and addresses
+1. **Import** a contract (PDF or Word) — Sales CoPilot analyzes the full document and identifies variables like names, dates, and addresses
 2. **Edit the template** — refine the markdown template, add disclosures, and configure signing requirements
 3. **Publish** — once published, the contract appears as a signing step in the presentation
 4. **Viewer signs** — the homeowner reviews the contract with their details filled in, types their name as a signature, and submits
@@ -18,7 +18,7 @@ Signed documents are stored with a full audit trail including timestamp, user ag
 
 In the template editor, open the **Actions** tab and click **Import Contract**.
 
-Upload a PDF or Word document (max 10 MB). Sales CoPilot uses AI to analyze the document and convert it to a markdown template. It detects variables like `{{full_name}}` and `{{address}}` that get replaced with the homeowner's real information when the contract is presented.
+Upload a PDF or Word document (max 10 MB). Sales CoPilot uses AI to analyze the entire document and convert it to a markdown template, preserving all sections, clauses, and legal language rather than summarizing. It detects variables like `{{full_name}}` and `{{address}}` that get replaced with the homeowner's real information when the contract is presented.
 
 After import, you'll see:
 - The generated **markdown template** — editable
