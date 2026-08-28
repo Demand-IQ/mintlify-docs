@@ -25,6 +25,8 @@ Each event includes the `presentationId` and relevant context. For example, `sli
 
 `question.escalated` carries the same payload shape as `question.asked` plus an `escalationReason` field: `no_answer` when the AI deflected to a human callback, or `low_confidence` when the AI answered but flagged the answer as uncertain. Any given question emits exactly one of `question.asked` or `question.escalated`, so a single question never triggers two notifications.
 
+The `question.asked` payload can also include an optional `degradedReason` field: `no_client`, `request_failed`, `empty_response`, or `invalid_response`. It is set when the viewer received a canned answer because of a temporary issue on Sales CoPilot's side, not a gap in your content. These answers never emit `question.escalated`, so no one on your team is asked to follow up. The field is additive and optional, so existing consumers are unaffected.
+
 ## Create a subscription
 
 Sales CoPilot provisions a default set of email subscriptions for your organization the first time a user signs in, so the standard "someone opened your presentation" and "someone asked your AI a question" emails start working without any setup. When new event types ship, they're added to existing organizations on the next sign-in and inherit the org's prevailing posture — if you've muted every other email, the new type is muted too.

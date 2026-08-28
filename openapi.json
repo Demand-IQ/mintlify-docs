@@ -913,17 +913,6 @@
           "relatedSlideId": {
             "type": "string",
             "nullable": true
-          },
-          "structured": {
-            "type": "object",
-            "properties": {
-              "confidence": {
-                "type": "string"
-              },
-              "source": {
-                "type": "string"
-              }
-            }
           }
         },
         "required": [
