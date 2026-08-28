@@ -231,6 +231,12 @@
               }
             }
           },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "ID of the user who created the deck. Null for decks created before creator tracking was added."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -712,6 +718,12 @@
           "languageSettings": {
             "type": "object",
             "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "ID of the user who created the presentation. Null for presentations created by an automated integration rather than a user, and for presentations created before creator tracking was added."
           },
           "createdAt": {
             "type": "string",
