@@ -4424,7 +4424,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Image file (PNG, JPG, or WebP; max 10 MB)"
+                    "description": "Image file (PNG, JPG, WebP, or SVG; max 10 MB)"
                   },
                   "format": {
                     "type": "string",
@@ -5843,7 +5843,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Contract file (PDF or DOCX, max 10 MB)"
+                    "description": "Contract file (PDF or Word .docx/.doc, max 10 MB)"
                   }
                 }
               }

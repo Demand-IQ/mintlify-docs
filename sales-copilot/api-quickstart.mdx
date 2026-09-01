@@ -136,7 +136,7 @@ curl -b cookies.txt -X PUT \
   }'
 ```
 
-To add a logo or rep avatar, upload the image first with `POST /api/images/upload` (multipart, `file` field) and pass the returned S3 key as `logo` or `avatar`. Deleting an image with `DELETE /api/images/{imageId}` returns `409 Conflict` while any deck or presentation still references it, along with a list of where it's used. Clear those references first.
+To add a logo or rep avatar, upload the image first with `POST /api/images/upload` (multipart, `file` field; JPG, PNG, WebP, or SVG up to 10 MB) and pass the returned S3 key as `logo` or `avatar`. Deleting an image with `DELETE /api/images/{imageId}` returns `409 Conflict` while any deck or presentation still references it, along with a list of where it's used. Clear those references first.
 
 You can also seed the live Q&A with your own answers — Sales CoPilot matches these during the presentation and responds with your exact wording:
 
