@@ -4493,6 +4493,7 @@
           "Images"
         ],
         "summary": "Delete an image",
+        "description": "Permanently removes the image, its thumbnail rendition and its database row. Refused with 409 while any deck or presentation still references the key; clear the reference first.",
         "security": [
           {
             "sessionCookie": []
@@ -4542,6 +4543,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Image is still in use; nothing was deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "usage": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "deck_logo",
+                              "deck_avatar",
+                              "deck_intro_background",
+                              "slide_hero",
+                              "product_slide_logo",
+                              "product_card_image",
+                              "presentation_slide"
+                            ]
+                          },
+                          "deckName": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
