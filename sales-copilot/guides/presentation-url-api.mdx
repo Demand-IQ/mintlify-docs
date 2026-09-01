@@ -164,7 +164,7 @@ Both return the same response, immediately:
 Behind the scenes, Sales CoPilot creates a new prospect record in Demand IQ from these details as part of this same call, using **your** API key. That's why the key needs **Write Prospects** for this path, and it's why `state` and `zip` are required here (Demand IQ's own prospect API needs them) even though they aren't required on the `prospect_id` path. If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ rejects the credential itself, a `401` with code `CORE_AUTH_REJECTED` (check the scopes on your API key); if Demand IQ is unreachable, a `503`. Separately, Sales CoPilot also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos.
 
 <Note>
-If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available.
+If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available. Only variables that a pricing formula on the deck's current slides references count here; variables left over from a removed product slide are ignored.
 </Note>
 
 ### Sending a prospect ID (`prospect_id`)

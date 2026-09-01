@@ -3519,7 +3519,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both \u2014 at least one is required. With only `homeowner`, a new prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential \u2014 otherwise 422 `PROSPECT_NOT_FOUND`). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.\n\nPrice inputs are optional. If a product pricing slide uses formula variables that are not supplied, the price is deferred \u2014 the slide displays a placeholder instead of failing. Deferred prices can be resolved later when the missing values become available (e.g., after roof measurements).",
+        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both \u2014 at least one is required. With only `homeowner`, a new prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential \u2014 otherwise 422 `PROSPECT_NOT_FOUND`). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.\n\nPrice inputs are optional. If a product pricing slide uses formula variables that are not supplied, the price is deferred \u2014 the slide displays a placeholder instead of failing. Deferred prices can be resolved later when the missing values become available (e.g., after roof measurements). Sales CoPilot defers a measurement-backed variable only when a formula on one of the deck's product-pricing slides references it. Price variables left in the deck's settings after their product slide was removed, or after its formula stopped referencing them, are ignored.",
         "security": [
           {
             "sessionCookie": []
@@ -3571,7 +3571,8 @@
                       "manual",
                       "auto"
                     ],
-                    "default": "manual"
+                    "default": "manual",
+                    "description": "Set to `auto` to resolve measurement-backed price variables from automated roof measurements instead of supplying them in `price_inputs`. Only variables referenced by a formula on the deck's product-pricing slides are deferred to measurements."
                   }
                 }
               }
