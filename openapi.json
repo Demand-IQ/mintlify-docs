@@ -1718,6 +1718,188 @@
         }
       }
     },
+    "/api/decks/import": {
+      "post": {
+        "tags": [
+          "Decks"
+        ],
+        "summary": "Import a presentation as a deck",
+        "description": "Imports a slide presentation and creates a fully persisted image-based deck from it. Each slide is rendered to a PNG image, and speaker notes become the editable narration script for that slide (the original notes are retained separately). The original source file and rendered slide images are stored alongside the deck and removed when the deck is deleted.\n\nThe `source` query parameter selects the import format. `pptx` (PowerPoint) is currently the only supported source. PowerPoint files are limited to 25 MB and 50 slides, and the request body as a whole is limited to 30 MB.\n\nImports are atomic: if any step fails, no deck or slides are created and any stored files are cleaned up. Non-fatal issues (for example, a slide that rendered with reduced fidelity) are reported in the `import.warnings` array of the response.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pptx"
+              ]
+            },
+            "description": "Slide import source format. Only `pptx` is currently supported."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "file"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "Name for the new deck.",
+                    "example": "Spring Roofing Pitch"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "description": "Optional deck description."
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The presentation file. For `source=pptx`, exactly one `.pptx` file up to 25 MB with at most 50 slides."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deck created from the imported presentation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "deck",
+                    "import"
+                  ],
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    },
+                    "import": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "source",
+                        "status",
+                        "warnings"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "Identifier of the import record."
+                        },
+                        "source": {
+                          "type": "string",
+                          "example": "pptx"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ],
+                          "description": "Always `succeeded` in a 201 response. Failed imports return an error status code instead."
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "description": "Non-fatal issues encountered during the import.",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "code",
+                              "message"
+                            ],
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "example": "missing_speaker_notes"
+                              },
+                              "message": {
+                                "type": "string"
+                              },
+                              "slideIndex": {
+                                "type": "integer",
+                                "description": "Zero-based index of the affected slide, when the warning applies to a single slide."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. The `code` field identifies the problem: `source_required` (missing `source` query parameter), `unsupported_source` (the response also includes a `supportedSources` array), `invalid_form_data`, `invalid_metadata`, or `invalid_pptx` (wrong extension, media type, or unreadable file).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request too large. The request body exceeds 30 MB (`request_too_large`) or the PowerPoint file exceeds 25 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The presentation could not be converted into a deck: it contains no slides (`empty_import`) or a slide failed to render (`invalid_rendered_slide`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error (`deck_import_failed`). No deck is created and uploaded files are cleaned up.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/decks/{deckId}": {
       "get": {
         "tags": [
@@ -1939,7 +2121,7 @@
           "Decks"
         ],
         "summary": "Delete a deck",
-        "description": "Permanently deletes a deck and all associated slides, FAQs, and branding.",
+        "description": "Permanently deletes a deck and all associated slides, FAQs, and branding. For decks created via `POST /api/decks/import`, the stored source file and rendered slide images are removed as well.",
         "security": [
           {
             "sessionCookie": []
@@ -4438,7 +4620,7 @@
                     "enum": [
                       "webp"
                     ],
-                    "description": "Opt into WebP output, for slide imagery. Omit for anything that may be embedded in an email — Outlook desktop cannot render WebP. Default output is JPEG, or PNG when the source has transparency."
+                    "description": "Opt into WebP output, for slide imagery. Omit for anything that may be embedded in an email \u2014 Outlook desktop cannot render WebP. Default output is JPEG, or PNG when the source has transparency."
                   }
                 }
               }
@@ -4944,7 +5126,7 @@
           "Authentication"
         ],
         "summary": "Portal SSO token-bearer exchange",
-        "description": "Token-bearer variant of the SSO flow for cross-origin clients (for example, the portal calling Sales CoPilot APIs from the browser).\n\nDiffers from `GET /api/auth/sso` in four ways:\n- Accepts the SSO code in a JSON body, not a query parameter\n- Returns the session token in the response body instead of setting a cookie\n- Emits CORS headers so the portal origin can read the response\n- Does not set the embedded or theme cookies (those are iframe-only concerns)\n\nThe returned `token` is the same opaque session ID that backs the cookie flow. Clients send it as `Authorization: Bearer <token>` on subsequent requests.\n\nWhen `spoof` is present, the session is minted for the target company via Core's `loginAs`. Core authorizes the impersonation; a rejection returns `403 spoof_forbidden`. A `spoof` value equal to the authenticating user's own company is treated as a no-op, not an error. The `organization` field in the response reflects the effective (spoof target) tenant. Unlike the GET SSO flow, this endpoint does not revoke prior sessions for the user — there is no signal to identify the caller's prior bearer session, and revoking all sessions would kill any active iframe session in another tab.\n\nOn success, default email notification subscriptions are provisioned for the authenticating user's own organization before any spoof is applied.",
+        "description": "Token-bearer variant of the SSO flow for cross-origin clients (for example, the portal calling Sales CoPilot APIs from the browser).\n\nDiffers from `GET /api/auth/sso` in four ways:\n- Accepts the SSO code in a JSON body, not a query parameter\n- Returns the session token in the response body instead of setting a cookie\n- Emits CORS headers so the portal origin can read the response\n- Does not set the embedded or theme cookies (those are iframe-only concerns)\n\nThe returned `token` is the same opaque session ID that backs the cookie flow. Clients send it as `Authorization: Bearer <token>` on subsequent requests.\n\nWhen `spoof` is present, the session is minted for the target company via Core's `loginAs`. Core authorizes the impersonation; a rejection returns `403 spoof_forbidden`. A `spoof` value equal to the authenticating user's own company is treated as a no-op, not an error. The `organization` field in the response reflects the effective (spoof target) tenant. Unlike the GET SSO flow, this endpoint does not revoke prior sessions for the user \u2014 there is no signal to identify the caller's prior bearer session, and revoking all sessions would kill any active iframe session in another tab.\n\nOn success, default email notification subscriptions are provisioned for the authenticating user's own organization before any spoof is applied.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4996,7 +5178,7 @@
                     },
                     "idleTimeoutSeconds": {
                       "type": "integer",
-                      "description": "Sliding idle window measured against the session's last activity. Default `25200` (7h). Independent of `absoluteMaxAgeSeconds` — either can force re-auth first."
+                      "description": "Sliding idle window measured against the session's last activity. Default `25200` (7h). Independent of `absoluteMaxAgeSeconds` \u2014 either can force re-auth first."
                     },
                     "absoluteMaxAgeSeconds": {
                       "type": "integer",
@@ -5023,7 +5205,7 @@
                     },
                     "organization": {
                       "type": "object",
-                      "description": "Effective tenant — the spoof target when spoofing, otherwise the user's own company.",
+                      "description": "Effective tenant \u2014 the spoof target when spoofing, otherwise the user's own company.",
                       "required": [
                         "id",
                         "name"
@@ -7455,7 +7637,7 @@
           "Presentations"
         ],
         "summary": "Get presentation slides and Q&A settings",
-        "description": "Returns the slide payload and Q&A settings for a presentation. The presentation viewer fetches this behind the intro or loading screen so the initial page load stays small. Requires an `x-presentation-token` scoped to this presentation. Expired tokens are rejected with `401` — reload the presentation page to obtain a fresh one. Audio and image URLs in the response are freshly signed on every call and expire, so the response is marked `Cache-Control: private, no-store` and must not be cached.",
+        "description": "Returns the slide payload and Q&A settings for a presentation. The presentation viewer fetches this behind the intro or loading screen so the initial page load stays small. Requires an `x-presentation-token` scoped to this presentation. Expired tokens are rejected with `401` \u2014 reload the presentation page to obtain a fresh one. Audio and image URLs in the response are freshly signed on every call and expire, so the response is marked `Cache-Control: private, no-store` and must not be cached.",
         "security": [
           {
             "presentationToken": []
