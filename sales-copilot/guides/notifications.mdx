@@ -25,7 +25,9 @@ Sales CoPilot emits these events:
 | `email.complained` | The homeowner marked the presentation email as spam |
 | `email.unsubscribed` | The homeowner unsubscribed from your emails |
 
-Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID so you can correlate opens back to a specific send; `email.sent` additionally lists the recipient addresses on that delivery.
+Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
+
+Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text. When you query the event log, `email.sent` entries include a top-level `recipientEmail` field alongside the payload so you can still see who received each send.
 
 The four email failure events (`email.bounced`, `email.dropped`, `email.complained`, `email.unsubscribed`) carry the `presentationId`, the delivery attempt ID (`deliveryId`), and SendGrid's message and event identifiers (`sgMessageId`, `sgEventId`). `email.bounced` adds a `bounceType` (`bounce` or `blocked`) and SendGrid's bounce `classification`; `email.dropped` adds SendGrid's drop `reason` (for example `Bounced Address` or `Unsubscribed Address`). These payloads never include the recipient's email address. Email notifications for these events resolve the affected recipient for you at send time.
 
@@ -105,6 +107,8 @@ Logs events to the server console. Useful for development and debugging.
 ## Event log
 
 Sales CoPilot keeps a log of all events for your organization. You can query the log to see what happened during a presentation, filter by event type, or look at events within a time range.
+
+For `email.sent` events, each entry includes a top-level `recipientEmail` field. Sales CoPilot resolves it from the delivery attempt referenced by the payload's `deliveryId`; the stored payload itself never contains the address.
 
 The event log supports filtering by:
 

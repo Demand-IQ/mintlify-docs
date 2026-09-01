@@ -1408,7 +1408,13 @@
             "type": "string"
           },
           "payload": {
-            "type": "object"
+            "type": "object",
+            "description": "Event payload. Carries identifiers (e.g. `presentationId`, `deliveryId`), never contact details such as email addresses."
+          },
+          "recipientEmail": {
+            "type": "string",
+            "nullable": true,
+            "description": "Present on `email.sent` entries only. The recipient of that delivery, resolved from the delivery attempt referenced by the payload's `deliveryId`. `null` when the delivery attempt has no recipient on record."
           },
           "occurredAt": {
             "type": "string",
@@ -7240,7 +7246,7 @@
           "Notifications"
         ],
         "summary": "List event log",
-        "description": "Returns a paginated, filterable log of all events for the organization.",
+        "description": "Returns a paginated, filterable log of all events for the organization. `email.sent` entries include a top-level `recipientEmail` field resolved from the delivery attempt; event payloads themselves carry identifiers only, never email addresses.",
         "security": [
           {
             "sessionCookie": []
