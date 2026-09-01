@@ -83,6 +83,20 @@ Narration scripts support tokens that get replaced with the homeowner's real inf
 
 For example: `"Hi {{first_name}}, I'm reaching out about your home at {{address}}..."`
 
+## Product card pricing
+
+When a product slide's **Content Source** is **Custom**, each product card has its own pricing controls in the **Total Cost** section of the card editor.
+
+- **Price Type** — choose **Single** for one price or **Range** to show a price band. With **Range**, set a **Range %** to expand the price above and below the base amount. For example, a $1,000 price with a 10% range renders as *$900 – $1,100*.
+- **Pricing Number or Formula** — a static price or a pricing formula. Range and Pay Over Time math is applied after the base price resolves, so both work with formulas too.
+- **Pay Over Time Price** — toggle this on to show a monthly payment on the card, calculated from the total price, the dealer's fee, the term in months, and the annual interest rate (APR). When the card is range-typed, the monthly payment renders as a range as well.
+
+Range bounds are rounded to whole dollars and formatted in the deck's currency. The card renders the same everywhere it appears: the editor's live preview, the deck preview link, and homeowner presentations.
+
+If a formula variable has no configured default, previews substitute a placeholder value so a range card still previews in its range format. Presentations created for real homeowners never substitute placeholders; a formula that depends on a roof measurement stays deferred until the measurement arrives, and the range is computed from the resolved price at that point.
+
+These controls only apply to custom cards. When a slide's content source is **Journeys**, the range comes from the journey's configured price range instead, and any manual range settings on the hidden cards are ignored.
+
 ## Journey-backed product slides
 
 Product pricing slides can pull their content from a Demand IQ journey so product names, prices, monthly payments, highlights, and images come directly from the live journey instead of being maintained manually. In the product slide editor, set **Content Source** to **Journeys** (the default is **Custom**). Sales CoPilot detects the product type automatically — there is no profile to pick.
