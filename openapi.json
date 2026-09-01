@@ -5824,7 +5824,7 @@
           "Contracts"
         ],
         "summary": "Import a contract document",
-        "description": "Uploads a contract document (PDF or Word) and uses AI to analyze the full document for template conversion. Returns a markdown template with variable placeholders, the list of detected variables, and a one-sentence summary of the contract.",
+        "description": "Uploads a contract document (PDF or Word) and uses AI to analyze the full document for template conversion. Legacy Word files (.doc) are converted to .docx automatically before analysis. Returns a markdown template with variable placeholders, the list of detected variables, and a one-sentence summary of the contract.",
         "security": [
           {
             "sessionCookie": []
@@ -5916,7 +5916,7 @@
             }
           },
           "400": {
-            "description": "Bad request (unsupported file type or too large)",
+            "description": "Bad request (unsupported file type, file too large, or the document could not be processed)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5936,7 +5936,7 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error (including when .doc conversion is unavailable in the current environment)",
             "content": {
               "application/json": {
                 "schema": {
