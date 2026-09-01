@@ -3,7 +3,7 @@ title: Notifications
 description: Subscribe to presentation events via webhooks or email, send presentation emails to homeowners, and track opens in real time.
 ---
 
-Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and Sales CoPilot delivers them to your webhook endpoint, email inbox, or console log. Sales CoPilot can also send the presentation link to homeowners on your behalf and emit events when the email is sent and opened.
+Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and Sales CoPilot delivers them to your webhook endpoint, email inbox, or console log. Sales CoPilot can also send the presentation link to homeowners on your behalf and emit events when the email is sent, opened, or fails to reach the inbox.
 
 ## Event types
 
@@ -20,8 +20,14 @@ Sales CoPilot emits these events:
 | `appointment.booked` | A viewer books an appointment |
 | `email.sent` | Sales CoPilot sends a presentation email to a homeowner |
 | `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
+| `email.bounced` | The homeowner's mail server rejected or blocked the presentation email |
+| `email.dropped` | SendGrid suppressed the email before sending, for example because the address previously bounced or unsubscribed |
+| `email.complained` | The homeowner marked the presentation email as spam |
+| `email.unsubscribed` | The homeowner unsubscribed from your emails |
 
 Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID so you can correlate opens back to a specific send; `email.sent` additionally lists the recipient addresses on that delivery.
+
+The four email failure events (`email.bounced`, `email.dropped`, `email.complained`, `email.unsubscribed`) carry the `presentationId`, the delivery attempt ID (`deliveryId`), and SendGrid's message and event identifiers (`sgMessageId`, `sgEventId`). `email.bounced` adds a `bounceType` (`bounce` or `blocked`) and SendGrid's bounce `classification`; `email.dropped` adds SendGrid's drop `reason` (for example `Bounced Address` or `Unsubscribed Address`). These payloads never include the recipient's email address. Email notifications for these events resolve the affected recipient for you at send time.
 
 `question.escalated` carries the same payload shape as `question.asked` plus an `escalationReason` field: `no_answer` when the AI deflected to a human callback, or `low_confidence` when the AI answered but flagged the answer as uncertain. Any given question emits exactly one of `question.asked` or `question.escalated`, so a single question never triggers two notifications.
 
@@ -127,7 +133,9 @@ Trigger a send (or resend) for a specific presentation:
 
 - `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`.
 
-Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, Sales CoPilot records the open on the delivery attempt and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track open rates in real time.
+Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, Sales CoPilot records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens.
+
+Sales CoPilot also records every delivery outcome SendGrid reports, including delivered, deferred, bounced, dropped, spam report, unsubscribe, and click events. Failures that need your attention emit their own events: `email.bounced`, `email.dropped`, `email.complained`, and `email.unsubscribed`. Subscribe to them to find out when a presentation email never reached the homeowner or when a homeowner opts out. There is no `email.delivered` event; `email.sent` already covers the send itself.
 
 ## API reference
 
