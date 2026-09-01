@@ -64,6 +64,10 @@ The response includes the new deck:
 
 Save the `id` — it's the `{deckId}` used in every request that follows.
 
+<Tip>
+Already have your deck as a PowerPoint file? `POST /api/decks/import?source=pptx` creates the deck and its slides from a `.pptx` file in one call, using each slide's speaker notes as its narration script. It replaces steps 2 and 3 — see [Import a PowerPoint presentation](/sales-copilot/guides/deck-types#import-a-powerpoint-presentation).
+</Tip>
+
 ## Step 3: Generate slides from your images
 
 Send your slide images to the generate endpoint as `multipart/form-data`. Sales CoPilot runs each image through vision analysis, writes a narration script, and synthesizes spoken audio. Images are processed in the order you attach them, and each must be PNG, JPG, or WebP under 10 MB:

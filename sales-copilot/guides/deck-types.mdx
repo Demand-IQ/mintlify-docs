@@ -70,6 +70,20 @@ Instead of building a deck from scratch, you can start from a published template
 
 Both endpoints accept an optional `name` in the request body to override the default copy name. If a name collision occurs, the new deck is auto-renamed (for example, `Spring Pitch (Copy 2)`).
 
+## Import a PowerPoint presentation
+
+If your deck already exists as a PowerPoint file, you can import it in one API call instead of exporting and uploading slide images yourself. `POST /api/decks/import?source=pptx` accepts a `.pptx` file as multipart form data along with a `name` and optional `description`, and returns the created deck with a `201`.
+
+The import creates a ready-to-edit image-based deck:
+
+- Each slide is rendered to a PNG image and becomes a slide in the new deck, in the original order.
+- Speaker notes become each slide's editable narration script. The original notes are kept separately, so you can always see what the script started from.
+- The response includes an `import.warnings` array for non-fatal issues, such as slides with no speaker notes (`missing_speaker_notes`).
+
+PowerPoint files are limited to 25 MB and 50 slides. Imports are all-or-nothing: if anything fails, no deck is created and the error response tells you why.
+
+The uploaded file and rendered slide images are stored with the deck. Deleting the deck (`DELETE /api/decks/{deckId}`) removes them too — see the API Reference for full request and response shapes.
+
 ## Personalization tokens
 
 Narration scripts support tokens that get replaced with the homeowner's real information when a presentation is created. Type `{` in any script field to insert one:
