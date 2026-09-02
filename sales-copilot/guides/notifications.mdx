@@ -12,7 +12,7 @@ Sales CoPilot emits these events:
 | Event type | Fired when |
 |------------|------------|
 | `presentation.opened` | A viewer opens a presentation link |
-| `slide.viewed` | A viewer watches a slide (includes duration) |
+| `slide.viewed` | A viewer leaves a slide (includes duration and a skipped flag) |
 | `cta.clicked` | A viewer clicks a call-to-action button |
 | `contract.signed` | A viewer signs a contract |
 | `question.asked` | A viewer asks a question and the AI answers confidently |
@@ -25,7 +25,7 @@ Sales CoPilot emits these events:
 | `email.complained` | The homeowner marked the presentation email as spam |
 | `email.unsubscribed` | The homeowner unsubscribed from your emails |
 
-Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
+Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Sales CoPilot records every slide exit, including fast flips. A view under 2 seconds carries `skipped: true`, so you can measure which slides viewers skip and filter skips out of dwell-time metrics. Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
 
 Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text for 90 days (see [Event retention](#event-retention)). When you query the event log, `email.sent` entries include a top-level `recipientEmail` field alongside the payload so you can still see who received each send.
 
