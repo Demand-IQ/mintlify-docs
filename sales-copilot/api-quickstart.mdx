@@ -105,12 +105,18 @@ curl -b cookies.txt \
   "totalSlides": 3,
   "progress": 33,
   "error": null,
+  "slidesCreated": 1,
+  "faqsCreated": 0,
   "createdAt": "2026-07-06T17:05:00.000Z",
   "completedAt": null
 }
 ```
 
 `progress` counts only finished slides, so it shows 33 while slide 2 of 3 is still generating. A completed or failed job always reports 100.
+
+`slidesCreated` and `faqsCreated` report how many slide and FAQ rows exist right now. If you render slides as they land, refresh on these counts rather than `currentSlide` — `currentSlide` marks when a slide *starts*, so its content isn't readable until a full slide's work later. FAQs are written in one batch after the last slide, so `faqsCreated` stays 0 until near the end.
+
+To watch every deck in your organization with one request instead of polling each deck, call `GET /api/decks/generation-status`. It returns the latest unsettled job per deck, keyed by deck ID; a deck absent from the map has nothing running.
 
 If `status` comes back `failed`, the `error` field explains why. To review or tweak what was generated, list the slides with `GET /api/decks/{deckId}/slides` and edit scripts with `PUT /api/slides/{slideId}`.
 
@@ -157,6 +163,8 @@ curl -b cookies.txt -X POST \
 ## Step 5: Create and send a presentation
 
 Create a personalized presentation for the homeowner. Provide a `homeowner` object (creates a new Core prospect from those details), an existing `prospect_id` (reuses a Core prospect's contact and roof data), or both (attaches the existing prospect but uses the `homeowner` fields you send as-is for personalization). At least one of the two is required. For the `homeowner` path, `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` with code `INVALID_ADDRESS` means it couldn't be resolved. A `422` with code `PROSPECT_NOT_FOUND` means the `prospect_id` isn't visible to your credential, and a `401` with code `CORE_AUTH_REJECTED` means your session or API key doesn't have the required Core prospect scopes.
+
+If the deck's slides from Step 3 are still generating, the request is refused with a `409` and code `DECK_GENERATING`. A presentation is a permanent snapshot of the deck at creation time, so one taken mid-generation would be permanently missing slides. Wait for the status endpoint to report `completed`, then retry.
 
 ```bash
 curl -b cookies.txt -X POST \

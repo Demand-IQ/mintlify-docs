@@ -291,6 +291,11 @@
             "nullable": true,
             "description": "Presigned URL for the 480px WebP thumbnail rendition of the first slide, sized for deck and template preview cards. Falls back to the full image URL when no thumbnail exists."
           },
+          "generation": {
+            "$ref": "#/components/schemas/GenerationStatus",
+            "nullable": true,
+            "description": "The latest unsettled generation job (pending, processing, or failed); null once it completed or if the deck was never generated"
+          },
           "firstSlideType": {
             "type": "string",
             "enum": [
@@ -935,6 +940,7 @@
       },
       "GenerationStatus": {
         "type": "object",
+        "description": "A deck generation job. The single-job endpoint (`GET /api/decks/{deckId}/generate/status`) adds the row counts and timestamps; the deck list and the per-organization poll carry only the fields common to both.",
         "properties": {
           "jobId": {
             "type": "string",
@@ -951,28 +957,40 @@
           },
           "currentSlide": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "The slide that most recently STARTED processing; completed work is currentSlide \u2212 1"
           },
           "totalSlides": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "0 until the job flips to processing"
           },
           "progress": {
             "type": "integer",
-            "description": "0-100, derived from currentSlide/totalSlides"
+            "description": "0-100, derived from completed slides / totalSlides; 100 once settled"
           },
           "error": {
             "type": "string",
             "nullable": true
           },
+          "slidesCreated": {
+            "type": "integer",
+            "description": "Slide rows that exist for the deck right now. This is the signal to refresh on: currentSlide marks a slide's start, and the row lands a full slide's work later. Single-job endpoint only."
+          },
+          "faqsCreated": {
+            "type": "integer",
+            "description": "FAQ rows that exist right now. The job tracks no FAQ state; they are written in one batch after the last slide. Single-job endpoint only."
+          },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Single-job endpoint only"
           },
           "completedAt": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "Single-job endpoint only"
           }
         },
         "required": [
@@ -980,8 +998,7 @@
           "status",
           "currentSlide",
           "totalSlides",
-          "progress",
-          "createdAt"
+          "progress"
         ]
       },
       "Image": {
@@ -1726,6 +1743,63 @@
         }
       }
     },
+    "/api/decks/generation-status": {
+      "get": {
+        "tags": [
+          "Generation"
+        ],
+        "summary": "Poll generation status for every deck",
+        "description": "The latest unsettled generation job for every deck in the organization, keyed by deck id. Completed jobs are omitted, so a deck absent from the map has nothing running. Cheap enough to poll while a template is being built \u2014 unlike `GET /api/decks`, it carries no preview URLs.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unsettled jobs keyed by deck id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statuses": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/GenerationStatus"
+                      }
+                    }
+                  },
+                  "required": [
+                    "statuses"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/decks/import": {
       "post": {
         "tags": [
@@ -1965,6 +2039,11 @@
                     },
                     "presentationsCount": {
                       "type": "integer"
+                    },
+                    "generation": {
+                      "$ref": "#/components/schemas/GenerationStatus",
+                      "nullable": true,
+                      "description": "The latest unsettled generation job; null once it completed or if the deck was never generated"
                     }
                   }
                 }
@@ -3709,7 +3788,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both \u2014 at least one is required. With only `homeowner`, a new prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential \u2014 otherwise 422 `PROSPECT_NOT_FOUND`). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.\n\nPrice inputs are optional. If a product pricing slide uses formula variables that are not supplied, the price is deferred \u2014 the slide displays a placeholder instead of failing. Deferred prices can be resolved later when the missing values become available (e.g., after roof measurements). Sales CoPilot defers a measurement-backed variable only when a formula on one of the deck's product-pricing slides references it. Price variables left in the deck's settings after their product slide was removed, or after its formula stopped referencing them, are ignored.",
+        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both \u2014 at least one is required. With only `homeowner`, a new prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential \u2014 otherwise 422 `PROSPECT_NOT_FOUND`). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.\n\nPrice inputs are optional. If a product pricing slide uses formula variables that are not supplied, the price is deferred \u2014 the slide displays a placeholder instead of failing. Deferred prices can be resolved later when the missing values become available (e.g., after roof measurements). Sales CoPilot defers a measurement-backed variable only when a formula on one of the deck's product-pricing slides references it. Price variables left in the deck's settings after their product slide was removed, or after its formula stopped referencing them, are ignored. While the deck itself is still being generated, the request is refused with 409 `DECK_GENERATING`: a presentation is a permanent snapshot of the deck at creation time, so one taken mid-generation would be permanently missing slides. Retry once the generation job completes.",
         "security": [
           {
             "sessionCookie": []
@@ -3827,6 +3906,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict: `DECK_GENERATING` \u2014 the deck is still being generated. This check runs before the empty-deck check, so a job that has not written its first slide yet returns 409, not 400. Transient; retry once the job settles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "DECK_GENERATING"
+                      ]
+                    }
+                  }
                 }
               }
             }
