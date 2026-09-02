@@ -191,6 +191,11 @@
             "nullable": true,
             "description": "Presigned URL for the first slide thumbnail rendition (the full image when no thumbnail exists)"
           },
+          "generation": {
+            "$ref": "#/components/schemas/GenerationStatus",
+            "nullable": true,
+            "description": "The latest unsettled generation job (pending, processing, or failed); null once it completed or if the deck was never generated"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -670,6 +675,7 @@
       },
       "GenerationStatus": {
         "type": "object",
+        "description": "A deck generation job. The single-job endpoint (`GET /api/decks/{deckId}/generate/status`) adds the row counts and timestamps; the deck list and the per-organization poll carry only the fields common to both.",
         "properties": {
           "jobId": {
             "type": "string",
@@ -686,28 +692,40 @@
           },
           "currentSlide": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "The slide that most recently STARTED processing; completed work is currentSlide − 1"
           },
           "totalSlides": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "0 until the job flips to processing"
           },
           "progress": {
             "type": "integer",
-            "description": "0-100, derived from currentSlide/totalSlides"
+            "description": "0-100, derived from completed slides / totalSlides; 100 once settled"
           },
           "error": {
             "type": "string",
             "nullable": true
           },
+          "slidesCreated": {
+            "type": "integer",
+            "description": "Slide rows that exist for the deck right now. This is the signal to refresh on: currentSlide marks a slide's start, and the row lands a full slide's work later. Single-job endpoint only."
+          },
+          "faqsCreated": {
+            "type": "integer",
+            "description": "FAQ rows that exist right now. The job tracks no FAQ state; they are written in one batch after the last slide. Single-job endpoint only."
+          },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Single-job endpoint only"
           },
           "completedAt": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "Single-job endpoint only"
           }
         },
         "required": [
@@ -715,8 +733,7 @@
           "status",
           "currentSlide",
           "totalSlides",
-          "progress",
-          "createdAt"
+          "progress"
         ]
       },
       "Image": {
@@ -968,6 +985,63 @@
         }
       }
     },
+    "/api/decks/generation-status": {
+      "get": {
+        "tags": [
+          "Generation"
+        ],
+        "summary": "Poll generation status for every deck",
+        "description": "The latest unsettled generation job for every deck in the organization, keyed by deck id. Completed jobs are omitted, so a deck absent from the map has nothing running. Cheap enough to poll while a template is being built — unlike `GET /api/decks`, it carries no preview URLs.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unsettled jobs keyed by deck id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statuses": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/GenerationStatus"
+                      }
+                    }
+                  },
+                  "required": [
+                    "statuses"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/decks/{deckId}": {
       "get": {
         "tags": [
@@ -1025,6 +1099,11 @@
                     },
                     "presentationsCount": {
                       "type": "integer"
+                    },
+                    "generation": {
+                      "$ref": "#/components/schemas/GenerationStatus",
+                      "nullable": true,
+                      "description": "The latest unsettled generation job; null once it completed or if the deck was never generated"
                     }
                   }
                 }
@@ -2761,7 +2840,7 @@
           "Presentations"
         ],
         "summary": "Create a presentation",
-        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both — at least one is required. With only `homeowner`, a Core prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's Core journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential — otherwise 422 PROSPECT_NOT_FOUND). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background.",
+        "description": "Creates a personalized presentation. Provide `homeowner`, `prospect_id`, or both — at least one is required. With only `homeowner`, a Core prospect is created from it. With only `prospect_id`, homeowner data is fetched from that prospect's Core journey. With both, the supplied homeowner data is used as-is and the existing prospect is attached (it must be visible to your credential — otherwise 422 PROSPECT_NOT_FOUND). The address is validated via Google Geocoding. Returns a shareable URL immediately; audio generation may continue in the background. While the deck itself is still being generated the request is refused with 409 DECK_GENERATING — a snapshot taken then would be permanently short slides — and should be retried once the job settles.",
         "security": [
           {
             "sessionCookie": []
@@ -2878,6 +2957,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict: `DECK_GENERATING` — the deck is still being generated. Transient; retry once the job settles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "DECK_GENERATING"
+                      ]
+                    }
+                  }
                 }
               }
             }
