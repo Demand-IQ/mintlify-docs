@@ -1409,7 +1409,7 @@
           },
           "payload": {
             "type": "object",
-            "description": "Event payload. Carries identifiers (e.g. `presentationId`, `deliveryId`), never contact details such as email addresses."
+            "description": "Event payload. Carries identifiers (e.g. `presentationId`, `deliveryId`), never contact details such as email addresses. On entries with `archivedAt` set, the payload is reduced to identifier and classification fields; question and answer text is removed."
           },
           "recipientEmail": {
             "type": "string",
@@ -1419,6 +1419,12 @@
           "occurredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Set when the entry has aged past the 90-day retention window. The entry stays in the log, but its payload keeps identifier and classification fields only. For `question.asked` and `question.escalated`, the question and answer text is removed. `null` for entries still inside the window."
           }
         },
         "required": [
@@ -7429,7 +7435,7 @@
           "Notifications"
         ],
         "summary": "List event log",
-        "description": "Returns a paginated, filterable log of all events for the organization. `email.sent` entries include a top-level `recipientEmail` field resolved from the delivery attempt; event payloads themselves carry identifiers only, never email addresses.",
+        "description": "Returns a paginated, filterable log of all events for the organization. `email.sent` entries include a top-level `recipientEmail` field resolved from the delivery attempt; event payloads themselves carry identifiers only, never email addresses. Entries older than 90 days stay in the log with `archivedAt` set and their payloads reduced to identifier and classification fields; question and answer text is removed at that point.",
         "security": [
           {
             "sessionCookie": []
@@ -8164,7 +8170,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (slide views, CTA clicks, Q&A logs). Authenticated via an HMAC token in the request body.",
+        "description": "Ingests interaction events from the presentation viewer (opens, slide views, CTA clicks). Authenticated via an HMAC token in the request body. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -8200,7 +8206,7 @@
                       "action_detection",
                       "action_execution"
                     ],
-                    "description": "Event type"
+                    "description": "Event type. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
                   },
                   "slideId": {
                     "type": "string"
@@ -8216,6 +8222,10 @@
                   },
                   "ctaLabel": {
                     "type": "string"
+                  },
+                  "ctaUrl": {
+                    "type": "string",
+                    "description": "Destination URL of an `external_link` CTA. Send it only on `cta_clicked` events for that CTA type."
                   }
                 }
               }
