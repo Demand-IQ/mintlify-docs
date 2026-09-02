@@ -1457,7 +1457,9 @@
           },
           "brandLogo": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "deprecated": true,
+            "description": "Deprecated. The product pricing slide always renders the deck's branding logo (set via `PUT /api/decks/{deckId}/branding`). This field is still accepted and stored, but the viewer and editor ignore it."
           },
           "disclaimer": {
             "type": "string",
