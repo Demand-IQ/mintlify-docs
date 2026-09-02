@@ -141,7 +141,7 @@ Configure per-deck delivery settings from the **Delivery** tab in the deck edito
 
 Trigger a send (or resend) for a specific presentation:
 
-- `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`.
+- `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`. If the presentation's own generation failed, the send is refused with a `409` and code `PRESENTATION_FAILED` — there's nothing usable to deliver.
 
 Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, Sales CoPilot records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens.
 

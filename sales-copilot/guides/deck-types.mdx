@@ -26,9 +26,15 @@ Once you've added at least one image and filled in the template name, the **Crea
 
 ## While it's generating
 
-Sales CoPilot will analyze each image, write a narration script, and generate spoken audio. This runs in the background — you'll see progress as it works through your slides.
+Sales CoPilot will analyze each image, write a narration script, and generate spoken audio. This runs in the background, and you can follow the progress everywhere the template appears:
 
-When it's done, your template opens in the editor with all slides ready to review.
+- **In the editor**, each slide appears in the rail as it finishes — the slide being written shows *Generating…* and the ones behind it show *Queued*. You can review and edit slides as soon as they land, without waiting for the whole template.
+- **On the Templates page**, the template card shows generation progress until the job finishes.
+- **In the FAQs tab**, Sales CoPilot writes suggested FAQs from your slides after the last slide completes, and the tab says so while that's running.
+
+A template can't be used to create presentations until generation finishes — a presentation is a permanent snapshot of the template at the moment it's created, so one made from a half-built template would be permanently missing slides. The template picker keeps a generating template disabled and explains why; the API returns a `409` with code `DECK_GENERATING` for the same reason.
+
+If progress stops updating for longer than expected, refresh the page to check again — a quiet stretch usually just means this page stopped hearing about the job, not that it failed.
 
 ## Review your slides
 
