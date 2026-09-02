@@ -8172,7 +8172,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (opens, slide views, CTA clicks). Authenticated via an HMAC token in the request body. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
+        "description": "Ingests interaction events from the presentation viewer (opens, slide views, CTA clicks). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Each view in a batch counts against the rate limit individually, so batching reduces requests without raising the effective write cap. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -8204,6 +8204,7 @@
                     "enum": [
                       "presentation_opened",
                       "slide_viewed",
+                      "slide_viewed_batch",
                       "cta_clicked",
                       "action_detection",
                       "action_execution"
@@ -8218,6 +8219,36 @@
                   },
                   "durationMs": {
                     "type": "integer"
+                  },
+                  "skipped": {
+                    "type": "boolean",
+                    "description": "Whether the viewer left the slide in under 2 seconds. A flag, not a filter: fast flips are still recorded as `slide_viewed` events."
+                  },
+                  "views": {
+                    "type": "array",
+                    "maxItems": 25,
+                    "description": "Slide views to record in one request. Required when `type` is `slide_viewed_batch`. Each view counts against the rate limit individually.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "slideId",
+                        "slideIndex"
+                      ],
+                      "properties": {
+                        "slideId": {
+                          "type": "string"
+                        },
+                        "slideIndex": {
+                          "type": "integer"
+                        },
+                        "durationMs": {
+                          "type": "integer"
+                        },
+                        "skipped": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
                   },
                   "ctaType": {
                     "type": "string"
