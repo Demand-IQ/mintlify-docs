@@ -27,7 +27,7 @@ Sales CoPilot emits these events:
 
 Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
 
-Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text. When you query the event log, `email.sent` entries include a top-level `recipientEmail` field alongside the payload so you can still see who received each send.
+Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text for 90 days (see [Event retention](#event-retention)). When you query the event log, `email.sent` entries include a top-level `recipientEmail` field alongside the payload so you can still see who received each send.
 
 The four email failure events (`email.bounced`, `email.dropped`, `email.complained`, `email.unsubscribed`) carry the `presentationId`, the delivery attempt ID (`deliveryId`), and SendGrid's message and event identifiers (`sgMessageId`, `sgEventId`). `email.bounced` adds a `bounceType` (`bounce` or `blocked`) and SendGrid's bounce `classification`; `email.dropped` adds SendGrid's drop `reason` (for example `Bounced Address` or `Unsubscribed Address`). These payloads never include the recipient's email address. Email notifications for these events resolve the affected recipient for you at send time.
 
@@ -117,6 +117,12 @@ The event log supports filtering by:
 - **Aggregate ID** — events for a specific presentation
 - **Time range** — `since` and `until` parameters
 - **Pagination** — `limit` (max 100) and `offset`
+
+### Event retention
+
+Event log entries keep their full payloads for 90 days. After that, Sales CoPilot archives each entry and reduces its payload to identifier and classification fields — for example `presentationId`, `slideIndex`, `durationMs`, `ctaType`, and delivery status. The entry itself stays in the log, so activity timelines keep their full history.
+
+Archived entries carry an `archivedAt` timestamp. For `question.asked` and `question.escalated`, the question and answer text is removed when the entry is archived; the classification fields (such as `answerSource` and `escalationReason`) remain. Archived entries are deleted from the log entirely after two years.
 
 ## Managing subscriptions
 
