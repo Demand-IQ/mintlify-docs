@@ -730,6 +730,12 @@
             "nullable": true,
             "description": "ID of the user who created the presentation. Null for presentations created by an automated integration rather than a user, and for presentations created before creator tracking was added."
           },
+          "leadSource": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "description": "Origin of the lead this presentation was created for, captured once at creation time. The value names the Demand IQ application that recorded the prospect's first touch, such as `hero`, `web-lead`, `stella`, or `webhook`. `unknown` means the prospect exists but has no recorded first touch. Null for presentations created before lead source tracking was added, and for presentations where the origin could not be determined."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
