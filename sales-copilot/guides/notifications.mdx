@@ -124,6 +124,8 @@ Event log entries keep their full payloads for 90 days. After that, Sales CoPilo
 
 Archived entries carry an `archivedAt` timestamp. For `question.asked` and `question.escalated`, the question and answer text is removed when the entry is archived; the classification fields (such as `answerSource` and `escalationReason`) remain. Archived entries are deleted from the log entirely after two years.
 
+Sales CoPilot keeps an internal archive copy of each entry's original payload for 9 months after archiving, then deletes it. No raw question or answer text remains in any store Sales CoPilot controls more than 12 months after the event occurred.
+
 ## Managing subscriptions
 
 You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
