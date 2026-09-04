@@ -126,6 +126,10 @@ Archived entries carry an `archivedAt` timestamp. For `question.asked` and `ques
 
 Sales CoPilot keeps an internal archive copy of each entry's original payload for 9 months after archiving, then deletes it. No raw question or answer text remains in any store Sales CoPilot controls more than 12 months after the event occurred.
 
+### Q&A answer retention
+
+When a homeowner asks a question during a presentation, Sales CoPilot caches the generated answer, along with its spoken audio, so similar questions on the same deck can be answered instantly. Cached answers follow the same retention limits as the event log. Sales CoPilot deletes a cached answer after 90 days without use, or 12 months after it was created, whichever comes first. The spoken audio is deleted with it. Expiry has no visible effect during presentations: the next matching question generates a fresh answer.
+
 ## Managing subscriptions
 
 You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
