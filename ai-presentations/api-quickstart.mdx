@@ -5,9 +5,7 @@ description: Create and send a personalized presentation to a homeowner using th
 
 This guide walks through the same flow as the [Quickstart](/ai-presentations/quickstart) — build a template, generate narrated slides, and send a homeowner their personalized presentation link — but entirely over the REST API. Use it as the starting point for integrating AI Presentations into your own CRM, lead platform, or backend.
 
-<Note>
-The dashboard calls them **Templates**, but the API uses the original term **deck**. A deck in the API is the same thing as a template in the UI. A **presentation** is a personalized instance of a deck, created for one homeowner.
-</Note>
+See the [Introduction](/ai-presentations/introduction) for how templates, decks, and presentations relate.
 
 ## Before you start
 
@@ -17,7 +15,7 @@ The dashboard calls them **Templates**, but the API uses the original term **dec
 
 ## Step 1: Authenticate
 
-Deck and presentation endpoints authenticate with a session cookie obtained from `POST /api/auth/login`. Log in once and store the cookie — the examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
+This walkthrough uses a session cookie obtained from `POST /api/auth/login` for template management and presentation creation. See [Authentication](/ai-presentations/authentication) for the supported credentials on each endpoint. Log in once and store the cookie — the examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
 
 ```bash
 curl -c cookies.txt -X POST https://presentations.demand-iq.com/api/auth/login \

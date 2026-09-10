@@ -1,48 +1,64 @@
 ---
 title: Introduction
-description: AI Presentations is an AI-powered presentation platform with narrated slides, live Q&A, and template management.
+description: Create a personalized presentation link and get notified when your prospect opens it.
 ---
 
-AI Presentations by Demand IQ lets you build AI-narrated sales presentations with interactive Q&A. Upload slide images or create structured templates, and AI Presentations generates narration scripts, synthesizes audio, and delivers a shareable presentation link your prospects can view on any device.
+AI Presentations by Demand IQ turns a reusable template into a narrated, interactive presentation for each prospect.
 
-## Key capabilities
-
-- **Template management** — create structured or image-based templates with custom branding, colors, and fonts
-- **AI generation** — upload slide images and let GPT-4o extract content, write narration scripts, and generate FAQs automatically
-- **Text-to-speech** — narrate every slide with word-level timing for synchronized text highlighting
-- **Live Q&A** — viewers ask questions by voice or text; AI Presentations matches FAQs or generates answers in real time
-- **Personalized presentations** — create shareable links tailored to each homeowner with address validation and optional pricing inputs
-- **Product pricing** — configure good/better/best product tiers on slides with dynamic pricing formulas; missing inputs are deferred automatically
-- **Journey-backed product slides** — set a product slide's content source to Journeys so product names, prices, images, and highlights are populated from the live Demand IQ journey instead of being edited manually. The first three options map onto good/better/best tiers; any additional options render as scrollable extra cards that homeowners can still select for narration and contract flow
-- **Knowledge base** — upload company documents to improve AI-generated answers with your specific product and service information
-- **Contracts & e-signature** — import contract templates, configure signing requirements, and collect typed signatures during the presentation
-- **Automated email delivery** — send the presentation link to homeowners from the deck's configured sender, with delivery and open tracking via SendGrid
-- **Notifications** — subscribe to presentation events via webhooks or email to track viewer engagement in real time
-- **Roof measurements** — request automated roof measurements for homeowner addresses and poll for results
-- **Appointment scheduling** — let viewers book appointments directly from the presentation
-- **Voice commands** — detect navigation, audio, and CTA commands from voice or text input during playback
-
-## Authentication
-
-Most API endpoints require a session cookie obtained from `POST /api/auth/login`. The journey ingest endpoint (`POST /api/decks/{deckId}/ingest`) additionally accepts a Bearer JWT in the `Authorization` header for server-to-server callers that don't run in a browser session. Presentation playback endpoints (`/api/qa`, `/api/narration/*`) also accept a `presentationId` for unauthenticated viewer access. Appointment, event tracking, and presentation content endpoints use an HMAC-signed presentation token passed via the `x-presentation-token` header.
-
-For portal integrations, AI Presentations supports SSO via `GET /api/auth/sso?code={authCode}`. The portal redirects users with a short-lived authorization code that is exchanged for an access token server-side. Pass `embedded=1` when running inside an iframe. Pass an optional `theme` parameter (`light` or `dark`) to match the portal appearance on first render. In production, set the `APP_URL` environment variable to the public base URL so that SSO redirects resolve correctly behind a load balancer.
+A **template** holds your slides, narration, FAQs, and branding. The API calls that same object a **deck**. A **presentation** is a personalized snapshot of a template, created for one prospect and shared through its own link.
 
 ## Get started
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/ai-presentations/quickstart"
+    title="Send a prospect a presentation link"
+    icon="link"
+    href="/ai-presentations/guides/presentation-url-api"
   >
-    Create your first template and presentation in minutes
+    Send prospect details or a prospect ID to the API and get a personalized URL.
   </Card>
   <Card
-    title="Guides"
-    icon="book"
+    title="Know when they open it"
+    icon="bell"
+    href="/ai-presentations/guides/notifications"
+  >
+    Subscribe to presentation events by webhook or email.
+  </Card>
+  <Card
+    title="Set up your first template"
+    icon="layer-group"
     href="/ai-presentations/guides/deck-types"
   >
-    Learn about template types, branding, FAQs, and narration
+    Upload slides, generate narration, and review your template before sharing.
   </Card>
 </CardGroup>
+
+## Key capabilities
+
+### Build
+
+- **Templates and branding** — create structured or image-based templates with your colors, fonts, and logo.
+- **AI generation** — let AI extract slide content, write narration scripts, and generate FAQs.
+- **Knowledge base** — upload company documents to inform answers about your products and services.
+
+### Deliver
+
+- **Personalized links** — create a presentation for each prospect with their name, address, and pricing inputs.
+- **Email and notifications** — send presentation links by email and track delivery and opens through webhooks or email notifications.
+- **Appointment scheduling** — let viewers book appointments from the presentation.
+
+### Engage
+
+- **Narration** — play spoken slide content with synchronized text highlighting.
+- **Live Q&A** — answer viewer questions by voice or text using FAQs and AI-generated responses.
+- **Voice commands** — let viewers navigate, control audio, and take action by voice or text.
+
+### Close
+
+- **Product pricing** — configure product tiers and pricing formulas, with automated roof measurements to resolve measurement-based prices.
+- **Journeys** — populate product slides from live journey data. See [Journey-backed product slides](/ai-presentations/guides/deck-types#journey-backed-product-slides) for tier mapping.
+- **Contracts and e-signatures** — configure contract templates and collect typed signatures during the presentation.
+
+## Authentication
+
+See [Authentication](/ai-presentations/authentication) to choose credentials for your caller and endpoints.

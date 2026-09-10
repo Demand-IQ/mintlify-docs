@@ -1,0 +1,53 @@
+---
+title: Authentication
+description: Choose the authentication method for your integration, portal session, or presentation viewer.
+---
+
+Use the table below to match your caller to the credentials its endpoints accept.
+
+## Choose an authentication method
+
+| Caller | Auth method | Endpoints |
+| --- | --- | --- |
+| Dashboard user or an integration managing templates | Session cookie from `POST /api/auth/login`, or a Bearer session token from SSO exchange | Template management, including `GET /api/decks`, slides, branding, FAQs, and notification subscriptions; also presentation creation and journey ingest |
+| Server or automation creating presentations | `Authorization: Bearer` with a Demand IQ API key or supported JWT | `POST /api/decks/{deckId}/presentations` and `POST /api/decks/{deckId}/ingest`; both also accept a session |
+| Viewer asking questions or playing narration | `presentationId` in the request body, or an authenticated session | `POST /api/qa`, `POST /api/narration/single`, and `POST /api/narration/resume` |
+| Viewer loading content, booking an appointment, or signing | HMAC-signed presentation token in `x-presentation-token` | `GET /api/presentations/{presentationId}/content`; `GET` and `POST` on `/api/presentations/{presentationId}/appointment` and `/api/presentations/{presentationId}/sign-contract` |
+| Viewer sending engagement events or refreshing a token | The same signed presentation token in the JSON body's `_token` field | `POST /api/presentations/{presentationId}/events` and `POST /api/presentations/{presentationId}/events-token` |
+| Portal integration starting a session | Short-lived SSO authorization code | `GET /api/auth/sso` creates a cookie session; `POST /api/auth/sso/exchange` returns a Bearer session token |
+
+`GET /api/presentations/{presentationId}/status` needs no authentication, so you can poll for readiness before sending the presentation link. The hosted viewer at `/p/{presentationId}` also needs no dashboard login.
+
+## Session authentication
+
+Call `POST /api/auth/login` with your email and password and retain the session cookie returned by the server. Send that cookie with subsequent requests. The [API Quickstart](/ai-presentations/api-quickstart#step-1-authenticate) demonstrates login and requests using a cookie jar.
+
+Session tokens returned by SSO exchange can also be sent as `Authorization: Bearer <token>`. These are session credentials, not API keys or JWTs. Template management and notification subscription endpoints accept sessions; a Bearer API key does not replace a session on those endpoints.
+
+If a request returns `401 Unauthorized`, check that the credential is present, valid, and appropriate for that endpoint. For an expired session, sign in again.
+
+## API keys and Bearer JWTs
+
+For server integrations and automations, presentation creation and journey ingest accept a Demand IQ API credential in the `Authorization: Bearer <credential>` header. Presentation creation also accepts a session cookie or an SSO Bearer session token.
+
+See [Get a Presentation URL via API](/ai-presentations/guides/presentation-url-api#step-1-generate-an-api-key) for API key setup. A key needs **Write Prospects** when creating a prospect from `homeowner` details and **Read Prospects** when using an existing `prospect_id`. Enable both if your integration uses both paths. A `401` with code `CORE_AUTH_REJECTED` means the credential was rejected or lacks the required prospect permissions.
+
+Bearer support is endpoint-specific. For example, use a session to list templates with `GET /api/decks`, or copy the deck ID from the dashboard before making a presentation-creation request with an API key.
+
+## Presentation viewer access
+
+Viewers can send `presentationId` to the Q&A, single-slide narration, and resume-narration endpoints listed above without a dashboard session. Other narration endpoints, including `POST /api/narration/batch`, require a session.
+
+The hosted presentation viewer receives a signed token scoped to that presentation. Content, appointment, and signing requests send it in the `x-presentation-token` header. Event tracking sends it in the JSON body's `_token` field instead.
+
+`POST /api/presentations/{presentationId}/events-token` refreshes an existing token sent as `_token`; it does not issue a token from a presentation ID alone. If the viewer cannot refresh its token, reload the presentation page to obtain a fresh one.
+
+## Portal SSO
+
+For a portal redirect or embedded viewer, use `GET /api/auth/sso?code={authCode}`. AI Presentations exchanges the short-lived authorization code server-side, creates a session, and redirects the user to the requested page.
+
+Pass `embedded=1` when running inside an iframe. An optional `theme` parameter (`light` or `dark`) matches the portal appearance on first render.
+
+For a portal client making API calls across origins, use `POST /api/auth/sso/exchange` with the authorization code in the JSON body's `code` field. The response returns a `token` to send as `Authorization: Bearer <token>` on subsequent session-authenticated requests, rather than setting a cookie.
+
+For deployment configuration, set `APP_URL` to the public base URL so SSO redirects resolve correctly behind a load balancer.
