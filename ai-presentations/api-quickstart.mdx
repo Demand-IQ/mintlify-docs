@@ -15,7 +15,7 @@ See the [Introduction](/ai-presentations/introduction) for how templates, decks,
 
 ## Step 1: Authenticate
 
-This walkthrough uses a session cookie obtained from `POST /api/auth/login` for template management and presentation creation. See [Authentication](/ai-presentations/authentication) for the supported credentials on each endpoint. Log in once and store the cookie — the examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
+This walkthrough uses a session cookie obtained from `POST /api/auth/login` for template management and presentation creation. See [Authentication](/ai-presentations/authentication) for the supported credentials on each endpoint. Log in once and store the cookie. The examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
 
 ```bash
 curl -c cookies.txt -X POST https://presentations.demand-iq.com/api/auth/login \
