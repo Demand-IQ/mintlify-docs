@@ -4289,6 +4289,10 @@
                     "type": "string",
                     "example": "en",
                     "description": "BCP-47 language tag"
+                  },
+                  "repMode": {
+                    "type": "boolean",
+                    "description": "Set by the viewer when a sales rep is driving the presentation rather than a homeowner. Optional. Omit the field when the client cannot determine it. An absent value is read as unknown, not as `false`."
                   }
                 }
               }
