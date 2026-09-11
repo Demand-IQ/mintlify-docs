@@ -43,6 +43,17 @@ AI Presentations resolves these fields on the server from the presentation itsel
 
 These fields ship as payload version 2. The webhook envelope's `event_version` is `2` for events that carry them and `1` for older entries, where the fields were never recorded. The change is additive: version 1 payloads are unchanged, and existing consumers keep working without modification.
 
+#### Conversation and modality on question events
+
+`question.asked` and `question.escalated` also carry two optional fields describing how the question was asked and which browser tab asked it: `modality` (either `voice` or `text`, depending on whether speech recognition or typing produced the question) and `conversationId` (a UUID that persists for the lifetime of the viewer's tab). Together they let you group interleaved questions from concurrent viewers on the same link into distinct conversations, and split the voice-versus-text mix.
+
+Both fields are populated by the viewer's browser, so each can legitimately be absent:
+
+- `modality` is absent when the client could not determine the input source.
+- `conversationId` is absent when browser storage is unavailable, when the question was asked from an older client that did not send the field, or when the deck is being demoed by a sales rep rather than viewed by a homeowner. When it is absent, group the question by `presentationId` and timestamp instead.
+
+These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
+
 ## Create a subscription
 
 AI Presentations provisions a default set of email subscriptions for your organization the first time a user signs in, so the standard "someone opened your presentation" and "someone asked your AI a question" emails start working without any setup. When new event types ship, they're added to existing organizations on the next sign-in and inherit the org's prevailing posture — if you've muted every other email, the new type is muted too.
@@ -130,7 +141,7 @@ The event log supports filtering by:
 
 Event log entries keep their full payloads for 90 days. After that, AI Presentations archives each entry and reduces its payload to identifier and classification fields — for example `presentationId`, `slideIndex`, `durationMs`, the `skipped` flag, `ctaType`, and delivery status. The entry itself stays in the log, so activity timelines keep their full history, and skip-rate and dwell-time metrics stay consistent for the life of the presentation.
 
-Archived entries carry an `archivedAt` timestamp. For `question.asked` and `question.escalated`, the question and answer text is removed when the entry is archived; the classification fields (such as `answerSource` and `escalationReason`) and the deck and slide identity fields (`deckId`, `deckSlideId`, `slideTitle`, `slideIndex`) remain, so per-slide question metrics stay consistent past the 90-day window. Archived entries are deleted from the log entirely after two years.
+Archived entries carry an `archivedAt` timestamp. For `question.asked` and `question.escalated`, the question and answer text is removed when the entry is archived; the classification fields (such as `answerSource` and `escalationReason`), the deck and slide identity fields (`deckId`, `deckSlideId`, `slideTitle`, `slideIndex`), and the conversation fields (`conversationId`, `modality`) remain, so per-slide question metrics and conversation grouping stay consistent past the 90-day window. Archived entries are deleted from the log entirely after two years.
 
 AI Presentations keeps an internal archive copy of each entry's original payload for 9 months after archiving, then deletes it. No raw question or answer text remains in any store AI Presentations controls more than 12 months after the event occurred.
 
