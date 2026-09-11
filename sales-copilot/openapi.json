@@ -2626,7 +2626,7 @@
                       "type": "string",
                       "format": "binary"
                     },
-                    "description": "Slide images (PNG, JPG, or WebP; max 10 MB each)"
+                    "description": "Slide images (PNG, JPG, or WebP; max 25 MB each)"
                   }
                 }
               }
@@ -3765,7 +3765,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Image file (PNG, JPG, or WebP; max 10 MB)"
+                    "description": "Image file (PNG, JPG, or WebP; max 25 MB)"
                   },
                   "format": {
                     "type": "string",
