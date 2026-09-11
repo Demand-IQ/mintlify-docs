@@ -88,13 +88,13 @@ If your deck already exists as a PowerPoint file, you can import it in one API c
 
 The import creates a ready-to-edit image-based deck:
 
-- Each slide is rendered to a PNG image and becomes a slide in the new deck, in the original order.
+- Each slide is rendered to a WebP image, with a matching WebP thumbnail, and becomes a slide in the new deck in the original order.
 - Speaker notes become each slide's editable narration script. The original notes are kept separately, so you can always see what the script started from.
 - The response includes an `import.warnings` array for non-fatal issues, such as slides with no speaker notes (`missing_speaker_notes`).
 
-PowerPoint files are limited to 25 MB and 50 slides. Imports are all-or-nothing: if anything fails, no deck is created and the error response tells you why.
+PowerPoint files are limited to 25 MB and 50 slides, with a 30 MB cap on the whole request body. Imports are all-or-nothing: if anything fails, no deck is created and the error response tells you why.
 
-The uploaded file and rendered slide images are stored with the deck. Deleting the deck (`DELETE /api/decks/{deckId}`) removes them too — see the API Reference for full request and response shapes.
+The rendered slide images and thumbnails are stored with the deck and removed when the deck is deleted (`DELETE /api/decks/{deckId}`). The uploaded PowerPoint file itself is not kept on a successful import — it is only stored for a failed import, to help diagnose the failure. See the API Reference for full request and response shapes.
 
 ## Personalization tokens
 

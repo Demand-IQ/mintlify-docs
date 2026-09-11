@@ -1812,7 +1812,7 @@
           "Decks"
         ],
         "summary": "Import a presentation as a deck",
-        "description": "Imports a slide presentation and creates a fully persisted image-based deck from it. Each slide is rendered to a PNG image, and speaker notes become the editable narration script for that slide (the original notes are retained separately). The original source file and rendered slide images are stored alongside the deck and removed when the deck is deleted.\n\nThe `source` query parameter selects the import format. `pptx` (PowerPoint) is currently the only supported source. PowerPoint files are limited to 25 MB and 50 slides, and the request body as a whole is limited to 30 MB.\n\nImports are atomic: if any step fails, no deck or slides are created and any stored files are cleaned up. Non-fatal issues (for example, a slide that rendered with reduced fidelity) are reported in the `import.warnings` array of the response.",
+        "description": "Imports a slide presentation and creates a fully persisted image-based deck from it. Each slide is rendered to a WebP image with a matching WebP thumbnail, and speaker notes become the editable narration script for that slide (the original notes are retained separately). The rendered slide images and thumbnails are stored alongside the deck and removed when the deck is deleted. The uploaded source file is not retained on a successful import; it is only kept for failed imports, to diagnose the failure.\n\nThe `source` query parameter selects the import format. `pptx` (PowerPoint) is currently the only supported source. PowerPoint files are limited to 25 MB and 50 slides, and the request body as a whole is limited to 30 MB.\n\nImports are atomic: if any step fails, no deck or slides are created and any stored files are cleaned up. Non-fatal issues (for example, a slide with no speaker notes) are reported in the `import.warnings` array of the response.",
         "security": [
           {
             "sessionCookie": []
@@ -2214,7 +2214,7 @@
           "Decks"
         ],
         "summary": "Delete a deck",
-        "description": "Permanently deletes a deck and all associated slides, FAQs, and branding. For decks created via `POST /api/decks/import`, the stored source file and rendered slide images are removed as well.",
+        "description": "Permanently deletes a deck and all associated slides, FAQs, and branding. For decks created via `POST /api/decks/import`, the rendered slide images and thumbnails stored with the deck are removed as well.",
         "security": [
           {
             "sessionCookie": []
