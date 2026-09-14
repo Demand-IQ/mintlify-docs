@@ -15,9 +15,10 @@ The dashboard calls them **Templates**, but the API uses the original term **dec
 - You'll need dashboard login credentials — the API authenticates with a session cookie.
 - All requests go to the production base URL: `https://presentations.demand-iq.com`
 
-## Step 1: Authenticate
-
-Deck and presentation endpoints authenticate with a session cookie obtained from `POST /api/auth/login`. Log in once and store the cookie — the examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
+<Steps>
+<Step title="Authenticate">
+<span id="step-1-authenticate" />
+This walkthrough uses a session cookie obtained from `POST /api/auth/login` for template management and presentation creation. Log in once and store the cookie. The examples below use a curl cookie jar (`-b cookies.txt`) to send it on every request:
 
 ```bash
 curl -c cookies.txt -X POST https://presentations.demand-iq.com/api/auth/login \
@@ -29,9 +30,10 @@ curl -c cookies.txt -X POST https://presentations.demand-iq.com/api/auth/login \
 ```
 
 A `401 Unauthorized` on any later request means the session has expired — log in again to refresh the cookie.
+</Step>
 
-## Step 2: Create a deck
-
+<Step title="Create a deck">
+<span id="step-2-create-a-deck" />
 A deck holds your slides, narration, FAQs, and branding. Create one with a name and a `deckContext` — background about the audience and purpose that guides the AI narration, so the more specific the better.
 
 Set `"type": "image-based"` — the AI generation endpoint in the next step only works on image-based decks and returns a `400` for the default `structured` type:
@@ -67,9 +69,10 @@ Save the `id` — it's the `{deckId}` used in every request that follows.
 <Tip>
 Already have your deck as a PowerPoint file? `POST /api/decks/import?source=pptx` creates the deck and its slides from a `.pptx` file in one call, using each slide's speaker notes as its narration script. It replaces steps 2 and 3 — see [Import a PowerPoint presentation](/ai-presentations/guides/deck-types#import-a-powerpoint-presentation).
 </Tip>
+</Step>
 
-## Step 3: Generate slides from your images
-
+<Step title="Generate slides from your images">
+<span id="step-3-generate-slides-from-your-images" />
 Send your slide images to the generate endpoint as `multipart/form-data`. AI Presentations runs each image through vision analysis, writes a narration script, and synthesizes spoken audio. Images are processed in the order you attach them, and each must be PNG, JPG, or WebP under 10 MB:
 
 ```bash
@@ -119,9 +122,10 @@ curl -b cookies.txt \
 To watch every deck in your organization with one request instead of polling each deck, call `GET /api/decks/generation-status`. It returns the latest unsettled job per deck, keyed by deck ID; a deck absent from the map has nothing running.
 
 If `status` comes back `failed`, the `error` field explains why. To review or tweak what was generated, list the slides with `GET /api/decks/{deckId}/slides` and edit scripts with `PUT /api/slides/{slideId}`.
+</Step>
 
-## Step 4: Set up branding (recommended)
-
+<Step title="Set up branding (recommended)">
+<span id="step-4-set-up-branding-recommended" />
 Branding controls the colors and logo homeowners see throughout the presentation. `palette` and `cta` are required by the schema; the `cta` block ships alongside the branding record but is not what drives the main action button — that label is resolved from the deck's action config (see [Deck types](/ai-presentations/guides/deck-types) and the `action-configs` endpoints in [Contracts](/ai-presentations/guides/contracts)):
 
 ```bash
@@ -159,13 +163,16 @@ curl -b cookies.txt -X POST \
     "cannedAnswer": "Most installations are completed in a single day once permits are approved."
   }'
 ```
+</Step>
 
-## Step 5: Create and send a presentation
-
-Create a personalized presentation for the homeowner. Provide a `homeowner` object (creates a new Core prospect from those details), an existing `prospect_id` (reuses a Core prospect's contact and roof data), or both (attaches the existing prospect but uses the `homeowner` fields you send as-is for personalization). At least one of the two is required. For the `homeowner` path, `first_name`, `address`, `city`, and `country` are required; the address is validated via Google Geocoding, so a `422` with code `INVALID_ADDRESS` means it couldn't be resolved. A `422` with code `PROSPECT_NOT_FOUND` means the `prospect_id` isn't visible to your credential, and a `401` with code `CORE_AUTH_REJECTED` means your session or API key doesn't have the required Core prospect scopes.
+<Step title="Create and send a presentation">
+<span id="step-5-create-and-send-a-presentation" />
+Create a personalized presentation for the homeowner. Provide a `homeowner` object (creates a new Core prospect from those details), an existing `prospect_id` (reuses a prospect's contact info; provide pricing inputs separately), or both (attaches the existing prospect but uses the `homeowner` fields you send as-is for personalization). At least one of the two is required. For the `homeowner` path, `first_name`, `address`, `city`, `state`, and `zip` are required; the address is validated via Google Geocoding, so a `422` with code `INVALID_ADDRESS` means it couldn't be resolved. A `422` with code `PROSPECT_NOT_FOUND` means the `prospect_id` isn't visible to your credential, and a `401` with code `CORE_AUTH_REJECTED` means your session or API key doesn't have the required Core prospect scopes.
 
 If the deck's slides from Step 3 are still generating, the request is refused with a `409` and code `DECK_GENERATING`. A presentation is a permanent snapshot of the deck at creation time, so one taken mid-generation would be permanently missing slides. Wait for the status endpoint to report `completed`, then retry.
 
+<Tabs>
+<Tab title="Prospect details">
 ```bash
 curl -b cookies.txt -X POST \
   https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
@@ -184,17 +191,39 @@ curl -b cookies.txt -X POST \
     }
   }'
 ```
-
-Or, to build the presentation from an existing Core prospect:
-
+</Tab>
+<Tab title="Existing prospect">
 ```bash
 curl -b cookies.txt -X POST \
   https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
   -H "Content-Type: application/json" \
   -d '{
-    "prospect_id": "prospect_01H8XYZ..."
+    "prospect_id": "b8a3d9e1-4c2f-4a7b-9e5d-6f1c8a2b3d4e"
   }'
 ```
+</Tab>
+<Tab title="Prospect + updated details">
+```bash
+curl -b cookies.txt -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospect_id": "b8a3d9e1-4c2f-4a7b-9e5d-6f1c8a2b3d4e",
+    "homeowner": {
+      "first_name": "Dana",
+      "last_name": "Rivera",
+      "address": "1234 Maple Street",
+      "city": "Charlotte",
+      "state": "NC",
+      "zip": "28205",
+      "country": "US",
+      "email": "dana@example.com",
+      "phone": "+1 704 555 0123"
+    }
+  }'
+```
+</Tab>
+</Tabs>
 
 The shareable URL comes back immediately:
 
@@ -205,6 +234,10 @@ The shareable URL comes back immediately:
   "status": "pending"
 }
 ```
+
+<Note>
+`generating` is a valid presentation status. Wait for `ready` here; `completed` belongs to the template-generation job in Step 3.
+</Note>
 
 Personalized audio may still be rendering in the background. If you want to wait until everything is ready before sending the link, poll the presentation status — it moves through `pending` → `generating` → `ready` (with a `phase` field showing what's happening while it generates):
 
@@ -223,6 +256,8 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 ```
 
 Once it's `ready`, deliver the `url` to the homeowner however your platform sends messages — text, email, or straight from your CRM. When they open it, they'll see your branded landing page with their name and address woven into the narration.
+</Step>
+</Steps>
 
 ## Fetching the OpenAPI spec
 
