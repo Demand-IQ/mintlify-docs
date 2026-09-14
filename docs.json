@@ -25,7 +25,8 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "AI Presentations",
+        "tab": "Guides",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Overview",
@@ -36,21 +37,252 @@
             ]
           },
           {
-            "group": "Guides",
+            "group": "Integration guides",
+            "icon": "plug",
             "pages": [
-              "ai-presentations/guides/deck-types",
               "ai-presentations/guides/presentation-url-api",
+              "ai-presentations/guides/notifications"
+            ]
+          },
+          {
+            "group": "Configuration guides",
+            "icon": "sliders",
+            "pages": [
+              "ai-presentations/guides/first-template",
               "ai-presentations/guides/branding",
               "ai-presentations/guides/faqs",
               "ai-presentations/guides/narration",
               "ai-presentations/guides/contracts",
-              "ai-presentations/guides/notifications",
               "ai-presentations/guides/knowledge-base"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "icon": "code",
+        "openapi": "/openapi.json",
+        "groups": [
+          {
+            "group": "Activity",
+            "expanded": false,
+            "pages": [
+              "GET /api/activity"
             ]
           },
           {
-            "group": "API Reference",
-            "openapi": "/openapi.json"
+            "group": "Decks",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks",
+              "POST /api/decks",
+              "POST /api/decks/import",
+              "GET /api/decks/{deckId}",
+              "PUT /api/decks/{deckId}",
+              "DELETE /api/decks/{deckId}",
+              "GET /api/decks/{deckId}/intro",
+              "PUT /api/decks/{deckId}/intro",
+              "DELETE /api/decks/{deckId}/intro"
+            ]
+          },
+          {
+            "group": "Generation",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks/generation-status",
+              "POST /api/decks/{deckId}/generate",
+              "GET /api/decks/{deckId}/generate/status",
+              "POST /api/slides/analyze-and-generate",
+              "POST /api/decks/{deckId}/generate-preview",
+              "GET /api/decks/{deckId}/preview-status"
+            ]
+          },
+          {
+            "group": "Slides",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks/{deckId}/slides",
+              "POST /api/decks/{deckId}/slides",
+              "PUT /api/decks/{deckId}/slides/reorder",
+              "PUT /api/slides/{slideId}",
+              "DELETE /api/slides/{slideId}",
+              "GET /api/slides/{slideId}/product-data",
+              "PUT /api/slides/{slideId}/product-data",
+              "DELETE /api/slides/{slideId}/product-data"
+            ]
+          },
+          {
+            "group": "FAQs",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks/{deckId}/faqs",
+              "POST /api/decks/{deckId}/faqs",
+              "PUT /api/faqs/{faqId}",
+              "DELETE /api/faqs/{faqId}"
+            ]
+          },
+          {
+            "group": "Branding",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks/{deckId}/branding",
+              "PUT /api/decks/{deckId}/branding"
+            ]
+          },
+          {
+            "group": "Q&A",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks/{deckId}/qa-settings",
+              "PUT /api/decks/{deckId}/qa-settings",
+              "POST /api/qa",
+              "POST /api/intent/continue"
+            ]
+          },
+          {
+            "group": "Presentations",
+            "expanded": false,
+            "pages": [
+              "GET /api/decks/{deckId}/presentations",
+              "POST /api/decks/{deckId}/presentations",
+              "PATCH /api/presentations/{presentationId}",
+              "DELETE /api/presentations/{presentationId}",
+              "GET /api/presentations/{presentationId}/status",
+              "POST /api/presentations/{presentationId}/start",
+              "GET /api/presentations/{presentationId}/content",
+              "GET /api/presentations/{presentationId}/product-selection",
+              "PUT /api/presentations/{presentationId}/product-selection",
+              "POST /api/presentations/{presentationId}/events",
+              "POST /api/presentations/{presentationId}/events-token"
+            ]
+          },
+          {
+            "group": "Narration",
+            "expanded": false,
+            "pages": [
+              "POST /api/narration/single",
+              "POST /api/narration/batch",
+              "POST /api/narration/resume",
+              "POST /api/narration",
+              "POST /api/narration/qa-audio",
+              "POST /api/narration/generate-prompt"
+            ]
+          },
+          {
+            "group": "Images",
+            "expanded": false,
+            "pages": [
+              "GET /api/images",
+              "POST /api/images/upload",
+              "DELETE /api/images/{imageId}"
+            ]
+          },
+          {
+            "group": "Voices",
+            "expanded": false,
+            "pages": [
+              "GET /api/voices/list"
+            ]
+          },
+          {
+            "group": "Utility",
+            "expanded": false,
+            "pages": [
+              "GET /api/health",
+              "POST /api/address/validate"
+            ]
+          },
+          {
+            "group": "Authentication",
+            "expanded": false,
+            "pages": [
+              "POST /api/auth/login",
+              "POST /api/auth/logout",
+              "GET /api/auth/me",
+              "GET /api/auth/sso",
+              "POST /api/auth/sso/exchange",
+              "OPTIONS /api/auth/sso/exchange"
+            ]
+          },
+          {
+            "group": "Company",
+            "expanded": false,
+            "pages": [
+              "GET /api/company/contact",
+              "PUT /api/company/contact",
+              "POST /api/company/welcome-seen",
+              "GET /api/company/kb/profile",
+              "PUT /api/company/kb/profile",
+              "GET /api/company/kb/documents",
+              "POST /api/company/kb/documents/upload-init",
+              "POST /api/company/kb/documents/complete",
+              "GET /api/company/kb/documents/{documentId}",
+              "DELETE /api/company/kb/documents/{documentId}"
+            ]
+          },
+          {
+            "group": "Contracts",
+            "expanded": false,
+            "pages": [
+              "POST /api/contracts/import",
+              "GET /api/decks/{deckId}/action-configs",
+              "POST /api/decks/{deckId}/action-configs",
+              "GET /api/decks/{deckId}/action-configs/{configId}",
+              "PUT /api/decks/{deckId}/action-configs/{configId}",
+              "DELETE /api/decks/{deckId}/action-configs/{configId}",
+              "GET /api/presentations/{presentationId}/sign-contract",
+              "POST /api/presentations/{presentationId}/sign-contract"
+            ]
+          },
+          {
+            "group": "Notifications",
+            "expanded": false,
+            "pages": [
+              "GET /api/notifications/subscriptions",
+              "POST /api/notifications/subscriptions",
+              "GET /api/notifications/subscriptions/{subscriptionId}",
+              "PUT /api/notifications/subscriptions/{subscriptionId}",
+              "DELETE /api/notifications/subscriptions/{subscriptionId}",
+              "GET /api/notifications/events"
+            ]
+          },
+          {
+            "group": "Fonts",
+            "expanded": false,
+            "pages": [
+              "GET /api/fonts"
+            ]
+          },
+          {
+            "group": "Appointments",
+            "expanded": false,
+            "pages": [
+              "GET /api/presentations/{presentationId}/appointment",
+              "POST /api/presentations/{presentationId}/appointment"
+            ]
+          },
+          {
+            "group": "Roof Measurements",
+            "expanded": false,
+            "pages": [
+              "POST /api/roof-measurements",
+              "GET /api/roof-measurements/{requestId}/status",
+              "POST /api/roof-measurements/{requestId}/cancel"
+            ]
+          },
+          {
+            "group": "Actions",
+            "expanded": false,
+            "pages": [
+              "POST /api/actions"
+            ]
+          },
+          {
+            "group": "Onboarding",
+            "expanded": false,
+            "pages": [
+              "POST /api/onboarding/tour"
+            ]
           }
         ]
       }
@@ -60,6 +292,14 @@
     "github": "https://github.com/Demand-IQ"
   },
   "redirects": [
+    {
+      "source": "/sales-copilot/guides/deck-types",
+      "destination": "/ai-presentations/guides/first-template"
+    },
+    {
+      "source": "/ai-presentations/guides/deck-types",
+      "destination": "/ai-presentations/guides/first-template"
+    },
     {
       "source": "/sales-copilot/:slug*",
       "destination": "/ai-presentations/:slug*"
