@@ -32,6 +32,7 @@
             "group": "Overview",
             "pages": [
               "ai-presentations/introduction",
+              "ai-presentations/integration-overview",
               "ai-presentations/quickstart",
               "ai-presentations/api-quickstart",
               "ai-presentations/authentication"
