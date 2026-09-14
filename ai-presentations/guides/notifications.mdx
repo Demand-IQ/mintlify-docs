@@ -5,6 +5,27 @@ description: Subscribe to presentation events via webhooks or email, send presen
 
 Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and AI Presentations delivers them to your webhook endpoint, email inbox, or console log. AI Presentations can also send the presentation link to homeowners on your behalf and emit events when the email is sent, opened, or fails to reach the inbox.
 
+Start with [Get a Presentation URL via API](/ai-presentations/guides/presentation-url-api) to create the presentation you'll track. The [Integration overview](/ai-presentations/integration-overview) connects creation, delivery, and follow-up. Subscription management requires a session cookie or an SSO Bearer session token; a presentation-creation API key does not replace a session here.
+
+## Automated email delivery
+
+AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
+
+A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
+
+Configure per-deck delivery settings from the **Delivery** tab in the deck editor, or via the API:
+
+- `GET /api/decks/{deckId}/delivery` — read the current delivery config
+- `PUT /api/decks/{deckId}/delivery` — set sender, subject, body, and CTA label
+
+Trigger a send (or resend) for a specific presentation:
+
+- `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`. If the presentation's own generation failed, the send is refused with a `409` and code `PRESENTATION_FAILED` — there's nothing usable to deliver.
+
+Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, AI Presentations records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens.
+
+AI Presentations also records every delivery outcome SendGrid reports, including delivered, deferred, bounced, dropped, spam report, unsubscribe, and click events. Failures that need your attention emit their own events: `email.bounced`, `email.dropped`, `email.complained`, and `email.unsubscribed`. Subscribe to them to find out when a presentation email never reached the homeowner or when a homeowner opts out. There is no `email.delivered` event; `email.sent` already covers the send itself.
+
 ## Event types
 
 AI Presentations emits these events:
@@ -100,7 +121,23 @@ The webhook payload follows this structure:
 }
 ```
 
-Webhook deliveries that fail are retried with exponential backoff.
+#### Verify the sender
+
+Signing is optional and must be configured for your subscription; creating a subscription through the API does not provision a signing secret. Contact Demand IQ to arrange signing and obtain the shared secret. Until signing is configured, validate a secret `Authorization` header configured on your subscription over HTTPS. Do not accept an unsigned request as a signed event.
+
+Signed requests include `X-Webhook-Signature: t=<unix-seconds>,v1=<hex-digest>`. Compute HMAC-SHA256 with your shared secret over the timestamp, a period, and the **raw request body**: `timestamp + "." + rawBody`. Compare the hexadecimal digest with `v1` using a constant-time comparison. Reject missing or malformed signatures and timestamps outside your chosen tolerance (for example, five minutes). Parse the JSON only after verification, and deduplicate by `event_id`.
+
+#### Retries and recovery
+
+Return a `2xx` promptly after durably accepting the event. Requests time out after 10 seconds. Responses with `429` or `5xx`, timeouts, and recognized connection failures are retryable; other HTTP errors are terminal.
+
+The current delivery configuration allows five queue processing attempts, normally about two minutes apart (roughly eight minutes from first to fifth attempt). This is not an exact delivery deadline: processing time, backlog, and worker restarts can extend it, and an attempt can fail before reaching your endpoint.
+
+After the retry limit, the event moves to an internal dead-letter queue with 14-day retention. There is no public replay endpoint. Contact Demand IQ with the `event_id` to investigate recovery; changing a subscription alone does not replay a terminal failure. The [event log](#event-log) lets you reconcile activity independently of webhook delivery.
+
+#### Event versions
+
+`event_version` identifies the payload schema for that `event_type`, not the API version or delivery attempt. Version `1` is the initial schema; later versions can add or change fields. Handle the versions your consumer supports explicitly, tolerate unknown optional fields, and review payload changes before relying on new fields. A retry keeps the recorded event version.
 
 ### Email
 
@@ -152,25 +189,6 @@ When a homeowner asks a question during a presentation, AI Presentations caches 
 ## Managing subscriptions
 
 You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
-
-## Automated email delivery
-
-AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
-
-A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
-
-Configure per-deck delivery settings from the **Delivery** tab in the deck editor, or via the API:
-
-- `GET /api/decks/{deckId}/delivery` — read the current delivery config
-- `PUT /api/decks/{deckId}/delivery` — set sender, subject, body, and CTA label
-
-Trigger a send (or resend) for a specific presentation:
-
-- `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`. If the presentation's own generation failed, the send is refused with a `409` and code `PRESENTATION_FAILED` — there's nothing usable to deliver.
-
-Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, AI Presentations records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens.
-
-AI Presentations also records every delivery outcome SendGrid reports, including delivered, deferred, bounced, dropped, spam report, unsubscribe, and click events. Failures that need your attention emit their own events: `email.bounced`, `email.dropped`, `email.complained`, and `email.unsubscribed`. Subscribe to them to find out when a presentation email never reached the homeowner or when a homeowner opts out. There is no `email.delivered` event; `email.sent` already covers the send itself.
 
 ## API reference
 
