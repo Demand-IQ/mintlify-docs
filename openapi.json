@@ -1966,7 +1966,7 @@
             }
           },
           "422": {
-            "description": "The presentation could not be converted into a deck: it contains no slides (`empty_import`) or a slide failed to render (`invalid_rendered_slide`).",
+            "description": "The presentation could not be converted into a deck. The `code` field identifies why: `rendering_failed` (the file could not be converted; re-saving from PowerPoint typically resolves this), `rendering_timeout` (the file took too long to convert; try a smaller deck), `rendered_output_too_large` (the rendered output exceeds the internal size limit; try a smaller deck), `empty_import` (the presentation contains no slides), `rendered_slide_count_mismatch` (the number of rendered slides did not match the source), or `invalid_rendered_slide` / `invalid_rendered_slide_thumbnail` / `invalid_slide_order` (a slide could not be prepared for storage). The `message` field is safe to show to end users.",
             "content": {
               "application/json": {
                 "schema": {

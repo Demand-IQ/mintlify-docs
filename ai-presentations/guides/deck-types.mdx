@@ -93,7 +93,7 @@ The import creates a ready-to-edit image-based deck:
 - Slides are first saved as `Slide 1`, `Slide 2`, and so on. After the `201` response, a background pass reads each rendered image and renames the slide after what is on it. Titles appear on the next slides fetch. If the pass fails or a slide can't be read, that slide keeps its `Slide N` placeholder.
 - The response includes an `import.warnings` array for non-fatal issues, such as slides with no speaker notes (`missing_speaker_notes`).
 
-PowerPoint files are limited to 25 MB and 50 slides, with a 30 MB cap on the whole request body. Imports are all-or-nothing: if anything fails, no deck is created and the error response tells you why.
+PowerPoint files are limited to 25 MB and 50 slides, with a 30 MB cap on the whole request body. Imports are all-or-nothing: if anything fails, no deck is created and the error response tells you why. If a file cannot be converted (`rendering_failed`), re-save it from PowerPoint and try again — that rewrites the package with Microsoft's own writer and clears most conversion failures.
 
 The rendered slide images and thumbnails are stored with the deck and removed when the deck is deleted (`DELETE /api/decks/{deckId}`). The uploaded PowerPoint file itself is not kept on a successful import — it is only stored for a failed import, to help diagnose the failure. See the API Reference for full request and response shapes.
 
