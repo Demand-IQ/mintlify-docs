@@ -90,6 +90,7 @@ The import creates a ready-to-edit image-based deck:
 
 - Each slide is rendered to a WebP image, with a matching WebP thumbnail, and becomes a slide in the new deck in the original order.
 - Speaker notes become each slide's editable narration script. The original notes are kept separately, so you can always see what the script started from.
+- Slides are first saved as `Slide 1`, `Slide 2`, and so on. After the `201` response, a background pass reads each rendered image and renames the slide after what is on it. Titles appear on the next slides fetch. If the pass fails or a slide can't be read, that slide keeps its `Slide N` placeholder.
 - The response includes an `import.warnings` array for non-fatal issues, such as slides with no speaker notes (`missing_speaker_notes`).
 
 PowerPoint files are limited to 25 MB and 50 slides, with a 30 MB cap on the whole request body. Imports are all-or-nothing: if anything fails, no deck is created and the error response tells you why.
