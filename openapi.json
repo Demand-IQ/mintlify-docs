@@ -7545,7 +7545,7 @@
           "Notifications"
         ],
         "summary": "List event log",
-        "description": "Returns a paginated, filterable log of all events for the organization. `email.sent` entries include a top-level `recipientEmail` field resolved from the delivery attempt; event payloads themselves carry identifiers only, never email addresses. Entries older than 90 days stay in the log with `archivedAt` set and their payloads reduced to identifier and classification fields; question and answer text is removed at that point.",
+        "description": "Returns a keyset-paginated, filterable log of all events for the organization, ordered by `occurredAt` descending with `id` as the tiebreaker. Page forward by passing the previous response's `page.nextCursor` as `cursor`; poll for new activity with `recent=1`. Unknown query parameters (including the removed `offset`) are rejected with a `400`. `email.sent` entries include a top-level `recipientEmail` field resolved from the delivery attempt; event payloads themselves carry identifiers only, never email addresses. Entries older than 90 days stay in the log with `archivedAt` set and their payloads reduced to identifier and classification fields; question and answer text is removed at that point.",
         "security": [
           {
             "sessionCookie": []
@@ -7597,16 +7597,27 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "default": 50
-            }
+              "default": 25
+            },
+            "description": "Page size. Rejected with 400 if above the cap; never clamped."
           },
           {
             "in": "query",
-            "name": "offset",
+            "name": "cursor",
             "schema": {
-              "type": "integer",
-              "default": 0
-            }
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "Opaque, server-authored keyset cursor from a previous response's `page.nextCursor`. Returns rows strictly older than the anchor row. Mutually exclusive with `recent`."
+          },
+          {
+            "in": "query",
+            "name": "recent",
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            },
+            "description": "Poll mode. Returns only rows from the last 90 seconds on the server clock. Mutually exclusive with `cursor`."
           }
         ],
         "responses": {
@@ -7623,19 +7634,22 @@
                         "$ref": "#/components/schemas/EventLogEntry"
                       }
                     },
-                    "pagination": {
+                    "page": {
                       "type": "object",
                       "properties": {
-                        "total": {
-                          "type": "integer"
-                        },
                         "limit": {
                           "type": "integer"
                         },
-                        "offset": {
-                          "type": "integer"
+                        "hasMore": {
+                          "type": "boolean"
+                        },
+                        "nextCursor": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Opaque cursor for the next older page. `null` whenever `hasMore` is false."
                         }
-                      }
+                      },
+                      "required": ["limit", "hasMore", "nextCursor"]
                     }
                   }
                 }
