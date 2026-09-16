@@ -63,3 +63,24 @@ The **Intro** tab (next to Branding) lets you customize the landing page homeown
 - **CTA Button Label** — the "Get Started" button text
 
 A strong headline example: `"Welcome, {{first_name}}! Your personalized report is ready."`
+
+### Supported intro tokens
+
+The intro page resolves homeowner data from a contact-only lookup, so only the following tokens render on the headline, subtitle, and CTA button label. Both `{{first_name}}` and `{{homeowner.first_name}}` are accepted.
+
+| Token | Value |
+| --- | --- |
+| `{{first_name}}` | Homeowner first name |
+| `{{last_name}}` | Homeowner last name |
+| `{{address}}` | Street address |
+| `{{city}}` | City |
+| `{{state}}` | State |
+| `{{zip}}` | ZIP code |
+| `{{email}}` | Email address |
+| `{{phone}}` | Phone number |
+| `{{average_utility_bill}}` | Average monthly utility bill |
+| `{{journey_name}}` | Journey name |
+
+AI Presentations validates the headline, subtitle, and CTA button label when you save the intro. Any other token — a roof or cost field, a product or datetime token, or a typo like `{{firstname}}` — is rejected with a `400` from `PUT /api/decks/{deckId}/intro` and the error names the offending token. Existing intro copy that predates the allowlist is grandfathered: a field only re-validates when this save actually changes it, so you can update the background image or another field without editing a legacy headline first.
+
+The presentation email supports a wider set of tokens (roof and cost fields on top of the ten above) because it resolves the full homeowner fan-out at send time. Do not reuse an email-only token on the intro — it will be rejected on save.

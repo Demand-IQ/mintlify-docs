@@ -6767,7 +6767,7 @@
           "Decks"
         ],
         "summary": "Upsert intro page config",
-        "description": "Creates or updates the intro page for a deck. Enabling an intro page switches the deck to lazy generation mode.",
+        "description": "Creates or updates the intro page for a deck. Enabling an intro page switches the deck to lazy generation mode.\n\nThe `headline`, `subtitle`, and `ctaButtonLabel` fields may include homeowner tokens from the intro allowlist: `{{first_name}}`, `{{last_name}}`, `{{address}}`, `{{city}}`, `{{state}}`, `{{zip}}`, `{{email}}`, `{{phone}}`, `{{average_utility_bill}}`, and `{{journey_name}}`. Both `{{field}}` and `{{homeowner.field}}` forms are accepted. Any other token (roof or cost fields, product or datetime tokens, or a typo like `{{firstname}}`) is rejected with `400`, and the error message names the offending token. A field is only re-validated when this request changes its current value, so decks that already hold a legacy token can save unrelated fields without editing the legacy copy first.",
         "security": [
           {
             "sessionCookie": []
