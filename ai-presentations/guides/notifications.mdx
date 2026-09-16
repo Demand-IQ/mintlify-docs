@@ -178,7 +178,7 @@ Key notification endpoints:
 
 - `GET/POST /api/notifications/subscriptions` — list or create subscriptions
 - `GET/PUT/DELETE /api/notifications/subscriptions/{subscriptionId}` — manage a specific subscription
-- `GET /api/notifications/events` — query the event log with filters and pagination
+- `GET /api/notifications/events` — query the event log with filters and keyset pagination. Page forward with `cursor` from the previous response's `page.nextCursor`, or poll with `recent=1` for the last 90 seconds on the server clock. The default `limit` is 25 (cap 100); `offset` is no longer accepted and requests that send it are rejected with a `400`.
 - `GET/PUT /api/decks/{deckId}/delivery` — manage per-deck email delivery settings
 - `POST /api/presentations/{presentationId}/send` — send or resend the homeowner email
 
