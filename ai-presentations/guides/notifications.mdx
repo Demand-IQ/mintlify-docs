@@ -132,6 +132,10 @@ AI Presentations keeps a log of all events for your organization. You can query 
 
 For `email.sent` events, each entry includes a top-level `recipientEmail` field. AI Presentations resolves it from the delivery attempt referenced by the payload's `deliveryId`; the stored payload itself never contains the address.
 
+For `email.opened` events, each entry includes a top-level `machineOpen` boolean. It is `true` when every open SendGrid reported for the delivery attempt was automatic (for example, an Apple Mail Privacy Protection prefetch of the tracking pixel) and `false` when at least one human open has been recorded. Render machine opens as "Email Opened (automatic)" to keep them separate from real reads.
+
+When you scope the query to a single presentation with `aggregateId`, the response may include a derived `presentation.link_opened` entry synthesized from the presentation's first-viewed timestamp. It rides along as an extra row rather than taking a page slot, so it never displaces a stored row and never becomes a `nextCursor`. Its `id` is `presentation.link_opened:{presentationId}` and its payload is `{ presentationId }`. Every presentation that has been opened at least once carries this line, including presentations opened before the derivation shipped — the org-wide feed (`/api/activity`) still shows stored events only.
+
 The event log supports filtering by:
 
 - **Event type** — e.g. only `contract.signed` events
@@ -172,7 +176,7 @@ Trigger a send (or resend) for a specific presentation:
 
 - `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`. If the presentation's own generation failed, the send is refused with a `409` and code `PRESENTATION_FAILED` — there's nothing usable to deliver.
 
-Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, AI Presentations records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens.
+Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, AI Presentations records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens. When you fetch these entries from `GET /api/notifications/events`, each `email.opened` entry carries a top-level `machineOpen` flag: `true` when every open SendGrid reported for the delivery was automatic (for example, an MPP prefetch), so you can render them as "Email Opened (automatic)" and separate them from real reads.
 
 AI Presentations also records every delivery outcome SendGrid reports, including delivered, deferred, bounced, dropped, spam report, unsubscribe, and click events. Failures that need your attention emit their own events: `email.bounced`, `email.dropped`, `email.complained`, and `email.unsubscribed`. Subscribe to them to find out when a presentation email never reached the homeowner or when a homeowner opts out. There is no `email.delivered` event; `email.sent` already covers the send itself.
 
