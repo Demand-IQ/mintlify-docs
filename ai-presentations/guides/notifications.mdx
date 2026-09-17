@@ -19,6 +19,8 @@ AI Presentations emits these events:
 | `question.asked` | A viewer asks a question and the AI answers confidently |
 | `question.escalated` | A viewer asks a question the AI could not confidently answer (either it deflected to a human callback, or it hedged with a low-confidence answer). Emitted **instead of** `question.asked`, never both |
 | `appointment.booked` | A viewer books an appointment |
+| `presentation.blocked` | A lead is missing data the presentation needs, and it still hasn't arrived after 24 hours |
+| `presentation.generation_failed` | A presentation could not finish generating because of an upstream failure (for example, ElevenLabs or OpenAI) |
 | `email.sent` | AI Presentations sends a presentation email to a homeowner |
 | `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
 | `email.bounced` | The homeowner's mail server rejected or blocked the presentation email |
@@ -56,6 +58,12 @@ Both fields are populated by the viewer's browser, so each can legitimately be a
 - `conversationId` is absent when browser storage is unavailable, when the question was asked from an older client that did not send the field, or when the deck is being demoed by a sales rep rather than viewed by a homeowner. When it is absent, group the question by `presentationId` and timestamp instead.
 
 These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
+
+### Blocked and failed presentations
+
+`presentation.blocked` fires 24 hours after a presentation parks at `missing_data`, once for that presentation. The payload carries `presentationId`, `deckId`, a `missingFields` array of the token field names the journey never supplied (for example, `email` or `roof_squares`), and a `reason` of either `missing_lead_data` or `deck_deleted`. The field names identify what the journey failed to collect; no lead values are included. The email subscription for this event is on by default because the cause is a journey configuration your team can fix.
+
+`presentation.generation_failed` fires once per presentation when generation dies against an upstream provider. The payload carries `presentationId`, `deckId`, the `phase` where the work stopped, and an `errorMessage`. The email subscription for this event is **off by default**: the cause is on our side rather than yours, and an upstream outage would otherwise email every company about every affected lead. Any organization that wants to see these can turn the subscription on in the template editor's **Settings** tab.
 
 ## Create a subscription
 
