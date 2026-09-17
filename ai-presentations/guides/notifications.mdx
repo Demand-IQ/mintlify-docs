@@ -172,6 +172,27 @@ Configure per-deck delivery settings from the **Delivery** tab in the deck edito
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
 - `PUT /api/decks/{deckId}/delivery` — set sender, subject, body, and CTA label
 
+### Subject and body tokens
+
+The subject line and message body accept `{{token}}` placeholders that AI Presentations resolves per recipient at send time. Under each field, five inline chips insert the most common tokens at your cursor. **View all** opens a popover with the full list, and typing `{{` still opens the autocomplete dropdown.
+
+| Group | Tokens |
+| --- | --- |
+| Contact | `{{homeowner.first_name}}`, `{{homeowner.last_name}}`, `{{homeowner.address}}`, `{{homeowner.city}}`, `{{homeowner.state}}`, `{{homeowner.zip}}`, `{{homeowner.email}}`, `{{homeowner.phone}}` |
+| Journey | `{{homeowner.journey_name}}`, `{{homeowner.average_utility_bill}}` (blank if the homeowner did not provide it) |
+| Presentation | `{{presentation_url}}` — the homeowner's presentation link |
+| Date & time | `{{today}}`, `{{todayShort}}`, `{{month}}`, `{{monthShort}}`, `{{monthNum}}`, `{{monthYear}}`, `{{day}}`, `{{dayName}}`, `{{year}}`, `{{yearShort}}`, `{{quarter}}`, `{{season}}`, `{{dateISO}}` |
+
+Datetime tokens resolve from the presentation's `datetimeSnapshot` (America/Los_Angeles, en-US), the same basis slide narration uses, so a template that says `{{today}}` renders as `January 21, 2026`.
+
+The CTA button label does not accept tokens.
+
+### Roof and cost tokens are not offered in email
+
+The picker deliberately omits `roof_squares`, `roof_area_sqft`, `roof_pitch`, `estimated_cost`, `min_cost`, `max_cost`, `cost_per_square`, and `ten_year_financed_cost`. These fields only exist once the roof report has run, and an unresolved token in an email is blocking: a lead whose report has not run parks instead of sending. Since lazy generation only starts when the homeowner opens the link (`POST /api/presentations/{presentationId}/start`), an email that never sends is a presentation that never generates — one roof token in a shared template can stall every unmeasured lead for the full 24-hour escalation window. Use these fields in slide narration instead, where a missing value costs one sentence rather than the entire send.
+
+Templates that already include one of these tokens keep working — the sender still resolves them so no homeowner receives raw `{{braces}}`. New templates should leave them out.
+
 Trigger a send (or resend) for a specific presentation:
 
 - `POST /api/presentations/{presentationId}/send` — send the homeowner email using the deck's delivery config. Optionally pass `{ "emails": ["..."] }` to override the default recipients. Returns a `delivery_id` and a status of `sent`, `skipped`, or `failed`. If the presentation's own generation failed, the send is refused with a `409` and code `PRESENTATION_FAILED` — there's nothing usable to deliver.
