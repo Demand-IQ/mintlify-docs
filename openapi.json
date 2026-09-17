@@ -7562,6 +7562,15 @@
           },
           {
             "in": "query",
+            "name": "excludeEventTypes",
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "description": "Comma-separated list of event types to omit. Use this to hide a high-volume type (for example, `narration.played`) from an activity feed rather than allowlisting every other type."
+          },
+          {
+            "in": "query",
             "name": "aggregateType",
             "schema": {
               "type": "string"
@@ -8294,7 +8303,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (opens, slide views, CTA clicks). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Each view in a batch counts against the rate limit individually, so batching reduces requests without raising the effective write cap. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
+        "description": "Ingests interaction events from the presentation viewer (opens, slide views, narration playback, CTA clicks, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit; batches additionally cost 1 per view. Narration batches use a separate rate-limit bucket from slide-view batches, so a narrated session is not double-charged. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -8327,7 +8336,10 @@
                       "presentation_opened",
                       "slide_viewed",
                       "slide_viewed_batch",
+                      "narration_played_batch",
                       "cta_clicked",
+                      "session_summary",
+                      "narration_session_summary",
                       "action_detection",
                       "action_execution"
                     ],
@@ -8349,7 +8361,7 @@
                   "views": {
                     "type": "array",
                     "maxItems": 25,
-                    "description": "Slide views to record in one request. Required when `type` is `slide_viewed_batch`. Each view counts against the rate limit individually.",
+                    "description": "Batched entries. Required when `type` is `slide_viewed_batch` or `narration_played_batch`. Each entry counts against the rate limit individually. For `slide_viewed_batch`, each item is a slide view (`slideId`, `slideIndex`, optional `durationMs` and `skipped`). For `narration_played_batch`, each item is a narration outcome (`slideId`, `slideIndex`, `narrationStarted`, `narrationCompleted`, `secondsPlayed`, and `secondsAvailable`, which is `null` when the audio duration was never known).",
                     "items": {
                       "type": "object",
                       "required": [
@@ -8368,6 +8380,25 @@
                         },
                         "skipped": {
                           "type": "boolean"
+                        },
+                        "narrationStarted": {
+                          "type": "boolean",
+                          "description": "Whether `play()` actually resolved for this slide's narration. Autoplay-policy failures are never counted as started."
+                        },
+                        "narrationCompleted": {
+                          "type": "boolean",
+                          "description": "Whether the narration audio played to the end for this slide."
+                        },
+                        "secondsPlayed": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "Seconds of narration audio that actually played on this slide. Resumed or retried attempts credit only the remaining clip duration, so the total can never exceed `secondsAvailable`."
+                        },
+                        "secondsAvailable": {
+                          "type": "number",
+                          "minimum": 0,
+                          "nullable": true,
+                          "description": "Duration of the narration audio for this slide, in seconds. `null` when the audio duration was never known (for example, playback failed before metadata loaded)."
                         }
                       }
                     }
@@ -8381,6 +8412,79 @@
                   "ctaUrl": {
                     "type": "string",
                     "description": "Destination URL of an `external_link` CTA. Send it only on `cta_clicked` events for that CTA type."
+                  },
+                  "repMode": {
+                    "type": "boolean",
+                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `session_summary`, and `narration_session_summary`."
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID that persists for the lifetime of the viewer's tab. Applies to `session_summary` and `narration_session_summary`."
+                  },
+                  "slidesViewed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of distinct slides viewed. `session_summary` only."
+                  },
+                  "slidesTotal": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Total number of slides in the presentation. `session_summary` only."
+                  },
+                  "furthestSlideIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Highest 0-based slide index reached in this session. `session_summary` only."
+                  },
+                  "totalDwellMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date wall-clock dwell across all slides, in milliseconds. `session_summary` only."
+                  },
+                  "ctaConfigured": {
+                    "type": "boolean",
+                    "description": "Whether the presentation has a CTA configured. `session_summary` only."
+                  },
+                  "slidesNarrationStarted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of slides on which narration playback actually started. `narration_session_summary` only. `> 0` is the derived read for \"audio enabled\"."
+                  },
+                  "slidesNarrationCompleted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of slides on which narration played to the end. `narration_session_summary` only."
+                  },
+                  "totalSecondsPlayed": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Session-to-date sum of `secondsPlayed` across all slides. `narration_session_summary` only."
+                  },
+                  "totalSecondsAvailable": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Session-to-date sum of `secondsAvailable` across all slides for which narration was attempted. `narration_session_summary` only."
+                  },
+                  "qaVoiceAudioStarted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of Q&A answer audio plays that actually started, where the question was asked by voice. `narration_session_summary` only."
+                  },
+                  "qaVoiceAudioCompleted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of Q&A answer audio plays that finished, where the question was asked by voice. Skips, errors, and rejected plays do not count. `narration_session_summary` only."
+                  },
+                  "qaChatAudioStarted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of Q&A answer audio plays that actually started, where the question was typed. `narration_session_summary` only."
+                  },
+                  "qaChatAudioCompleted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Session-to-date count of Q&A answer audio plays that finished, where the question was typed. Skips, errors, and rejected plays do not count. `narration_session_summary` only."
                   }
                 }
               }
