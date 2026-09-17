@@ -3260,6 +3260,193 @@
         }
       }
     },
+    "/api/decks/{deckId}/data-requirements": {
+      "get": {
+        "tags": [
+          "Decks"
+        ],
+        "summary": "Data a deck needs from a lead",
+        "description": "Every field this deck needs from a lead, and how badly. `blocking` fields stop delivery — the homeowner would otherwise read an unfilled token, or there is no address to send to at all — and a lead missing one parks the presentation at `missing_data`. `degrading` fields cost the sentence that mentions them and nothing more.\n\nIntended for a journey editor: diff these fields against what the journey collects to catch a mismatch before any lead flows through.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deck data requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "description": "Lead field name, e.g. `email` or `roof_squares`."
+                          },
+                          "severity": {
+                            "type": "string",
+                            "enum": [
+                              "blocking",
+                              "degrading"
+                            ]
+                          },
+                          "surfaces": {
+                            "type": "array",
+                            "description": "Where in the deck the field is used; a field can appear on several.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string"
+                                },
+                                "slideId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "blockedLast7Days": {
+                      "type": "integer",
+                      "description": "Presentations from this deck parked for missing data in the last 7 days."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presentations/{presentationId}/revalidate": {
+      "post": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "Re-check a parked presentation",
+        "description": "Re-checks a presentation parked at `missing_data` against the current lead data and delivers it if every blocking requirement now resolves. Correctness does not depend on this call — the worker reaches every parked presentation on its own interval — it exists so a fix applied to the lead can be seen immediately. 409 when the presentation is not parked.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "presentationId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the presentation"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Outcome of the re-check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "release",
+                        "escalate",
+                        "wait"
+                      ],
+                      "description": "`release` — generated and sent; `escalate` — still blocked past its deadline; `wait` — still blocked."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/qa": {
       "post": {
         "tags": [
