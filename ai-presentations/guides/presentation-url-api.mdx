@@ -51,8 +51,9 @@ All presentation API requests go to the production base URL:
 https://presentations.demand-iq.com
 ```
 
-## Step 1: Generate an API key
-
+<Steps>
+<Step title="Generate an API key">
+<span id="step-1-generate-an-api-key" />
 API keys are generated in the Demand IQ dashboard, not created over the API:
 
 1. Log in at `app.demand-iq.com` and go to **Settings → Company → API Keys** (`/company/settings/apiKeys`).
@@ -66,9 +67,10 @@ Send that key on every presentation API request as a header:
 ```
 Authorization: Bearer <your-api-key>
 ```
+</Step>
 
-## Step 2: Find your deck ID
-
+<Step title="Find your deck ID">
+<span id="step-2-find-your-deck-id" />
 Every request that creates a presentation names the template — the **deck** — it's created from. Two ways to find its ID:
 
 **From the dashboard:** open your template in the editor and copy the ID from the browser's address bar:
@@ -96,12 +98,15 @@ curl https://presentations.demand-iq.com/api/decks \
   ]
 }
 ```
+</Step>
 
-## Step 3: Create the presentation
-
+<Step title="Create the presentation">
+<span id="step-3-create-the-presentation" />
 Send `homeowner`, `prospect_id`, or both to the same endpoint. Sending neither returns a `400` ("Provide homeowner or prospect_id").
 
-If the lead's details live in your CRM, a web form, a spreadsheet — anywhere outside Demand IQ — send them in a `homeowner` object:
+<Tabs>
+<Tab title="Prospect details">
+<span id="sending-prospect-details-homeowner" />
 
 ```bash
 curl -X POST \
@@ -123,7 +128,35 @@ curl -X POST \
   }'
 ```
 
-Or, if the prospect already exists in Demand IQ — for example, they came through your Journeys funnel — send their ID instead:
+| Field        | Required | Notes                                                           |
+| ------------ | -------- | --------------------------------------------------------------- |
+| `first_name` | **Yes**  | Used in the narration greeting                                  |
+| `address`    | **Yes**  | Street address                                                  |
+| `city`       | **Yes**  |                                                                 |
+| `state`      | **Yes**  | Required by Demand IQ's prospect lookup                         |
+| `zip`        | **Yes**  | Required by Demand IQ's prospect lookup                         |
+
+<Accordion title="Optional homeowner fields">
+| Field | Required | Notes |
+| --- | --- | --- |
+| `last_name`  | No       |                                                                 |
+| `country`    | No       | Two-letter ISO code, e.g. `"US"`. Defaults to `"US"` if omitted |
+| `email`      | No       | Needed if you want AI Presentations to email the link              |
+| `phone`      | No       |                                                                 |
+</Accordion>
+
+Behind the scenes, AI Presentations creates a new prospect record in Demand IQ from these details as part of this same call, using **your** API key. That's why the key needs **Write Prospects** for this path, and it's why `state` and `zip` are required here (Demand IQ's own prospect API needs them) even though they aren't required on the `prospect_id` path.
+
+<Accordion title="Creation errors">
+If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ rejects the credential itself, a `401` with code `CORE_AUTH_REJECTED` (check the scopes on your API key); if Demand IQ is unreachable, a `503`. Separately, AI Presentations also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos.
+</Accordion>
+
+<Note>
+If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available. Only variables that a pricing formula on the deck's current slides references count here; variables left over from a removed product slide are ignored.
+</Note>
+</Tab>
+<Tab title="Existing prospect">
+<span id="sending-a-prospect-id-prospect_id" />
 
 ```bash
 curl -X POST \
@@ -135,40 +168,6 @@ curl -X POST \
   }'
 ```
 
-Both return the same response, immediately:
-
-```json
-{
-  "deck_presentation_id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
-  "url": "https://presentations.demand-iq.com/p/7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
-  "status": "pending"
-}
-```
-
-`url` is the link you deliver to the prospect. `deck_presentation_id` is its ID for status checks and other API calls.
-
-### Sending prospect details (`homeowner`)
-
-| Field        | Required | Notes                                                           |
-| ------------ | -------- | --------------------------------------------------------------- |
-| `first_name` | **Yes**  | Used in the narration greeting                                  |
-| `address`    | **Yes**  | Street address                                                  |
-| `city`       | **Yes**  |                                                                 |
-| `state`      | **Yes**  | Required by Demand IQ's prospect lookup                         |
-| `zip`        | **Yes**  | Required by Demand IQ's prospect lookup                         |
-| `last_name`  | No       |                                                                 |
-| `country`    | No       | Two-letter ISO code, e.g. `"US"`. Defaults to `"US"` if omitted |
-| `email`      | No       | Needed if you want AI Presentations to email the link              |
-| `phone`      | No       |                                                                 |
-
-Behind the scenes, AI Presentations creates a new prospect record in Demand IQ from these details as part of this same call, using **your** API key. That's why the key needs **Write Prospects** for this path, and it's why `state` and `zip` are required here (Demand IQ's own prospect API needs them) even though they aren't required on the `prospect_id` path. If Demand IQ rejects the address or contact info, you'll get a `422` with code `PROSPECT_CREATE_FAILED`; if Demand IQ rejects the credential itself, a `401` with code `CORE_AUTH_REJECTED` (check the scopes on your API key); if Demand IQ is unreachable, a `503`. Separately, AI Presentations also validates the address via Google Geocoding when it builds the presentation — a `422` with code `INVALID_ADDRESS` means that step couldn't resolve it to a real location. Either way, check for typos.
-
-<Note>
-If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available. Only variables that a pricing formula on the deck's current slides references count here; variables left over from a removed product slide are ignored.
-</Note>
-
-### Sending a prospect ID (`prospect_id`)
-
 | Field         | Required | Notes                       |
 | ------------- | -------- | --------------------------- |
 | `prospect_id` | **Yes**  | The prospect's Demand IQ ID |
@@ -176,8 +175,30 @@ If your template uses pricing formulas, you can pass values for its price variab
 Looking up the prospect uses the **Read Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID doesn't exist in Demand IQ or isn't visible to your account — don't retry the same ID; send their details with `homeowner` instead. A `401` with code `CORE_AUTH_REJECTED` means the key is missing **Read Prospects** (or the credential expired).
 
 On this path AI Presentations pulls the prospect's Demand IQ journey and uses it to personalize the presentation. That includes contact fields (name, address, email, phone), roof and utility figures (roof squares, roof area, roof pitch, average utility bill, estimated/min/max cost, cost per square, ten-year financed cost), and any products the prospect selected in their journey. Selected-product prices are fed into `price_inputs` under each product's variable name, so pricing formulas that reference those variables render populated values without you having to pass anything. You can still pass `price_inputs` explicitly in the request body; journey-derived values override the ones you send for the same variable.
+</Tab>
+<Tab title="Prospect + updated details">
+<span id="sending-both-prospect_id--homeowner" />
 
-### Sending both (`prospect_id` + `homeowner`)
+```bash
+curl -X POST \
+  https://presentations.demand-iq.com/api/decks/{deckId}/presentations \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospect_id": "b8a3d9e1-4c2f-4a7b-9e5d-6f1c8a2b3d4e",
+    "homeowner": {
+      "first_name": "Dana",
+      "last_name": "Rivera",
+      "address": "1234 Maple Street",
+      "city": "Charlotte",
+      "state": "NC",
+      "zip": "28205",
+      "country": "US",
+      "email": "dana@example.com",
+      "phone": "+1 704 555 0123"
+    }
+  }'
+```
 
 Send both when the prospect already exists in Demand IQ but you want the presentation to use **your** contact details rather than whatever's on that prospect record — for example, when your CRM has a fresher phone number or email than Demand IQ does. The `prospect_id` is attached to the presentation (Demand IQ verifies it exists and is visible to your key, so this path also needs **Read Prospects**), and the `homeowner` fields you send are used as-is for personalization. No new prospect is created, so **Write Prospects** is not required for this path. A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID isn't visible to your key.
 
@@ -193,9 +214,25 @@ Send both when the prospect already exists in Demand IQ but you want the present
   purpose-built for automated journey-completion events rather than one-off
   calls like this guide covers.
 </Note>
+</Tab>
+</Tabs>
 
-## Step 4: Share the link
+All three paths return the same response, immediately:
 
+```json
+{
+  "deck_presentation_id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "url": "https://presentations.demand-iq.com/p/7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+  "status": "pending"
+}
+```
+
+`url` is the link you deliver to the prospect. `deck_presentation_id` is its ID for status checks and other API calls.
+
+</Step>
+
+<Step title="Share the link">
+<span id="step-4-share-the-link" />
 The URL works the moment you receive it. Personalized narration audio can take a little while to render, and for some templates generation doesn't start until the prospect opens the link — either way, the viewer experience handles it gracefully.
 
 If you'd rather hold delivery until everything is pre-rendered, poll the status endpoint (no auth required):
@@ -211,13 +248,19 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 }
 ```
 
+<Note>
+`generating` is a valid presentation status. Presentation status and template-generation job status use different values; wait for `ready` on this endpoint, not `completed`.
+</Note>
+
 `status` moves through `pending` → `generating` → `ready` (a `not_started` status means generation kicks off when the prospect opens the link — the link is still ready to share). Once you have the URL, deliver it however you reach your prospects: text, email, a CRM field, or let AI Presentations send it (see [Notifications](/ai-presentations/guides/notifications) for delivery and open tracking).
 
 Deliver the URL exactly as returned. The path segment after `/p/` is the presentation's UUID, and AI Presentations validates its format before looking anything up. A truncated or otherwise malformed link returns a 404 page.
 
 When the URL is pasted into SMS, iMessage, Slack, or similar apps, it unfurls into a rich preview: the deck name as the title, the deck description, your company name from branding, and the presentation's first slide as the preview image. Everything is derived automatically from the template — nothing to configure. If the deck has no description or first-slide image, the preview falls back to the template's intro background and default text. Unknown, deleted, or malformed links render no preview.
-
 Once the prospect opens the link, the browser tab is also branded automatically. The tab title reads `[Company Name] | [Presentation Name]`, drawn from your Branding settings and the deck name, and the favicon is your company logo (squared onto your brand background color so it stays readable at 16px). If the deck has no branding name, the tab shows the presentation name alone; if the deck has no logo, the tab keeps the default AI Presentations icon.
+
+</Step>
+</Steps>
 
 ## What's next
 
