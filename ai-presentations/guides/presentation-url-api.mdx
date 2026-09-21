@@ -175,19 +175,23 @@ If your template uses pricing formulas, you can pass values for its price variab
 
 Looking up the prospect uses the **Read Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID doesn't exist in Demand IQ or isn't visible to your account — don't retry the same ID; send their details with `homeowner` instead. A `401` with code `CORE_AUTH_REJECTED` means the key is missing **Read Prospects** (or the credential expired).
 
+On this path AI Presentations pulls the prospect's Demand IQ journey and uses it to personalize the presentation. That includes contact fields (name, address, email, phone), roof and utility figures (roof squares, roof area, roof pitch, average utility bill, estimated/min/max cost, cost per square, ten-year financed cost), and any products the prospect selected in their journey. Selected-product prices are fed into `price_inputs` under each product's variable name, so pricing formulas that reference those variables render populated values without you having to pass anything. You can still pass `price_inputs` explicitly in the request body; journey-derived values override the ones you send for the same variable.
+
 ### Sending both (`prospect_id` + `homeowner`)
 
 Send both when the prospect already exists in Demand IQ but you want the presentation to use **your** contact details rather than whatever's on that prospect record — for example, when your CRM has a fresher phone number or email than Demand IQ does. The `prospect_id` is attached to the presentation (Demand IQ verifies it exists and is visible to your key, so this path also needs **Read Prospects**), and the `homeowner` fields you send are used as-is for personalization. No new prospect is created, so **Write Prospects** is not required for this path. A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID isn't visible to your key.
 
 <Note>
-  This only pulls the prospect's **contact info** — it doesn't pull in pricing
-  data or product selections from their journey (utility bill, roof
-  measurements, etc.), so if your template has pricing formulas you still need
-  to supply `price_inputs` explicitly, the same as with `homeowner`. If you need
-  journey data pulled in automatically, and idempotent, auto-emailed delivery
-  for a high-volume webhook integration, see `POST /api/decks/{deckId}/ingest`
-  in the **API Reference** — that endpoint is purpose-built for automated
-  journey-completion events rather than one-off calls like this guide covers.
+  On this combined path AI Presentations does **not** pull journey data for the
+  prospect — the `homeowner` fields you send win, and nothing else is fetched
+  from Demand IQ. If your template has pricing formulas you need to supply
+  `price_inputs` explicitly, the same as with `homeowner` alone. Send
+  `prospect_id` on its own if you want the journey's roof, utility, and
+  selected-product data pulled in automatically. For a high-volume webhook
+  integration with idempotent, auto-emailed delivery, see `POST
+  /api/decks/{deckId}/ingest` in the **API Reference** — that endpoint is
+  purpose-built for automated journey-completion events rather than one-off
+  calls like this guide covers.
 </Note>
 
 ## Step 4: Share the link
