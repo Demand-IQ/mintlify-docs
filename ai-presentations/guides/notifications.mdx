@@ -173,7 +173,7 @@ You can enable, disable, update, or delete subscriptions at any time. Disabling 
 
 AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
 
-A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
+A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). A send is `failed` when AI Presentations could not load the homeowner's information — for example, when the underlying Demand IQ lookup is unreachable. The attempt row records the true reason instead of blaming the lead's data, and manual senders see an error toast rather than a blank-personalization email going out. There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
 
 Configure per-deck delivery settings from the **Delivery** tab in the deck editor, or via the API:
 
