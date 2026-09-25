@@ -175,10 +175,21 @@ AI Presentations emails the presentation link directly to homeowners when a pres
 
 A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). A send is `failed` when AI Presentations could not load the homeowner's information — for example, when the underlying Demand IQ lookup is unreachable. The attempt row records the true reason instead of blaming the lead's data, and manual senders see an error toast rather than a blank-personalization email going out. There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
 
-Configure per-deck delivery settings from the **Delivery** tab in the deck editor, or via the API:
+Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
 - `PUT /api/decks/{deckId}/delivery` — set sender, subject, body, and CTA label
+
+### Default subject line
+
+When a deck has no subject line of its own, AI Presentations uses a default at send time:
+
+- `Dana, your home's estimate is ready` when the homeowner's first name is known
+- `Your home's estimate is ready` when the first name is empty or missing
+
+A subject that contains only whitespace counts as no subject. The default is never saved to the deck, so it never makes the homeowner's first name a requirement for sending. Decks that already have a subject saved keep sending it unchanged.
+
+In the deck editor, the subject field starts empty and shows the default as its placeholder. You must enter a subject before you can save the **Email** tab. The preview header fills in subject tokens with sample values. For a deck with no subject yet, the preview shows the default subject.
 
 ### Subject and body tokens
 
