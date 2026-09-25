@@ -178,7 +178,22 @@ A send is `skipped` only when the homeowner record has no email address (manual 
 Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
-- `PUT /api/decks/{deckId}/delivery` — set sender, subject, body, and CTA label
+- `PUT /api/decks/{deckId}/delivery` — set sender name, reply-to address, subject, body, and CTA label. AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved.
+
+### Sender and reply-to
+
+Every homeowner email comes from `hello@demand-iq.com`. The sender name shown to the homeowner is the first of these that is set:
+
+1. The deck's sender name (`fromName`)
+2. Your organization's name
+3. `Demand IQ`
+
+Replies go to the first valid address of these:
+
+1. The deck's reply-to address (`replyToEmail`)
+2. Your company contact email
+
+If neither is set, the email has no reply-to, and replies go to `hello@demand-iq.com`. AI Presentations skips a stored address that is not a valid email instead of sending with it.
 
 ### Default subject line
 
