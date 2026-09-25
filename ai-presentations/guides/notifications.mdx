@@ -171,14 +171,25 @@ You can enable, disable, update, or delete subscriptions at any time. Disabling 
 
 ## Automated email delivery
 
-AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
+AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, preview text, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
 
 A send is `skipped` only when the homeowner record has no email address (manual sends with override recipients bypass that check). A send is `failed` when AI Presentations could not load the homeowner's information — for example, when the underlying Demand IQ lookup is unreachable. The attempt row records the true reason instead of blaming the lead's data, and manual senders see an error toast rather than a blank-personalization email going out. There is no separate enable toggle — if a deck is connected to a journey or you call the send endpoint, the email goes out.
 
 Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
-- `PUT /api/decks/{deckId}/delivery` — set sender name, reply-to address, subject, body, and CTA label. AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved.
+- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved.
+
+Four text fields have a maximum length:
+
+| Field | Maximum characters | Error message |
+| --- | --- | --- |
+| `fromName` | 100 | `Sender name must be 100 characters or fewer` |
+| `emailSubject` | 255 | `Subject line must be 255 characters or fewer` |
+| `emailPreheader` | 255 | `Preview text must be 255 characters or fewer` |
+| `ctaLabel` | 100 | `Button text must be 100 characters or fewer` |
+
+If any of these fields is too long, the request returns `400` with `{ "error": "<message>" }` naming the field, and nothing is saved. A value exactly at the limit saves. In the **Email** tab, these inputs stop accepting characters at the limit. If inserting a token chip would push a field past its limit, the editor refuses the insert and shows a toast. It never truncates the token, because a clipped `{{token}}` would be sent literally.
 
 ### Sender and reply-to
 
@@ -206,9 +217,24 @@ A subject that contains only whitespace counts as no subject. The default is nev
 
 In the deck editor, the subject field starts empty and shows the default as its placeholder. You must enter a subject before you can save the **Email** tab. The preview header fills in subject tokens with sample values. For a deck with no subject yet, the preview shows the default subject.
 
-### Subject and body tokens
+### Preview text
 
-The subject line and message body accept `{{token}}` placeholders that AI Presentations resolves per recipient at send time. Under each field, five inline chips insert the most common tokens at your cursor. **View all** opens a popover with the full list, and typing `{{` still opens the autocomplete dropdown.
+Preview text is the short line inbox clients show next to the subject, before the homeowner opens the email. AI Presentations places it in a hidden block at the top of the email, so it appears in the inbox row but not in the email body. It is not included in the plain-text version of the email.
+
+When a deck has no preview text of its own, AI Presentations uses a default at send time:
+
+- `Prepared for 123 Main St, with answers to your questions any time` when the homeowner's address is known
+- `Your custom results are inside, with answers to your questions any time` when the address is empty or missing
+
+Preview text that contains only whitespace counts as no preview text. Like the default subject, the default preview text is never saved to the deck, so it never makes the homeowner's address a requirement for sending.
+
+To override the default, fill in the optional **Preview text** field in the **Email** tab, or set `emailPreheader` through the API. The field accepts the same tokens as the subject line. A blank value saves as unset, and the default applies. Tokens in saved preview text are blocking, just like tokens in the subject and body: if a token cannot be resolved for a homeowner, the send parks instead of going out.
+
+The preview header in the deck editor shows the subject and preview text together as an inbox row.
+
+### Subject, preview text, and body tokens
+
+The subject line, preview text, and message body accept `{{token}}` placeholders that AI Presentations resolves per recipient at send time. Under each field, five inline chips insert the most common tokens at your cursor. **View all** opens a popover with the full list, and typing `{{` still opens the autocomplete dropdown.
 
 | Group | Tokens |
 | --- | --- |
