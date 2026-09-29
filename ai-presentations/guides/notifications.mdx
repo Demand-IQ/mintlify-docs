@@ -213,9 +213,11 @@ When a deck has no subject line of its own, AI Presentations uses a default at s
 - `Dana, your home's estimate is ready` when the homeowner's first name is known
 - `Your home's estimate is ready` when the first name is empty or missing
 
-A subject that contains only whitespace counts as no subject. The default is never saved to the deck, so it never makes the homeowner's first name a requirement for sending. Decks that already have a subject saved keep sending it unchanged.
+A subject that contains only whitespace counts as no subject. The default is never saved to the deck, so it never makes the homeowner's first name a requirement for sending. When a deck has a saved subject, AI Presentations renders it for each homeowner at send time. If any token in the saved subject renders empty or is unknown, AI Presentations sends the default subject instead. For example, `{{homeowner.first_name}}, check this out!` goes to a homeowner with no first name as `Your home's estimate is ready`, not `, check this out!`. Because of this fallback, subject tokens never park a presentation at `missing_data`.
 
-In the deck editor, the subject field starts empty and shows the default as its placeholder. You must enter a subject before you can save the **Email** tab. The preview header fills in subject tokens with sample values. For a deck with no subject yet, the preview shows the default subject.
+AI Presentations checks the deck's copy once, when it creates the presentation. Every later send, including a manual resend and the release of a parked presentation, renders the deck's current subject. The fallback covers a subject you save after the presentation was created.
+
+In the deck editor, the subject field starts empty and shows the default as its placeholder. You must enter a subject before you can save the **Email** tab. The preview header fills in subject tokens with sample values and applies the same fallback as the sender, so it shows the subject AI Presentations will send. For a deck with no subject yet, the preview shows the default subject.
 
 ### Preview text
 
@@ -228,7 +230,7 @@ When a deck has no preview text of its own, AI Presentations uses a default at s
 
 Preview text that contains only whitespace counts as no preview text. Like the default subject, the default preview text is never saved to the deck, so it never makes the homeowner's address a requirement for sending.
 
-To override the default, fill in the optional **Preview text** field in the **Email** tab, or set `emailPreheader` through the API. The field accepts the same tokens as the subject line. A blank value saves as unset, and the default applies. Tokens in saved preview text are blocking, just like tokens in the subject and body: if a token cannot be resolved for a homeowner, the send parks instead of going out.
+To override the default, fill in the optional **Preview text** field in the **Email** tab, or set `emailPreheader` through the API. The field accepts the same tokens as the subject line. A blank value saves as unset, and the default applies. If any token in saved preview text renders empty or is unknown, AI Presentations sends the default preview text instead. Preview text tokens never park a presentation at `missing_data`. Tokens in the message body are still blocking: if a body token cannot be resolved for a homeowner, the send parks instead of going out.
 
 The preview header in the deck editor shows the subject and preview text together as an inbox row.
 
@@ -249,7 +251,7 @@ The CTA button label does not accept tokens.
 
 ### Roof and cost tokens are not offered in email
 
-The picker deliberately omits `roof_squares`, `roof_area_sqft`, `roof_pitch`, `estimated_cost`, `min_cost`, `max_cost`, `cost_per_square`, and `ten_year_financed_cost`. These fields only exist once the roof report has run, and an unresolved token in an email is blocking: a lead whose report has not run parks instead of sending. Since lazy generation only starts when the homeowner opens the link (`POST /api/presentations/{presentationId}/start`), an email that never sends is a presentation that never generates — one roof token in a shared template can stall every unmeasured lead for the full 24-hour escalation window. Use these fields in slide narration instead, where a missing value costs one sentence rather than the entire send.
+The picker deliberately omits `roof_squares`, `roof_area_sqft`, `roof_pitch`, `estimated_cost`, `min_cost`, `max_cost`, `cost_per_square`, and `ten_year_financed_cost`. These fields only exist once the roof report has run, and an unresolved token in an email body is blocking: a lead whose report has not run parks instead of sending. Since lazy generation only starts when the homeowner opens the link (`POST /api/presentations/{presentationId}/start`), an email that never sends is a presentation that never generates — one roof token in a shared template can stall every unmeasured lead for the full 24-hour escalation window. Use these fields in slide narration instead, where a missing value costs one sentence rather than the entire send.
 
 Templates that already include one of these tokens keep working — the sender still resolves them so no homeowner receives raw `{{braces}}`. New templates should leave them out.
 
