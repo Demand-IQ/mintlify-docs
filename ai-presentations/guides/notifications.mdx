@@ -32,7 +32,7 @@ Each event includes the `presentationId` and relevant context. For example, `sli
 
 `narration.played` is high-volume — one row per narrated slide exit. If your activity feed doesn't need it, pass `excludeEventTypes=narration.played` on `GET /api/notifications/events` to hide it without allowlisting every other type.
 
-Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text for 90 days (see [Event retention](#event-retention)). When you query the event log, `email.sent` entries include top-level `recipientEmail` and `skipReason` fields alongside the payload so you can still see who received each send and why a send was skipped.
+Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text for 90 days (see [Event retention](#event-retention)). When you query the event log, `email.sent` entries include top-level `recipientEmail`, `skipReason`, and `variant` fields alongside the payload so you can still see who received each send, why a send was skipped, and whether it was a reminder.
 
 The four email failure events (`email.bounced`, `email.dropped`, `email.complained`, `email.unsubscribed`) carry the `presentationId`, the delivery attempt ID (`deliveryId`), and SendGrid's message and event identifiers (`sgMessageId`, `sgEventId`). `email.bounced` adds a `bounceType` (`bounce` or `blocked`) and SendGrid's bounce `classification`; `email.dropped` adds SendGrid's drop `reason` (for example `Bounced Address` or `Unsubscribed Address`). These payloads never include the recipient's email address. Email notifications for these events resolve the affected recipient for you at send time.
 
@@ -138,7 +138,21 @@ Logs events to the server console. Useful for development and debugging.
 
 AI Presentations keeps a log of all events for your organization. You can query the log to see what happened during a presentation, filter by event type, or look at events within a time range.
 
-For `email.sent` events, each entry includes top-level `recipientEmail` and `skipReason` fields. AI Presentations resolves both from the delivery attempt referenced by the payload's `deliveryId`; the stored payload itself never contains the address. `skipReason` is `no_email` when the homeowner had no email address, `suppressed` when a recipient previously bounced, reported spam, or unsubscribed, and `null` for sends that were not skipped. The activity log shows a suppressed skip as "Email Not Sent · previously bounced or unsubscribed".
+For `email.sent` events, each entry includes top-level `recipientEmail`, `skipReason`, and `variant` fields. AI Presentations resolves all three from the delivery attempt referenced by the payload's `deliveryId`; the stored payload itself never contains the address. `skipReason` is `no_email` when the homeowner had no email address, `suppressed` when a recipient previously bounced, reported spam, or unsubscribed, and `null` for sends that were not skipped. The activity log shows a suppressed skip as "Email Not Sent · previously bounced or unsubscribed".
+
+`variant` is `initial` for the first presentation email and `reminder` for the follow-up sent to a homeowner who never opened it. Entries written before reminders existed return `initial`, or `null` when no delivery attempt matches. The presentation activity log labels reminder entries by status and skip reason:
+
+| Reminder outcome | `skipReason` | Label | Detail |
+| --- | --- | --- | --- |
+| Sent | `null` | Reminder Sent | Recipient |
+| Failed | `null` | Reminder Failed | Recipient |
+| Skipped | `opened` | Reminder Not Needed | already opened the email |
+| Skipped | `viewed` | Reminder Not Needed | already viewed the presentation |
+| Skipped | `suppressed` | Reminder Not Sent | previously bounced or unsubscribed |
+| Skipped | `no_initial_send` | Reminder Not Sent | the first email was never sent |
+| Skipped | `presentation_parked` or `presentation_failed` | Reminder Not Sent | the presentation isn't ready |
+
+A reminder doesn't change a presentation's delivery `sentAt`. `sentAt` stays the earliest accepted send across all attempts.
 
 For `email.opened` events, each entry includes a top-level `machineOpen` boolean. It is `true` when every open SendGrid reported for the delivery attempt was automatic (for example, an Apple Mail Privacy Protection prefetch of the tracking pixel) and `false` when at least one human open has been recorded. Render machine opens as "Email Opened (automatic)" to keep them separate from real reads.
 
