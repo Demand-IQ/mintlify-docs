@@ -107,6 +107,11 @@
   ],
   "components": {
     "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A Demand IQ API key or service token, passed in the `Authorization: Bearer` header."
+      },
       "sessionCookie": {
         "type": "apiKey",
         "in": "cookie",
@@ -4006,6 +4011,187 @@
           },
           "503": {
             "description": "Upstream service is unreachable \u2014 retry with backoff",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presentations/send": {
+      "post": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "Send a follow-up email for an ingested presentation",
+        "description": "Sends a follow-up email, such as a reminder, for the presentation that `POST /api/decks/{deckId}/ingest` created from `(deck_id, source_event_id)`. Server-to-server callers authenticate with a Bearer token. A company credential only reaches its own company's presentations.\n\nEvery decided outcome returns `200`: `sent`, `skipped` with a `reason`, or `failed`. AI Presentations records each outcome as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent) always run. `skip_if` only adds conditions.\n\n`409` with code `SEND_IN_PROGRESS` means another call with the same key hasn't finished. Retry it with the same key. `5xx` responses are also safe to retry with the same key.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deck_id",
+                  "source_event_id",
+                  "idempotency_key",
+                  "subject_variant"
+                ],
+                "properties": {
+                  "deck_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "3f6c2a1e-8b4d-4c7a-9e2f-1d5b7a9c0e4f"
+                  },
+                  "source_event_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The `source_event_id` you passed to the ingest endpoint",
+                    "example": "journey-complete-48213"
+                  },
+                  "idempotency_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "One send per key. Reuse the same key when you retry.",
+                    "example": "reminder-48213-1"
+                  },
+                  "skip_if": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "opened",
+                        "viewed"
+                      ]
+                    },
+                    "default": [],
+                    "description": "Extra conditions that skip the send. `opened`: the homeowner opened an earlier email (machine opens don't count). `viewed`: the homeowner viewed the presentation."
+                  },
+                  "subject_variant": {
+                    "type": "string",
+                    "enum": [
+                      "reminder"
+                    ],
+                    "description": "Which email to send. The first email is sent by ingest, so `initial` is not accepted."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "send_status"
+                  ],
+                  "properties": {
+                    "send_status": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "skipped",
+                        "failed"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Set when skipped: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `opened`, or `viewed`. Set when failed: the error message."
+                    },
+                    "presentation_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Absent for `no_presentation`"
+                    },
+                    "delivery_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "The delivery attempt ID. Absent for `no_presentation`."
+                    }
+                  }
+                },
+                "example": {
+                  "send_status": "sent",
+                  "presentation_id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
+                  "delivery_id": "b1e4d7a2-5c3f-4a8e-9d6b-2f0c8e1a7b35"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A send with this `idempotency_key` is still in progress. Retry with the same key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SEND_IN_PROGRESS"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
             "content": {
               "application/json": {
                 "schema": {
