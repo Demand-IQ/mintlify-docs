@@ -212,6 +212,38 @@ Four text fields have a maximum length:
 
 If any of these fields is too long, the request returns `400` with `{ "error": "<message>" }` naming the field, and nothing is saved. A value exactly at the limit saves. In the **Email** tab, these inputs stop accepting characters at the limit. If inserting a token chip would push a field past its limit, the editor refuses the insert and shows a toast. It never truncates the token, because a clipped `{{token}}` would be sent literally.
 
+### Follow-up sends
+
+After ingest sends the first email, call `POST /api/presentations/send` to send a follow-up, such as a reminder. Authenticate with a Bearer token in the `Authorization` header. AI Presentations finds the presentation by the `deck_id` and `source_event_id` you passed to ingest. A company credential only reaches its own company's presentations.
+
+```json
+{
+  "deck_id": "3f6c2a1e-8b4d-4c7a-9e2f-1d5b7a9c0e4f",
+  "source_event_id": "journey-complete-48213",
+  "idempotency_key": "reminder-48213-1",
+  "skip_if": ["opened", "viewed"],
+  "subject_variant": "reminder"
+}
+```
+
+- `idempotency_key` is required and must be 1 to 64 characters. Each key gets one delivery attempt and at most one email.
+- `skip_if` is optional and defaults to `[]`. `opened` skips the send if the homeowner opened an earlier email. Machine opens don't count. `viewed` skips the send if the homeowner viewed the presentation.
+- `subject_variant` must be `reminder`. Ingest sends the first email, so `initial` returns `400`.
+
+The suppression, parked, failed, and first-send checks always run, whatever `skip_if` contains.
+
+| Status | Meaning | Retry? |
+| --- | --- | --- |
+| `200` | `send_status: "sent"`, with `presentation_id` and `delivery_id` | No |
+| `200` | `send_status: "skipped"`, with `reason`: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `opened`, or `viewed` | No. A skip is a correct outcome. |
+| `200` | `send_status: "failed"`, with `reason` | No. A retry returns the same result. |
+| `400` | Malformed request body | No. Fix the request. |
+| `401` | Credential rejected | No. Fix the credential. |
+| `409` | Code `SEND_IN_PROGRESS`: another call with the same key hasn't finished | Yes, with the same key |
+| `5xx` | Unexpected error | Yes, with the same key |
+
+A repeated call with the same key never sends a second email. Once the first call finishes, a repeat returns its original response. If a call stops mid-send, AI Presentations lets a new call with the same key take over after 10 minutes. Every skip except `no_presentation` is recorded as a delivery attempt and emits one `email.sent` event with its `skipReason`.
+
 ### Sender and reply-to
 
 Every homeowner email comes from `hello@demand-iq.com`. The sender name shown to the homeowner is the first of these that is set:
@@ -293,5 +325,6 @@ Key notification endpoints:
 - `GET /api/notifications/events` — query the event log with filters and keyset pagination. Page forward with `cursor` from the previous response's `page.nextCursor`, or poll with `recent=1` for the last 90 seconds on the server clock. The default `limit` is 25 (cap 100); `offset` is no longer accepted and requests that send it are rejected with a `400`.
 - `GET/PUT /api/decks/{deckId}/delivery` — manage per-deck email delivery settings
 - `POST /api/presentations/{presentationId}/send` — send or resend the homeowner email
+- `POST /api/presentations/send` — send a follow-up email, such as a reminder, for a presentation created by ingest
 
 See the **API Reference** tab for full request and response details.
