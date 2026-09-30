@@ -72,6 +72,11 @@
         "in": "cookie",
         "name": "session",
         "description": "Session cookie obtained from `POST /api/auth/login`."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A Core service token (M2M JWT), a Core API key, or a session id."
       }
     },
     "schemas": {
@@ -3007,6 +3012,162 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presentations/send": {
+      "post": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "Send a later touch for an ingested presentation",
+        "description": "Sends a reminder for the presentation `POST /api/decks/{deckId}/ingest` created from `(deck_id, source_event_id)`. Called by Core's follow-up service with a Core service token; a tenant credential only reaches its own company's presentations.\n\nEvery decided outcome is a `200` — `sent`, `skipped` with a `reason`, or `failed` — and is recorded as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent) always run; `skip_if` only adds conditions.\n\n`409 SEND_IN_PROGRESS` means another call with the same key has not finished; retry it. `5xx` is retryable.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deck_id",
+                  "source_event_id",
+                  "idempotency_key",
+                  "subject_variant"
+                ],
+                "properties": {
+                  "deck_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "source_event_id": {
+                    "type": "string",
+                    "description": "The `source_event_id` ingest was called with"
+                  },
+                  "idempotency_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "One send per key — the follow-up service passes its touch run id"
+                  },
+                  "skip_if": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "opened",
+                        "viewed"
+                      ]
+                    },
+                    "default": [],
+                    "description": "`opened`: a human (non-machine) open of an earlier email. `viewed`: the presentation was viewed."
+                  },
+                  "subject_variant": {
+                    "type": "string",
+                    "enum": [
+                      "reminder"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "send_status"
+                  ],
+                  "properties": {
+                    "send_status": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "skipped",
+                        "failed"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Set when skipped: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `opened` or `viewed`. Set when failed: the error message."
+                    },
+                    "presentation_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Absent for `no_presentation`"
+                    },
+                    "delivery_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "The attempt row; absent for `no_presentation`"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
             "content": {
               "application/json": {
                 "schema": {
