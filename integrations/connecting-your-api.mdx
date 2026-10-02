@@ -1,0 +1,308 @@
+---
+title: 'Connecting your API'
+description: 'Use a Demand IQ API key to export leads, import leads, or keep another system in sync.'
+icon: 'key'
+---
+
+Connect Demand IQ lead data to Zapier, your customer relationship management (CRM) system, or a custom application using an API key.
+
+A **lead** is a potential customer. The API calls a lead a **prospect**, so its URLs use `prospects`. These examples use `https://api.demand-iq.com/api/v1.0`, which is separate from the AI Presentations API.
+
+<CardGroup cols={3}>
+  <Card title="Export leads" icon="arrow-up-right-from-square" href="#send-leads-to-another-tool">
+    Read leads from Demand IQ and save them in another system.
+  </Card>
+  <Card title="Import leads" icon="arrow-down-to-line" href="#bring-leads-into-diq">
+    Create a lead and add its contact information.
+  </Card>
+  <Card title="Two-way sync" icon="arrows-rotate" href="#two-way-sync">
+    Read leads and send agreed changes back to Demand IQ.
+  </Card>
+</CardGroup>
+
+## Create and store your key
+
+1. Open **Settings → Company → API Keys** in the [Demand IQ dashboard](https://app.demand-iq.com/company/settings/apiKeys).
+2. Select **Add New API Key**, then choose the objective that matches your connection. Use **Custom** to select permissions individually.
+3. Review the permissions before saving. The objective selects a starting set; it can include more permissions than the examples below need. A permission controls which data the key can read or change. An API may call that permission a **scope**.
+4. Copy the key when it appears and store it in your server's secret storage or your integration's secure connection settings. Check its expiration date.
+
+<Warning>
+  Keep your key out of browser code, public repositories, URLs, and logs. If it is lost or exposed, remove it in API Keys, create a replacement, and update each connection that used it.
+</Warning>
+
+Send the key in the `Authorization` header on every request:
+
+```http
+Authorization: Bearer YOUR_API_KEY
+Accept: application/json
+```
+
+For the TypeScript examples, set `DIQ_API_KEY` in your server environment. Each example checks the HTTP result before using the response.
+
+| Goal | Minimum permissions for these examples |
+| --- | --- |
+| Export company lead summaries | **Leads → Read lead records** (`prospects:read`) |
+| Create a lead and its contact | **Leads → Write lead records** (`prospects:write`) and **Lead Contacts → Create or update lead contacts** (`contacts:write`) |
+| Read and update contact details in both systems | `prospects:read`, `contacts:read`, and `contacts:write`; add `prospects:write` if you also create or update lead address records |
+
+Appointments, notes, attachments, and other related data have separate permissions. Only select them if your connection uses their endpoints. A key is associated with a company; use a key for the company whose leads you want to access.
+
+## Send leads to another tool
+
+**Required permission:** `prospects:read`.
+
+### Read company leads over HTTP
+
+Call `GET /prospects/company` to read company lead summaries, including available contact details. This endpoint requires company-level access; a key acting as a sales representative cannot use it.
+
+```http
+GET /api/v1.0/prospects/company?limit=100&offset=0&orderBy=prospect_id HTTP/1.1
+Host: api.demand-iq.com
+Authorization: Bearer YOUR_API_KEY
+Accept: application/json
+```
+
+| Query parameter | Meaning |
+| --- | --- |
+| `limit` | Number of records to request. These examples use `100`. |
+| `offset` | Number of records to skip. Start at `0`, then add `limit` for each page. |
+| `orderBy` | Sort field. `prospect_id` gives a consistent order for a full export. |
+
+An illustrative `200 OK` response:
+
+```json
+{
+  "total": 1,
+  "page": 1,
+  "result": [
+    {
+      "ProspectId": "6a2b4c70-9473-4d93-ae5d-04cbd7d838f2",
+      "ContactName": "Jamie Rivera",
+      "ContactAddress": "1701 Wynkoop St",
+      "ContactPhoneNumber": "+13035550142",
+      "ContactEmail": "jamie@example.com",
+      "RepName": "Morgan Lee",
+      "DispositionType": null,
+      "Updated": "2026-09-25T15:30:00Z",
+      "Latitude": 39.7527,
+      "Longitude": -104.9992,
+      "city": "Denver",
+      "state": "CO",
+      "zipCode": "80202",
+      "firstTouchSource": "",
+      "firstTouchName": "",
+      "eventType": ""
+    }
+  ]
+}
+```
+
+`result` is the array of leads. Field names are case-sensitive: company summaries use `ProspectId` and `ContactEmail`, while `city`, `state`, and `zipCode` are lowercase. Contact values can be `null`. `page` is the page number; `total` is the number of records in this response, **not** the company-wide count. Continue until `result` has fewer records than your requested `limit`.
+
+This server-side example reads every page. Replace `saveLead` with a write to your destination, using `ProspectId` as the saved Demand IQ identifier so a repeat export updates the same record.
+
+```typescript
+const apiKey = process.env.DIQ_API_KEY;
+if (!apiKey) {
+  throw new Error('Set DIQ_API_KEY before exporting leads');
+}
+
+type LeadSummary = {
+  ProspectId: string;
+  ContactName: string | null;
+  ContactEmail: string | null;
+  ContactPhoneNumber: string | null;
+};
+
+type LeadPage = { total: number; page: number; result: LeadSummary[] };
+
+const exportLeads = async (saveLead: (lead: LeadSummary) => Promise<void>) => {
+  const limit = 100;
+  for (let offset = 0; ; offset += limit) {
+    const url = new URL('https://api.demand-iq.com/api/v1.0/prospects/company');
+    url.search = new URLSearchParams({
+      limit: String(limit), offset: String(offset), orderBy: 'prospect_id',
+    }).toString();
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`Lead export failed with HTTP ${response.status}`);
+    }
+    const { result } = (await response.json()) as LeadPage;
+    for (const lead of result) {
+      await saveLead(lead);
+    }
+    if (result.length < limit) {
+      break;
+    }
+  }
+};
+```
+
+Records can change during an export. Reconcile periodically and update existing destination records rather than assuming an export is a fixed snapshot.
+
+### Export with Zapier
+
+A scheduled Zap can read leads and write them to your destination:
+
+1. Use **Schedule by Zapier** as the trigger.
+2. Add a **Webhooks by Zapier → GET** action. Set the URL to `https://api.demand-iq.com/api/v1.0/prospects/company` and query parameters to `limit=100`, `offset=0`, and `orderBy=prospect_id`.
+3. Add an `Authorization` header with value `Bearer YOUR_API_KEY`, and an `Accept` header with value `application/json`. Leave Basic Auth empty.
+4. Test the request. Use the records in `result` as line items for a **Looping by Zapier** step.
+5. Inside the loop, find or update the destination record by `ProspectId`; create it only if it does not exist. Map `ContactName`, `ContactEmail`, and `ContactPhoneNumber` to your destination fields.
+
+<Note>
+  This Zap reads one page. If it returns 100 records, retrieve subsequent pages by increasing `offset`, or use the paginated server example above. Do not publish a one-page Zap as a complete export for a company with more than 100 leads. Check that your Zapier plan supports the selected actions.
+</Note>
+
+For Zapier's request settings, see [Webhooks by Zapier setup](https://help.zapier.com/hc/en-us/articles/8496083355661-How-to-get-started-with-Webhooks-by-Zapier).
+
+**Troubleshooting:** an empty `result` can mean the company has no matching leads or the wrong company's key was used. A `403` can mean the read permission or company-level access is missing. If only the first 100 leads appear, add pagination. Repeated destination records mean the Zap needs to find or update by `ProspectId` before creating.
+
+## Bring leads into DIQ
+
+**Required permissions:** `prospects:write` and `contacts:write`.
+
+Create the address record with `POST /prospects`, then use its returned `id` to add a contact with `POST /prospects/{id}/contact`. Adding `firstName` or `email` to the first request does not create the contact.
+
+| Request | Required fields | Optional fields used here |
+| --- | --- | --- |
+| `POST /prospects` | `address`, `city`, `state`, `zipCode` | `unit`, `averageUtilityBill`, `wasOnsite` |
+| `POST /prospects/{id}/contact` | A valid lead ID in the URL and at least one contact field | `firstName`, `lastName` (up to 50 characters each), `phoneNumber` (up to 16 characters), `email` (a valid email address) |
+
+The first call looks up the address. If it cannot resolve it, correct the address before retrying. Call from your server when another system receives a new lead:
+
+```typescript
+const apiKey = process.env.DIQ_API_KEY;
+if (!apiKey) {
+  throw new Error('Set DIQ_API_KEY before importing leads');
+}
+const baseUrl = 'https://api.demand-iq.com/api/v1.0';
+const headers = {
+  Authorization: `Bearer ${apiKey}`,
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+};
+
+const leadResponse = await fetch(`${baseUrl}/prospects`, {
+  method: 'POST', headers,
+  body: JSON.stringify({
+    address: '1701 Wynkoop St', city: 'Denver', state: 'CO', zipCode: '80202',
+  }),
+});
+if (!leadResponse.ok) {
+  throw new Error(`Lead creation failed with HTTP ${leadResponse.status}`);
+}
+const lead = (await leadResponse.json()) as { id: string };
+// Save lead.id against the source record BEFORE adding the contact.
+// If the next request fails, retry it with this ID instead of creating another lead.
+const contactResponse = await fetch(`${baseUrl}/prospects/${lead.id}/contact`, {
+  method: 'POST', headers,
+  body: JSON.stringify({
+    firstName: 'Jamie', lastName: 'Rivera',
+    email: 'jamie@example.com', phoneNumber: '+13035550142',
+  }),
+});
+if (!contactResponse.ok) {
+  throw new Error(`Contact creation for lead ${lead.id} failed with HTTP ${contactResponse.status}`);
+}
+const contact = await contactResponse.json();
+```
+
+The lead call returns `201 Created` with an address record. Response excerpt:
+
+```json
+{
+  "id": "6a2b4c70-9473-4d93-ae5d-04cbd7d838f2",
+  "address": "1701 Wynkoop St",
+  "city": "Denver",
+  "state": "CO",
+  "zipCode": "80202",
+  "latitude": 39.7527,
+  "longitude": -104.9992
+}
+```
+
+The full lead response also includes `locationId`, `unit`, `userId`, `companyId`, `closer`, `averageUtilityBill`, `wasOnsite`, and creation/update timestamps and user IDs. Save `id` as the connection between your source record and the Demand IQ lead.
+
+The contact call returns `201 Created`:
+
+```json
+{
+  "id": "8e406716-722d-4a79-960c-c3c56cf0d057",
+  "prospectId": "6a2b4c70-9473-4d93-ae5d-04cbd7d838f2",
+  "firstName": "Jamie",
+  "lastName": "Rivera",
+  "phoneNumber": "+13035550142",
+  "email": "jamie@example.com"
+}
+```
+
+**Using Zapier:** start with the other tool's new-lead trigger. Add a **Webhooks by Zapier → POST** action with the `/prospects` URL, JSON payload, the four address fields, and the authorization header above. Add a second POST action to `/prospects/{id}/contact`, mapping `id` from the first response and the contact fields from the trigger. Save the source-to-Demand IQ ID mapping before enabling retries.
+
+**Troubleshooting:** `400` may indicate a missing address field, an unresolved address, or invalid contact data. If the lead succeeds and the contact fails, retry only the contact call using the saved lead ID. An existing contact produces a conflict; reconcile it before using `PUT /prospects/{id}/contact`. Replaying the entire create sequence can create duplicates; do not assume repeated POSTs are deduplicated.
+
+## Two-way sync
+
+**Required permissions:** `prospects:read`, `contacts:read`, and `contacts:write` for the contact example below. Add `prospects:write` for the import flow above or address updates.
+
+Use the [export flow](#send-leads-to-another-tool) to read leads and the [import flow](#bring-leads-into-diq) to create missing records. Keep a mapping between the other system's record ID and the Demand IQ `ProspectId`/`id`.
+
+For an existing lead, read its contact with `GET /prospects/{id}/contact` (`contacts:read`). It returns `200 OK` with the same contact fields shown above. To change it, send `PUT /prospects/{id}/contact` (`contacts:write`).
+
+```http
+PUT /api/v1.0/prospects/6a2b4c70-9473-4d93-ae5d-04cbd7d838f2/contact HTTP/1.1
+Host: api.demand-iq.com
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+Accept: application/json
+
+{
+  "firstName": "Jamie",
+  "lastName": "Rivera",
+  "email": "jamie.rivera@example.com",
+  "phoneNumber": "+13035550142"
+}
+```
+
+A successful update returns `200 OK`:
+
+```json
+{
+  "id": "8e406716-722d-4a79-960c-c3c56cf0d057",
+  "prospectId": "6a2b4c70-9473-4d93-ae5d-04cbd7d838f2",
+  "firstName": "Jamie",
+  "lastName": "Rivera",
+  "phoneNumber": "+13035550142",
+  "email": "jamie.rivera@example.com"
+}
+```
+
+Read the existing contact first and send the complete contact values you want to keep: omitted contact fields can be cleared. A contact must already exist for PUT; use POST to create one.
+
+For address changes, `PUT /prospects/{id}` requires `locationId`, `latitude`, `longitude`, `address`, `city`, `state`, and `zipCode`. It is a full update, not a partial PATCH. Read the current lead with `GET /prospects/{id}` first; its response includes these fields.
+
+Before enabling two-way sync:
+
+- **Choose who owns each field.** For example, your CRM owns email and Demand IQ owns lead status. Decide what happens when both systems change the same field before copying it.
+- **Prevent loops.** Compare stored values before writing; do not send an unchanged record back just because your own update triggered the other system.
+- **Use saved IDs.** Do not match only by name or email, and do not assume a create request has an idempotency key (a value that makes repeated requests count as one operation).
+- **Reconcile regularly.** The company list's `start`/`end` filters concern lead or disposition creation, not every change to a lead. `Updated` is not a guaranteed change feed for contact edits. A timestamp-only poll can miss changes; periodically re-read records and compare fields.
+- **Handle retries deliberately.** Retry temporary read failures with a delay. After an uncertain write result, read the saved record to confirm whether it succeeded before repeating it.
+
+**Troubleshooting:** if changes bounce between systems, add field ownership and unchanged-value checks. If fields disappear, stop sending partial contact PUT bodies. If changes are missing, remove the assumption that `start`, `end`, or `Updated` captures all contact edits. If PUT fails because no contact exists, check the lead ID and create the contact first.
+
+## Troubleshoot your connection
+
+| Result | What to check |
+| --- | --- |
+| `401 Unauthorized` | Send `Authorization: Bearer YOUR_API_KEY`. Check that the key is copied completely, still exists, and has not expired. Replace a removed or expired key in every connection. |
+| `403 Forbidden` | Review the permissions for the exact endpoint. For `/prospects/company`, also check company-level access. Ask your company administrator if the permission is unavailable. |
+| `400 Bad Request` | Check field names, required values, address accuracy, and the complete lead IDs returned by the API. Inspect the response message, keeping personal data and keys out of shared logs. |
+| Contact conflict | Read the existing contact and decide whether to update it; do not repeatedly POST a contact that already exists. |
+| `429 Too Many Requests` | Reduce request frequency and concurrency. Honor `Retry-After` if supplied; otherwise retry with increasing delays. |
+| `5xx` or a timeout | Retry reads with a delay. Confirm the outcome of writes before retrying, especially when creating a new lead. |
+
+If you need help, send [Demand IQ support](mailto:support@demandiq.com) the endpoint, HTTP status, and time of the request. Do not send the API key or a customer's personal information.
