@@ -16,17 +16,22 @@ AI Presentations emits these events:
 | `narration.played` | A viewer leaves a slide that had narration (includes whether playback started, whether it completed, and seconds played vs. seconds available) |
 | `cta.clicked` | A viewer clicks a call-to-action button |
 | `contract.signed` | A viewer signs a contract |
-| `question.asked` | A viewer asks a question and the AI answers confidently |
-| `question.escalated` | A viewer asks a question the AI could not confidently answer (either it deflected to a human callback, or it hedged with a low-confidence answer). Emitted **instead of** `question.asked`, never both |
 | `appointment.booked` | A viewer books an appointment |
 | `presentation.blocked` | A lead is missing data the presentation needs, and it still hasn't arrived after 24 hours |
 | `presentation.generation_failed` | A presentation could not finish generating because of an upstream failure (for example, ElevenLabs or OpenAI) |
+
+<Accordion title="Question and email events">
+| Event type | Fired when |
+| --- | --- |
+| `question.asked` | A viewer asks a question and the AI answers confidently |
+| `question.escalated` | A viewer asks a question the AI could not confidently answer (either it deflected to a human callback, or it hedged with a low-confidence answer). Emitted **instead of** `question.asked`, never both |
 | `email.sent` | AI Presentations sends a presentation email to a homeowner |
 | `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
 | `email.bounced` | The homeowner's mail server rejected or blocked the presentation email |
 | `email.dropped` | SendGrid suppressed the email before sending, for example because the address previously bounced or unsubscribed |
 | `email.complained` | The homeowner marked the presentation email as spam |
 | `email.unsubscribed` | The homeowner unsubscribed from your emails |
+</Accordion>
 
 Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. AI Presentations records every slide exit, including fast flips. A view under 2 seconds carries `skipped: true`, so you can measure which slides viewers skip and filter skips out of dwell-time metrics. `narration.played` is a companion to `slide.viewed` for narrated slides: `narrationStarted` is `true` only when `play()` actually resolved (so autoplay-policy failures do not count as a start), `narrationCompleted` is `true` when audio played to the end, and `secondsPlayed` credits only the remaining clip duration on resumed or retried attempts so the total never exceeds `secondsAvailable`. `secondsAvailable` is `null` when the audio duration was never known (for example, playback failed before metadata loaded). Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
 
@@ -81,8 +86,12 @@ Each subscription needs:
 
 ## Delivery channels
 
-### Webhook
+<span id="webhook" />
+<span id="email" />
+<span id="console" />
 
+<Tabs>
+<Tab title="Webhook">
 Sends an HTTP POST request to your URL with the event payload as JSON.
 
 Channel config:
@@ -111,9 +120,10 @@ The webhook payload follows this structure:
 }
 ```
 
-Webhook deliveries that fail are retried with exponential backoff.
+Return a `2xx` promptly. Requests time out after 10 seconds; `429`, `5xx`, timeouts, and recognized connection failures are retryable. The current configuration allows five queue processing attempts, normally about two minutes apart, rather than exponential backoff. Other HTTP errors are terminal.
 
-### Email
+</Tab>
+<Tab title="Email">
 
 Sends a formatted email notification to one or more recipients.
 
@@ -125,14 +135,15 @@ Channel config:
 ```
 
 You can add up to 20 email recipients per subscription.
-
-### Console
-
+</Tab>
+<Tab title="Console">
 Logs events to the server console. Useful for development and debugging.
 
 ```json
 {}
 ```
+</Tab>
+</Tabs>
 
 ## Event log
 
@@ -187,7 +198,12 @@ You can enable, disable, update, or delete subscriptions at any time. Disabling 
 
 AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, preview text, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
 
+<Note>
+A homeowner with no email address cannot receive the presentation email. Manual sends with override recipients bypass this check; recipient suppression still applies.
+</Note>
+
 A send is `skipped` in two cases:
+
 
 - The homeowner record has no email address. Manual sends with override recipients bypass this check.
 - A recipient is suppressed. Before every send, AI Presentations checks each recipient against delivery outcomes from the last 90 days, across every organization. Addresses match case-insensitively. An address is suppressed after a hard bounce, a spam report, an unsubscribe, or a SendGrid drop with the reason `Bounced Address`, `Invalid`, `Spam Reporting Address`, or `Unsubscribed Address`. Blocked bounces, deferrals, and other drop reasons do not suppress an address. If any recipient is suppressed, AI Presentations skips the whole send rather than emailing the remaining recipients.
