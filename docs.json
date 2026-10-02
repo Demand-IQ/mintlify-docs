@@ -156,7 +156,8 @@
                   "GET /api/presentations/{presentationId}/product-selection",
                   "PUT /api/presentations/{presentationId}/product-selection",
                   "POST /api/presentations/{presentationId}/events",
-                  "POST /api/presentations/{presentationId}/events-token"
+                  "POST /api/presentations/{presentationId}/events-token",
+                  "POST /api/presentations/send"
                 ]
               },
               {
