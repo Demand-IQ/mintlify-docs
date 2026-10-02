@@ -24,7 +24,7 @@ A **lead** is a potential customer. The API calls a lead a **prospect**, so its 
 
 1. Open **Settings → Company → API Keys** in the [Demand IQ dashboard](https://app.demand-iq.com/company/settings/apiKeys).
 2. Select **Add New API Key**, then choose the objective that matches your connection. Use **Custom** to select permissions individually.
-3. Review the permissions before saving. The objective selects a starting set; it can include more permissions than the examples below need. A permission controls which data the key can read or change. An API may call that permission a **scope**.
+3. Review the permissions before saving. The export and two-way sync presets include read **and write** permissions for several kinds of lead data. For a read-only export key, choose **Custom** and select only `prospects:read`. A permission controls which data the key can read or change; an API may call it a **scope**.
 4. Copy the key when it appears and store it in your server's secret storage or your integration's secure connection settings. Check its expiration date.
 
 <Warning>
@@ -92,7 +92,7 @@ An illustrative `200 OK` response:
       "zipCode": "80202",
       "firstTouchSource": "",
       "firstTouchName": "",
-      "eventType": ""
+      "eventType": "prospect_create"
     }
   ]
 }
@@ -282,7 +282,7 @@ A successful update returns `200 OK`:
 
 Read the existing contact first and send the complete contact values you want to keep: omitted contact fields can be cleared. A contact must already exist for PUT; use POST to create one.
 
-For address changes, `PUT /prospects/{id}` requires `locationId`, `latitude`, `longitude`, `address`, `city`, `state`, and `zipCode`. It is a full update, not a partial PATCH. Read the current lead with `GET /prospects/{id}` first; its response includes these fields.
+For address changes, `PUT /prospects/{id}` requires `locationId`, `latitude`, `longitude`, `address`, `city`, `state`, and `zipCode`. It is a full update, not a partial PATCH. Read the current lead with `GET /prospects/{id}` first; its response includes these fields. Include the existing `unit` and `averageUtilityBill` if you want to preserve them: omitting `unit` clears it, and omitting `averageUtilityBill` resets it to `0`.
 
 Before enabling two-way sync:
 
