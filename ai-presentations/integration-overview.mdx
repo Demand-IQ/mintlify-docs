@@ -19,7 +19,7 @@ Choose a template, then call `POST /api/decks/{deckId}/presentations` with prosp
 
 ## Deliver the link
 
-Send the returned URL through your CRM, email, or text workflow. To have AI Presentations email it, configure the template with `GET/PUT /api/decks/{deckId}/delivery` and call `POST /api/presentations/{presentationId}/send`. Journey ingest can send automatically. See [Automated email delivery](/ai-presentations/guides/notifications#automated-email-delivery) for recipient overrides and delivery tracking.
+Send the returned URL through your CRM, email, or text workflow. To have AI Presentations email it, configure the template with `GET/PUT /api/decks/{deckId}/delivery` and call `POST /api/presentations/{presentationId}/send`. Journey ingest can send automatically; use `POST /api/presentations/send` for idempotent follow-up emails to an ingested presentation. See [Automated email delivery](/ai-presentations/guides/notifications#automated-email-delivery) for recipient overrides and delivery tracking.
 
 ## Receive events
 
