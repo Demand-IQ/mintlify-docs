@@ -78,11 +78,10 @@ https://presentations.demand-iq.com/templates/3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d
                                               └──────────── this is the deck ID ───────┘
 ```
 
-**From the API:** list your decks and pick by name:
+**From the API:** list your decks with a session cookie from `POST /api/auth/login` (see [API Quickstart](/ai-presentations/api-quickstart#step-1-authenticate)) and pick by name. Listing templates requires a session; use the API key for presentation creation in Step 3:
 
 ```bash
-curl https://presentations.demand-iq.com/api/decks \
-  -H "Authorization: Bearer $API_KEY"
+curl -b cookies.txt https://presentations.demand-iq.com/api/decks
 ```
 
 ```json
@@ -220,6 +219,8 @@ When the URL is pasted into SMS, iMessage, Slack, or similar apps, it unfurls in
 Once the prospect opens the link, the browser tab is also branded automatically. The tab title reads `[Company Name] | [Presentation Name]`, drawn from your Branding settings and the deck name, and the favicon is your company logo (squared onto your brand background color so it stays readable at 16px). If the deck has no branding name, the tab shows the presentation name alone; if the deck has no logo, the tab keeps the default AI Presentations icon.
 
 ## What's next
+
+- [Integration overview](/ai-presentations/integration-overview) — the complete create, deliver, and follow-up flow
 
 - [Notifications](/ai-presentations/guides/notifications) — have AI Presentations email the link for you, get webhooks when the prospect opens it, and track engagement
 - [API Quickstart](/ai-presentations/api-quickstart) — build the template itself over the API: create a deck, generate narrated slides from images, set branding

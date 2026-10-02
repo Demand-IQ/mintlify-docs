@@ -5,183 +5,7 @@ description: Subscribe to presentation events via webhooks or email, send presen
 
 Notifications let you know when something happens during a presentation — a viewer opens it, watches a slide, books an appointment, or signs a contract. You subscribe to specific event types and AI Presentations delivers them to your webhook endpoint, email inbox, or console log. AI Presentations can also send the presentation link to homeowners on your behalf and emit events when the email is sent, opened, or fails to reach the inbox.
 
-## Event types
-
-AI Presentations emits these events:
-
-| Event type | Fired when |
-|------------|------------|
-| `presentation.opened` | A viewer opens a presentation link |
-| `slide.viewed` | A viewer leaves a slide (includes duration and a skipped flag) |
-| `narration.played` | A viewer leaves a slide that had narration (includes whether playback started, whether it completed, and seconds played vs. seconds available) |
-| `cta.clicked` | A viewer clicks a call-to-action button |
-| `contract.signed` | A viewer signs a contract |
-| `question.asked` | A viewer asks a question and the AI answers confidently |
-| `question.escalated` | A viewer asks a question the AI could not confidently answer (either it deflected to a human callback, or it hedged with a low-confidence answer). Emitted **instead of** `question.asked`, never both |
-| `appointment.booked` | A viewer books an appointment |
-| `presentation.blocked` | A lead is missing data the presentation needs, and it still hasn't arrived after 24 hours |
-| `presentation.generation_failed` | A presentation could not finish generating because of an upstream failure (for example, ElevenLabs or OpenAI) |
-| `email.sent` | AI Presentations sends a presentation email to a homeowner |
-| `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
-| `email.bounced` | The homeowner's mail server rejected or blocked the presentation email |
-| `email.dropped` | SendGrid suppressed the email before sending, for example because the address previously bounced or unsubscribed |
-| `email.complained` | The homeowner marked the presentation email as spam |
-| `email.unsubscribed` | The homeowner unsubscribed from your emails |
-
-Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. AI Presentations records every slide exit, including fast flips. A view under 2 seconds carries `skipped: true`, so you can measure which slides viewers skip and filter skips out of dwell-time metrics. `narration.played` is a companion to `slide.viewed` for narrated slides: `narrationStarted` is `true` only when `play()` actually resolved (so autoplay-policy failures do not count as a start), `narrationCompleted` is `true` when audio played to the end, and `secondsPlayed` credits only the remaining clip duration on resumed or retried attempts so the total never exceeds `secondsAvailable`. `secondsAvailable` is `null` when the audio duration was never known (for example, playback failed before metadata loaded). Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
-
-`narration.played` is high-volume — one row per narrated slide exit. If your activity feed doesn't need it, pass `excludeEventTypes=narration.played` on `GET /api/notifications/events` to hide it without allowlisting every other type.
-
-Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text for 90 days (see [Event retention](#event-retention)). When you query the event log, `email.sent` entries include top-level `recipientEmail`, `skipReason`, and `variant` fields alongside the payload so you can still see who received each send, why a send was skipped, and whether it was a reminder.
-
-The four email failure events (`email.bounced`, `email.dropped`, `email.complained`, `email.unsubscribed`) carry the `presentationId`, the delivery attempt ID (`deliveryId`), and SendGrid's message and event identifiers (`sgMessageId`, `sgEventId`). `email.bounced` adds a `bounceType` (`bounce` or `blocked`) and SendGrid's bounce `classification`; `email.dropped` adds SendGrid's drop `reason` (for example `Bounced Address` or `Unsubscribed Address`). These payloads never include the recipient's email address. Email notifications for these events resolve the affected recipient for you at send time.
-
-`question.escalated` carries the same payload shape as `question.asked` plus an `escalationReason` field: `no_answer` when the AI deflected to a human callback, or `low_confidence` when the AI answered but flagged the answer as uncertain. Any given question emits exactly one of `question.asked` or `question.escalated`, so a single question never triggers two notifications.
-
-The `question.asked` payload can also include an optional `degradedReason` field: `no_client`, `request_failed`, `empty_response`, or `invalid_response`. It is set when the viewer received a canned answer because of a temporary issue on AI Presentations's side, not a gap in your content. These answers never emit `question.escalated`, so no one on your team is asked to follow up. The field is additive and optional, so existing consumers are unaffected.
-
-#### Deck and slide identity on question events
-
-`question.asked` and `question.escalated` carry four optional fields that identify the template and slide the question was asked on: `deckId`, `deckSlideId`, `slideTitle`, and `slideIndex` (the slide's 0-based position, the same base as `slide.viewed`'s `slideIndex`). The payload's `slideId` identifies a slide within a single presentation, so it can't be compared across presentations. `deckId` and `deckSlideId` can, which lets you answer questions like "which slide draws the most questions across this template".
-
-AI Presentations resolves these fields on the server from the presentation itself, never from the request. Each field is omitted when it can't be resolved — for example, `deckId` is absent once the template has been deleted. Questions asked outside a presentation (in the template editor or preview) carry none of these fields.
-
-These fields ship as payload version 2. The webhook envelope's `event_version` is `2` for events that carry them and `1` for older entries, where the fields were never recorded. The change is additive: version 1 payloads are unchanged, and existing consumers keep working without modification.
-
-#### Conversation and modality on question events
-
-`question.asked` and `question.escalated` also carry two optional fields describing how the question was asked and which browser tab asked it: `modality` (either `voice` or `text`, depending on whether speech recognition or typing produced the question) and `conversationId` (a UUID that persists for the lifetime of the viewer's tab). Together they let you group interleaved questions from concurrent viewers on the same link into distinct conversations, and split the voice-versus-text mix.
-
-Both fields are populated by the viewer's browser, so each can legitimately be absent:
-
-- `modality` is absent when the client could not determine the input source.
-- `conversationId` is absent when browser storage is unavailable, when the question was asked from an older client that did not send the field, or when the deck is being demoed by a sales rep rather than viewed by a homeowner. When it is absent, group the question by `presentationId` and timestamp instead.
-
-These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
-
-### Blocked and failed presentations
-
-`presentation.blocked` fires 24 hours after a presentation parks at `missing_data`, once for that presentation. The payload carries `presentationId`, `deckId`, a `missingFields` array of the token field names the journey never supplied (for example, `email` or `roof_squares`), and a `reason` of either `missing_lead_data` or `deck_deleted`. The field names identify what the journey failed to collect; no lead values are included. The email subscription for this event is on by default because the cause is a journey configuration your team can fix.
-
-`presentation.generation_failed` fires once per presentation when generation dies against an upstream provider. The payload carries `presentationId`, `deckId`, the `phase` where the work stopped, and an `errorMessage`. The email subscription for this event is **off by default**: the cause is on our side rather than yours, and an upstream outage would otherwise email every company about every affected lead. Any organization that wants to see these can turn the subscription on in the template editor's **Settings** tab.
-
-## Create a subscription
-
-AI Presentations provisions a default set of email subscriptions for your organization the first time a user signs in, so the standard "someone opened your presentation" and "someone asked your AI a question" emails start working without any setup. When new event types ship, they're added to existing organizations on the next sign-in and inherit the org's prevailing posture — if you've muted every other email, the new type is muted too.
-
-To add or change recipients, open the **Settings** tab in the template editor. You can also create subscriptions via the API.
-
-Each subscription needs:
-
-- **Name** — a label for your reference, e.g. "Slack — new presentation opened"
-- **Event type** — which event to listen for (e.g. `presentation.opened`)
-- **Channel** — how to deliver the notification
-- **Channel config** — channel-specific settings (see below)
-- **Template scope** (optional) — limit to events from a specific template, or leave blank for all templates
-
-## Delivery channels
-
-### Webhook
-
-Sends an HTTP POST request to your URL with the event payload as JSON.
-
-Channel config:
-```json
-{
-  "url": "https://your-server.com/webhooks/ai-presentations",
-  "headers": {
-    "Authorization": "Bearer your-secret-token"
-  }
-}
-```
-
-The webhook payload follows this structure:
-
-```json
-{
-  "event_id": "550e8400-e29b-41d4-a716-446655440000",
-  "event_type": "presentation.opened",
-  "event_version": 1,
-  "organization_id": "org-uuid",
-  "occurred_at": "2026-01-15T10:30:00Z",
-  "payload": {
-    "presentationId": "pres-uuid",
-    "deckId": "deck-uuid"
-  }
-}
-```
-
-Webhook deliveries that fail are retried with exponential backoff.
-
-### Email
-
-Sends a formatted email notification to one or more recipients.
-
-Channel config:
-```json
-{
-  "toEmails": ["sales@yourcompany.com", "manager@yourcompany.com"]
-}
-```
-
-You can add up to 20 email recipients per subscription.
-
-### Console
-
-Logs events to the server console. Useful for development and debugging.
-
-```json
-{}
-```
-
-## Event log
-
-AI Presentations keeps a log of all events for your organization. You can query the log to see what happened during a presentation, filter by event type, or look at events within a time range.
-
-For `email.sent` events, each entry includes top-level `recipientEmail`, `skipReason`, and `variant` fields. AI Presentations resolves all three from the delivery attempt referenced by the payload's `deliveryId`; the stored payload itself never contains the address. `skipReason` is `no_email` when the homeowner had no email address, `suppressed` when a recipient previously bounced, reported spam, or unsubscribed, and `null` for sends that were not skipped. The activity log shows a suppressed skip as "Email Not Sent · previously bounced or unsubscribed".
-
-`variant` is `initial` for the first presentation email and `reminder` for the follow-up sent to a homeowner who never opened it. Entries written before reminders existed return `initial`, or `null` when no delivery attempt matches. The presentation activity log labels reminder entries by status and skip reason:
-
-| Reminder outcome | `skipReason` | Label | Detail |
-| --- | --- | --- | --- |
-| Sent | `null` | Reminder Sent | Recipient |
-| Failed | `null` | Reminder Failed | Recipient |
-| Skipped | `opened` | Reminder Not Needed | already opened the email |
-| Skipped | `viewed` | Reminder Not Needed | already viewed the presentation |
-| Skipped | `suppressed` | Reminder Not Sent | previously bounced or unsubscribed |
-| Skipped | `no_initial_send` | Reminder Not Sent | the first email was never sent |
-| Skipped | `presentation_parked` or `presentation_failed` | Reminder Not Sent | the presentation isn't ready |
-
-A reminder doesn't change a presentation's delivery `sentAt`. `sentAt` stays the earliest accepted send across all attempts.
-
-For `email.opened` events, each entry includes a top-level `machineOpen` boolean. It is `true` when every open SendGrid reported for the delivery attempt was automatic (for example, an Apple Mail Privacy Protection prefetch of the tracking pixel) and `false` when at least one human open has been recorded. Render machine opens as "Email Opened (automatic)" to keep them separate from real reads.
-
-When you scope the query to a single presentation with `aggregateId`, the response may include a derived `presentation.link_opened` entry synthesized from the presentation's first-viewed timestamp. It rides along as an extra row rather than taking a page slot, so it never displaces a stored row and never becomes a `nextCursor`. Its `id` is `presentation.link_opened:{presentationId}` and its payload is `{ presentationId }`. Every presentation that has been opened at least once carries this line, including presentations opened before the derivation shipped — the org-wide feed (`/api/activity`) still shows stored events only.
-
-The event log supports filtering by:
-
-- **Event type** — e.g. only `contract.signed` events
-- **Exclude event types** — comma-separated list, e.g. `narration.played` to hide a high-volume type from an activity feed
-- **Aggregate type** — e.g. only presentation-level events
-- **Aggregate ID** — events for a specific presentation
-- **Time range** — `since` and `until` parameters
-- **Pagination** — `limit` (max 100, default 25) plus a keyset `cursor` from the previous response's `page.nextCursor`. Poll for new activity with `recent=1` for the last 90 seconds on the server clock. `offset` is no longer accepted and requests that send it are rejected with a `400`.
-
-### Event retention
-
-Event log entries keep their full payloads for 90 days. After that, AI Presentations archives each entry and reduces its payload to identifier and classification fields — for example `presentationId`, `slideIndex`, `durationMs`, the `skipped` flag, `ctaType`, and delivery status. The entry itself stays in the log, so activity timelines keep their full history, and skip-rate and dwell-time metrics stay consistent for the life of the presentation.
-
-Archived entries carry an `archivedAt` timestamp. For `question.asked` and `question.escalated`, the question and answer text is removed when the entry is archived; the classification fields (such as `answerSource` and `escalationReason`), the deck and slide identity fields (`deckId`, `deckSlideId`, `slideTitle`, `slideIndex`), and the conversation fields (`conversationId`, `modality`) remain, so per-slide question metrics and conversation grouping stay consistent past the 90-day window. Archived entries are deleted from the log entirely after two years.
-
-AI Presentations keeps an internal archive copy of each entry's original payload for 9 months after archiving, then deletes it. No raw question or answer text remains in any store AI Presentations controls more than 12 months after the event occurred.
-
-### Q&A answer retention
-
-When a homeowner asks a question during a presentation, AI Presentations caches the generated answer, along with its spoken audio, so similar questions on the same deck can be answered instantly. Cached answers follow the same retention limits as the event log. AI Presentations deletes a cached answer after 90 days without use, or 12 months after it was created, whichever comes first. The spoken audio is deleted with it. Expiry has no visible effect during presentations: the next matching question generates a fresh answer.
-
-## Managing subscriptions
-
-You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
+Start with [Get a Presentation URL via API](/ai-presentations/guides/presentation-url-api) to create the presentation you'll track. The [Integration overview](/ai-presentations/integration-overview) connects creation, delivery, and follow-up. Subscription management requires a session cookie or an SSO Bearer session token; a presentation-creation API key does not replace a session here.
 
 ## Automated email delivery
 
@@ -315,6 +139,200 @@ Trigger a send (or resend) for a specific presentation:
 Each send emits an `email.sent` event. When SendGrid reports the recipient has opened the message, AI Presentations records the open and emits an `email.opened` event — subscribe to it from your existing notification subscriptions to track opens in real time. `email.opened` fires once per delivery, on the first open SendGrid reports. Opens triggered by mail-client privacy features (such as Apple Mail Privacy Protection prefetching images) count as opens. When you fetch these entries from `GET /api/notifications/events`, each `email.opened` entry carries a top-level `machineOpen` flag: `true` when every open SendGrid reported for the delivery was automatic (for example, an MPP prefetch), so you can render them as "Email Opened (automatic)" and separate them from real reads.
 
 AI Presentations also records every delivery outcome SendGrid reports, including delivered, deferred, bounced, dropped, spam report, unsubscribe, and click events. Failures that need your attention emit their own events: `email.bounced`, `email.dropped`, `email.complained`, and `email.unsubscribed`. Subscribe to them to find out when a presentation email never reached the homeowner or when a homeowner opts out. There is no `email.delivered` event; `email.sent` already covers the send itself.
+
+## Event types
+
+AI Presentations emits these events:
+
+| Event type | Fired when |
+|------------|------------|
+| `presentation.opened` | A viewer opens a presentation link |
+| `slide.viewed` | A viewer leaves a slide (includes duration and a skipped flag) |
+| `narration.played` | A viewer leaves a slide that had narration (includes whether playback started, whether it completed, and seconds played vs. seconds available) |
+| `cta.clicked` | A viewer clicks a call-to-action button |
+| `contract.signed` | A viewer signs a contract |
+| `question.asked` | A viewer asks a question and the AI answers confidently |
+| `question.escalated` | A viewer asks a question the AI could not confidently answer (either it deflected to a human callback, or it hedged with a low-confidence answer). Emitted **instead of** `question.asked`, never both |
+| `appointment.booked` | A viewer books an appointment |
+| `presentation.blocked` | A lead is missing data the presentation needs, and it still hasn't arrived after 24 hours |
+| `presentation.generation_failed` | A presentation could not finish generating because of an upstream failure (for example, ElevenLabs or OpenAI) |
+| `email.sent` | AI Presentations sends a presentation email to a homeowner |
+| `email.opened` | A homeowner opens a presentation email (reported by SendGrid) |
+| `email.bounced` | The homeowner's mail server rejected or blocked the presentation email |
+| `email.dropped` | SendGrid suppressed the email before sending, for example because the address previously bounced or unsubscribed |
+| `email.complained` | The homeowner marked the presentation email as spam |
+| `email.unsubscribed` | The homeowner unsubscribed from your emails |
+
+Each event includes the `presentationId` and relevant context. For example, `slide.viewed` includes the slide ID and how long the viewer spent on it. AI Presentations records every slide exit, including fast flips. A view under 2 seconds carries `skipped: true`, so you can measure which slides viewers skip and filter skips out of dwell-time metrics. `narration.played` is a companion to `slide.viewed` for narrated slides: `narrationStarted` is `true` only when `play()` actually resolved (so autoplay-policy failures do not count as a start), `narrationCompleted` is `true` when audio played to the end, and `secondsPlayed` credits only the remaining clip duration on resumed or retried attempts so the total never exceeds `secondsAvailable`. `secondsAvailable` is `null` when the audio duration was never known (for example, playback failed before metadata loaded). Both `email.sent` and `email.opened` include the delivery attempt ID (`deliveryId`) so you can correlate opens back to a specific send.
+
+`narration.played` is high-volume — one row per narrated slide exit. If your activity feed doesn't need it, pass `excludeEventTypes=narration.played` on `GET /api/notifications/events` to hide it without allowlisting every other type.
+
+Event payloads carry identifiers, never contact details. No event payload includes a homeowner's email address, phone number, or name. The one exception is `question.asked` / `question.escalated`, whose payloads include the question and answer text for 90 days (see [Event retention](#event-retention)). When you query the event log, `email.sent` entries include top-level `recipientEmail`, `skipReason`, and `variant` fields alongside the payload so you can still see who received each send, why a send was skipped, and whether it was a reminder.
+
+The four email failure events (`email.bounced`, `email.dropped`, `email.complained`, `email.unsubscribed`) carry the `presentationId`, the delivery attempt ID (`deliveryId`), and SendGrid's message and event identifiers (`sgMessageId`, `sgEventId`). `email.bounced` adds a `bounceType` (`bounce` or `blocked`) and SendGrid's bounce `classification`; `email.dropped` adds SendGrid's drop `reason` (for example `Bounced Address` or `Unsubscribed Address`). These payloads never include the recipient's email address. Email notifications for these events resolve the affected recipient for you at send time.
+
+`question.escalated` carries the same payload shape as `question.asked` plus an `escalationReason` field: `no_answer` when the AI deflected to a human callback, or `low_confidence` when the AI answered but flagged the answer as uncertain. Any given question emits exactly one of `question.asked` or `question.escalated`, so a single question never triggers two notifications.
+
+The `question.asked` payload can also include an optional `degradedReason` field: `no_client`, `request_failed`, `empty_response`, or `invalid_response`. It is set when the viewer received a canned answer because of a temporary issue on AI Presentations's side, not a gap in your content. These answers never emit `question.escalated`, so no one on your team is asked to follow up. The field is additive and optional, so existing consumers are unaffected.
+
+#### Deck and slide identity on question events
+
+`question.asked` and `question.escalated` carry four optional fields that identify the template and slide the question was asked on: `deckId`, `deckSlideId`, `slideTitle`, and `slideIndex` (the slide's 0-based position, the same base as `slide.viewed`'s `slideIndex`). The payload's `slideId` identifies a slide within a single presentation, so it can't be compared across presentations. `deckId` and `deckSlideId` can, which lets you answer questions like "which slide draws the most questions across this template".
+
+AI Presentations resolves these fields on the server from the presentation itself, never from the request. Each field is omitted when it can't be resolved — for example, `deckId` is absent once the template has been deleted. Questions asked outside a presentation (in the template editor or preview) carry none of these fields.
+
+These fields ship as payload version 2. The webhook envelope's `event_version` is `2` for events that carry them and `1` for older entries, where the fields were never recorded. The change is additive: version 1 payloads are unchanged, and existing consumers keep working without modification.
+
+#### Conversation and modality on question events
+
+`question.asked` and `question.escalated` also carry two optional fields describing how the question was asked and which browser tab asked it: `modality` (either `voice` or `text`, depending on whether speech recognition or typing produced the question) and `conversationId` (a UUID that persists for the lifetime of the viewer's tab). Together they let you group interleaved questions from concurrent viewers on the same link into distinct conversations, and split the voice-versus-text mix.
+
+Both fields are populated by the viewer's browser, so each can legitimately be absent:
+
+- `modality` is absent when the client could not determine the input source.
+- `conversationId` is absent when browser storage is unavailable, when the question was asked from an older client that did not send the field, or when the deck is being demoed by a sales rep rather than viewed by a homeowner. When it is absent, group the question by `presentationId` and timestamp instead.
+
+These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
+
+### Blocked and failed presentations
+
+`presentation.blocked` fires 24 hours after a presentation parks at `missing_data`, once for that presentation. The payload carries `presentationId`, `deckId`, a `missingFields` array of the token field names the journey never supplied (for example, `email` or `roof_squares`), and a `reason` of either `missing_lead_data` or `deck_deleted`. The field names identify what the journey failed to collect; no lead values are included. The email subscription for this event is on by default because the cause is a journey configuration your team can fix.
+
+`presentation.generation_failed` fires once per presentation when generation dies against an upstream provider. The payload carries `presentationId`, `deckId`, the `phase` where the work stopped, and an `errorMessage`. The email subscription for this event is **off by default**: the cause is on our side rather than yours, and an upstream outage would otherwise email every company about every affected lead. Any organization that wants to see these can turn the subscription on in the template editor's **Settings** tab.
+
+## Create a subscription
+
+AI Presentations provisions a default set of email subscriptions for your organization the first time a user signs in, so the standard "someone opened your presentation" and "someone asked your AI a question" emails start working without any setup. When new event types ship, they're added to existing organizations on the next sign-in and inherit the org's prevailing posture — if you've muted every other email, the new type is muted too.
+
+To add or change recipients, open the **Settings** tab in the template editor. You can also create subscriptions via the API.
+
+Each subscription needs:
+
+- **Name** — a label for your reference, e.g. "Slack — new presentation opened"
+- **Event type** — which event to listen for (e.g. `presentation.opened`)
+- **Channel** — how to deliver the notification
+- **Channel config** — channel-specific settings (see below)
+- **Template scope** (optional) — limit to events from a specific template, or leave blank for all templates
+
+## Delivery channels
+
+### Webhook
+
+Sends an HTTP POST request to your URL with the event payload as JSON.
+
+Channel config:
+```json
+{
+  "url": "https://your-server.com/webhooks/ai-presentations",
+  "headers": {
+    "Authorization": "Bearer your-secret-token"
+  }
+}
+```
+
+The webhook payload follows this structure:
+
+```json
+{
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_type": "presentation.opened",
+  "event_version": 1,
+  "organization_id": "org-uuid",
+  "occurred_at": "2026-01-15T10:30:00Z",
+  "payload": {
+    "presentationId": "pres-uuid",
+    "deckId": "deck-uuid"
+  }
+}
+```
+
+#### Verify the sender
+
+Signing is optional and must be configured for your subscription; creating a subscription through the API does not provision a signing secret. Contact Demand IQ to arrange signing and obtain the shared secret. Until signing is configured, validate a secret `Authorization` header configured on your subscription over HTTPS. Do not accept an unsigned request as a signed event.
+
+Signed requests include `X-Webhook-Signature: t=<unix-seconds>,v1=<hex-digest>`. Compute HMAC-SHA256 with your shared secret over the timestamp, a period, and the **raw request body**: `timestamp + "." + rawBody`. Compare the hexadecimal digest with `v1` using a constant-time comparison. Reject missing or malformed signatures and timestamps outside your chosen tolerance (for example, five minutes). Parse the JSON only after verification, and deduplicate by `event_id`.
+
+#### Retries and recovery
+
+Return a `2xx` promptly after durably accepting the event. Requests time out after 10 seconds. Responses with `429` or `5xx`, timeouts, and recognized connection failures are retryable; other HTTP errors are terminal.
+
+The current delivery configuration allows five queue processing attempts, normally about two minutes apart (roughly eight minutes from first to fifth attempt). This is not an exact delivery deadline: processing time, backlog, and worker restarts can extend it, and an attempt can fail before reaching your endpoint.
+
+After retryable failures exhaust the processing limit, the event is retained for recovery for up to 14 days. Non-retryable failures stop immediately and do not enter that recovery queue. There is no public replay endpoint. Contact Demand IQ with the `event_id` to investigate recovery; changing a subscription alone does not replay a terminal failure. The [event log](#event-log) lets you reconcile activity independently of webhook delivery.
+
+#### Event versions
+
+`event_version` identifies the payload schema for that `event_type`, not the API version or delivery attempt. Version `1` is the initial schema; later versions can add or change fields. Handle the versions your consumer supports explicitly, tolerate unknown optional fields, and review payload changes before relying on new fields. A retry keeps the recorded event version.
+
+### Email
+
+Sends a formatted email notification to one or more recipients.
+
+Channel config:
+```json
+{
+  "toEmails": ["sales@yourcompany.com", "manager@yourcompany.com"]
+}
+```
+
+You can add up to 20 email recipients per subscription.
+
+### Console
+
+Logs events to the server console. Useful for development and debugging.
+
+```json
+{}
+```
+
+## Event log
+
+AI Presentations keeps a log of all events for your organization. You can query the log to see what happened during a presentation, filter by event type, or look at events within a time range.
+
+For `email.sent` events, each entry includes top-level `recipientEmail`, `skipReason`, and `variant` fields. AI Presentations resolves all three from the delivery attempt referenced by the payload's `deliveryId`; the stored payload itself never contains the address. `skipReason` is `no_email` when the homeowner had no email address, `suppressed` when a recipient previously bounced, reported spam, or unsubscribed, and `null` for sends that were not skipped. The activity log shows a suppressed skip as "Email Not Sent · previously bounced or unsubscribed".
+
+`variant` is `initial` for the first presentation email and `reminder` for the follow-up sent to a homeowner who never opened it. Entries written before reminders existed return `initial`, or `null` when no delivery attempt matches. The presentation activity log labels reminder entries by status and skip reason:
+
+| Reminder outcome | `skipReason` | Label | Detail |
+| --- | --- | --- | --- |
+| Sent | `null` | Reminder Sent | Recipient |
+| Failed | `null` | Reminder Failed | Recipient |
+| Skipped | `opened` | Reminder Not Needed | already opened the email |
+| Skipped | `viewed` | Reminder Not Needed | already viewed the presentation |
+| Skipped | `suppressed` | Reminder Not Sent | previously bounced or unsubscribed |
+| Skipped | `no_initial_send` | Reminder Not Sent | the first email was never sent |
+| Skipped | `presentation_parked` or `presentation_failed` | Reminder Not Sent | the presentation isn't ready |
+
+A reminder doesn't change a presentation's delivery `sentAt`. `sentAt` stays the earliest accepted send across all attempts.
+
+For `email.opened` events, each entry includes a top-level `machineOpen` boolean. It is `true` when every open SendGrid reported for the delivery attempt was automatic (for example, an Apple Mail Privacy Protection prefetch of the tracking pixel) and `false` when at least one human open has been recorded. Render machine opens as "Email Opened (automatic)" to keep them separate from real reads.
+
+When you scope the query to a single presentation with `aggregateId`, the response may include a derived `presentation.link_opened` entry synthesized from the presentation's first-viewed timestamp. It rides along as an extra row rather than taking a page slot, so it never displaces a stored row and never becomes a `nextCursor`. Its `id` is `presentation.link_opened:{presentationId}` and its payload is `{ presentationId }`. Every presentation that has been opened at least once carries this line, including presentations opened before the derivation shipped — the org-wide feed (`/api/activity`) still shows stored events only.
+
+The event log supports filtering by:
+
+- **Event type** — e.g. only `contract.signed` events
+- **Exclude event types** — comma-separated list, e.g. `narration.played` to hide a high-volume type from an activity feed
+- **Aggregate type** — e.g. only presentation-level events
+- **Aggregate ID** — events for a specific presentation
+- **Time range** — `since` and `until` parameters
+- **Pagination** — `limit` (max 100, default 25) plus a keyset `cursor` from the previous response's `page.nextCursor`. Poll for new activity with `recent=1` for the last 90 seconds on the server clock. `offset` is no longer accepted and requests that send it are rejected with a `400`.
+
+### Event retention
+
+Event log entries keep their full payloads for 90 days. After that, AI Presentations archives each entry and reduces its payload to identifier and classification fields — for example `presentationId`, `slideIndex`, `durationMs`, the `skipped` flag, `ctaType`, and delivery status. The entry itself stays in the log, so activity timelines keep their full history, and skip-rate and dwell-time metrics stay consistent for the life of the presentation.
+
+Archived entries carry an `archivedAt` timestamp. For `question.asked` and `question.escalated`, the question and answer text is removed when the entry is archived; the classification fields (such as `answerSource` and `escalationReason`), the deck and slide identity fields (`deckId`, `deckSlideId`, `slideTitle`, `slideIndex`), and the conversation fields (`conversationId`, `modality`) remain, so per-slide question metrics and conversation grouping stay consistent past the 90-day window. Archived entries are deleted from the log entirely after two years.
+
+AI Presentations keeps an internal archive copy of each entry's original payload for 9 months after archiving, then deletes it. No raw question or answer text remains in any store AI Presentations controls more than 12 months after the event occurred.
+
+### Q&A answer retention
+
+When a homeowner asks a question during a presentation, AI Presentations caches the generated answer, along with its spoken audio, so similar questions on the same deck can be answered instantly. Cached answers follow the same retention limits as the event log. AI Presentations deletes a cached answer after 90 days without use, or 12 months after it was created, whichever comes first. The spoken audio is deleted with it. Expiry has no visible effect during presentations: the next matching question generates a fresh answer.
+
+## Managing subscriptions
+
+You can enable, disable, update, or delete subscriptions at any time. Disabling a subscription (`isActive: false`) stops deliveries without losing the configuration.
 
 ## API reference
 
