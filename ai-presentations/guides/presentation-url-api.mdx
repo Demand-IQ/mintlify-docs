@@ -80,11 +80,10 @@ https://presentations.demand-iq.com/templates/3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d
                                               └──────────── this is the deck ID ───────┘
 ```
 
-**From the API:** list your decks and pick by name:
+**From the API:** list your decks with a session cookie from `POST /api/auth/login` (see [API Quickstart](/ai-presentations/api-quickstart#step-1-authenticate)) and pick by name. Listing templates requires a session; use the API key for presentation creation in Step 3:
 
 ```bash
-curl https://presentations.demand-iq.com/api/decks \
-  -H "Authorization: Bearer $API_KEY"
+curl -b cookies.txt https://presentations.demand-iq.com/api/decks
 ```
 
 ```json
@@ -174,6 +173,10 @@ curl -X POST \
 
 Looking up the prospect uses the **Read Prospects** permission covered in [Step 1](#step-1-generate-an-api-key). A `422` with code `PROSPECT_NOT_FOUND` means the prospect ID doesn't exist in Demand IQ or isn't visible to your account — don't retry the same ID; send their details with `homeowner` instead. A `401` with code `CORE_AUTH_REJECTED` means the key is missing **Read Prospects** (or the credential expired).
 
+<Note>
+`prospect_id` alone pulls journey pricing and selected-product data automatically. Supplying both `prospect_id` and `homeowner` uses your contact fields and does not pull journey pricing; supply `price_inputs` explicitly on that combined path.
+</Note>
+
 On this path AI Presentations pulls the prospect's Demand IQ journey and uses it to personalize the presentation. That includes contact fields (name, address, email, phone), roof and utility figures (roof squares, roof area, roof pitch, average utility bill, estimated/min/max cost, cost per square, ten-year financed cost), and any products the prospect selected in their journey. Selected-product prices are fed into `price_inputs` under each product's variable name, so pricing formulas that reference those variables render populated values without you having to pass anything. You can still pass `price_inputs` explicitly in the request body; journey-derived values override the ones you send for the same variable.
 </Tab>
 <Tab title="Prospect + updated details">
@@ -249,7 +252,7 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 ```
 
 <Note>
-`generating` is a valid presentation status. Presentation status and template-generation job status use different values; wait for `ready` on this endpoint, not `completed`.
+`generating` is a valid presentation status; `completed` belongs to template generation. Eager generation finishes at `ready`. For lazy generation (`not_started`), share the link so the homeowner can start it; polling alone does not start generation. A `missing_data` presentation is parked until required lead data arrives, and `failed` requires investigation.
 </Note>
 
 `status` moves through `pending` → `generating` → `ready` (a `not_started` status means generation kicks off when the prospect opens the link — the link is still ready to share). Once you have the URL, deliver it however you reach your prospects: text, email, a CRM field, or let AI Presentations send it (see [Notifications](/ai-presentations/guides/notifications) for delivery and open tracking).

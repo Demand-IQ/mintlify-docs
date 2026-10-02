@@ -236,7 +236,7 @@ The shareable URL comes back immediately:
 ```
 
 <Note>
-`generating` is a valid presentation status. Wait for `ready` here; `completed` belongs to the template-generation job in Step 3.
+`generating` is a valid presentation status; `completed` belongs to the template-generation job in Step 3. A `not_started` presentation generates when the homeowner starts it, so share its link rather than waiting for polling to start generation. A `missing_data` presentation is parked until required lead data arrives, and `failed` requires investigation.
 </Note>
 
 Personalized audio may still be rendering in the background. If you want to wait until everything is ready before sending the link, poll the presentation status — it moves through `pending` → `generating` → `ready` (with a `phase` field showing what's happening while it generates):
@@ -255,7 +255,7 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 }
 ```
 
-Once it's `ready`, deliver the `url` to the homeowner however your platform sends messages — text, email, or straight from your CRM. When they open it, they'll see your branded landing page with their name and address woven into the narration.
+For eager generation, wait for `ready`; for lazy generation (`not_started`), share the link so the homeowner can start it. Deliver the `url` to the homeowner however your platform sends messages — text, email, or straight from your CRM. When they open it, they'll see your branded landing page with their name and address woven into the narration.
 </Step>
 </Steps>
 

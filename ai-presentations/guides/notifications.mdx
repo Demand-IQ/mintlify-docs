@@ -116,7 +116,7 @@ The webhook payload follows this structure:
 }
 ```
 
-Webhook deliveries that fail are retried with exponential backoff.
+Return a `2xx` promptly. Requests time out after 10 seconds; `429`, `5xx`, timeouts, and recognized connection failures are retryable. The current configuration allows five queue processing attempts, normally about two minutes apart, rather than exponential backoff. Other HTTP errors are terminal.
 
 </Tab>
 <Tab title="Email">
