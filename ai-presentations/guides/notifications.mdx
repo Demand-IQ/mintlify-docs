@@ -276,7 +276,7 @@ Return a `2xx` promptly after durably accepting the event. Requests time out aft
 
 The current delivery configuration allows five queue processing attempts, normally about two minutes apart (roughly eight minutes from first to fifth attempt). This is not an exact delivery deadline: processing time, backlog, and worker restarts can extend it, and an attempt can fail before reaching your endpoint.
 
-After the retry limit, the event moves to an internal dead-letter queue with 14-day retention. There is no public replay endpoint. Contact Demand IQ with the `event_id` to investigate recovery; changing a subscription alone does not replay a terminal failure. The [event log](#event-log) lets you reconcile activity independently of webhook delivery.
+After retryable failures exhaust the processing limit, the event is retained for recovery for up to 14 days. Non-retryable failures stop immediately and do not enter that recovery queue. There is no public replay endpoint. Contact Demand IQ with the `event_id` to investigate recovery; changing a subscription alone does not replay a terminal failure. The [event log](#event-log) lets you reconcile activity independently of webhook delivery.
 
 #### Event versions
 
