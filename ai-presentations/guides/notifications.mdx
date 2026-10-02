@@ -243,8 +243,12 @@ Each subscription needs:
 
 ## Delivery channels
 
+<span id="webhook" />
+<span id="email" />
+<span id="console" />
+
 <Tabs>
-<Tab title="Webhook" id="webhook">
+<Tab title="Webhook">
 Sends an HTTP POST request to your URL with the event payload as JSON.
 
 Channel config:
@@ -291,7 +295,7 @@ After retryable failures exhaust the processing limit, the event is retained for
 
 `event_version` identifies the payload schema for that `event_type`, not the API version or delivery attempt. Version `1` is the initial schema. Later versions are additive unless the change is called out on this page, so accept higher versions you don't recognize and ignore unknown fields. Review payload changes before relying on new fields. A retry keeps the recorded event version.
 </Tab>
-<Tab title="Email" id="email">
+<Tab title="Email">
 Sends a formatted email notification to one or more recipients.
 
 Channel config:
@@ -303,7 +307,7 @@ Channel config:
 
 You can add up to 20 email recipients per subscription.
 </Tab>
-<Tab title="Console" id="console">
+<Tab title="Console">
 Logs events to the server console. Useful for development and debugging.
 
 ```json

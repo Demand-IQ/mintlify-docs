@@ -15,7 +15,7 @@ You send AI Presentations a Demand IQ prospect ID (when the lead already exists 
 It's written for two audiences:
 
 - **Developers** integrating AI Presentations into a CRM, lead platform, or backend — follow the numbered steps with the `curl` examples.
-- **Non-technical users automating with Zapier** — read [How it works](#how-it-works) and [Key terms](#key-terms-for-non-technical-readers), then jump to the [Zapier walkthrough](#zapier-walkthrough-no-code), which spells out every field to fill in.
+- **Non-technical users automating with Zapier** — read [How it works](#how-it-works), generate an API key, then use the request example in the tab that matches your lead data.
 
 <Note>
   This guide assumes you already have a template with slides. If you don't yet,
@@ -102,11 +102,13 @@ curl -b cookies.txt https://presentations.demand-iq.com/api/decks
 
 <Step title="Create the presentation">
 <span id="step-3-create-the-presentation" />
+<span id="sending-prospect-details-homeowner" />
+<span id="sending-a-prospect-id-prospect_id" />
+<span id="sending-both-prospect_id--homeowner" />
 Send `homeowner`, `prospect_id`, or both to the same endpoint. Sending neither returns a `400` ("Provide homeowner or prospect_id").
 
 <Tabs>
 <Tab title="Prospect details">
-<span id="sending-prospect-details-homeowner" />
 
 ```bash
 curl -X POST \
@@ -156,7 +158,6 @@ If your template uses pricing formulas, you can pass values for its price variab
 </Note>
 </Tab>
 <Tab title="Existing prospect">
-<span id="sending-a-prospect-id-prospect_id" />
 
 ```bash
 curl -X POST \
@@ -181,7 +182,6 @@ Looking up the prospect uses the **Read Prospects** permission covered in [Step 
 On this path AI Presentations pulls the prospect's Demand IQ journey and uses it to personalize the presentation. That includes contact fields (name, address, email, phone), roof and utility figures (roof squares, roof area, roof pitch, average utility bill, estimated/min/max cost, cost per square, ten-year financed cost), and any products the prospect selected in their journey. Selected-product prices are fed into `price_inputs` under each product's variable name, so pricing formulas that reference those variables render populated values without you having to pass anything. You can still pass `price_inputs` explicitly in the request body; journey-derived values override the ones you send for the same variable.
 </Tab>
 <Tab title="Prospect + updated details">
-<span id="sending-both-prospect_id--homeowner" />
 
 ```bash
 curl -X POST \
