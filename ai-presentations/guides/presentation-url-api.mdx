@@ -78,11 +78,10 @@ https://presentations.demand-iq.com/templates/3f6f2c1e-8a4b-4b6e-9f2d-1c5a7e9b0d
                                               └──────────── this is the deck ID ───────┘
 ```
 
-**From the API:** list your decks and pick by name:
+**From the API:** list your decks with a [session cookie](/ai-presentations/authentication#session-authentication) and pick by name. This endpoint requires a session; use the API key in Step 3 to create the presentation:
 
 ```bash
-curl https://presentations.demand-iq.com/api/decks \
-  -H "Authorization: Bearer $API_KEY"
+curl -b cookies.txt https://presentations.demand-iq.com/api/decks
 ```
 
 ```json

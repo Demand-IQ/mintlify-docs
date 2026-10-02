@@ -32,7 +32,8 @@
             "pages": [
               "ai-presentations/introduction",
               "ai-presentations/quickstart",
-              "ai-presentations/api-quickstart"
+              "ai-presentations/api-quickstart",
+              "ai-presentations/authentication"
             ]
           },
           {
