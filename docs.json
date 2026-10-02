@@ -25,6 +25,17 @@
   "navigation": {
     "tabs": [
       {
+        "tab": "Lead integrations",
+        "groups": [
+          {
+            "group": "Connect your tools",
+            "pages": [
+              "integrations/connecting-your-api"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "AI Presentations",
         "groups": [
           {
