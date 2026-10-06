@@ -8523,7 +8523,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (opens, slide views, narration playback, CTA clicks, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit; batches additionally cost 1 per view. Narration batches use a separate rate-limit bucket from slide-view batches, so a narrated session is not double-charged. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
+        "description": "Ingests interaction events from the presentation viewer (opens, slide views, narration playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready, at most once per presentation. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit; batches additionally cost 1 per view. Narration batches use a separate rate-limit bucket from slide-view batches, so a narrated session is not double-charged. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -8558,6 +8558,7 @@
                       "slide_viewed_batch",
                       "narration_played_batch",
                       "cta_clicked",
+                      "last_slide_reached",
                       "session_summary",
                       "narration_session_summary",
                       "action_detection",
@@ -8566,7 +8567,8 @@
                     "description": "Event type. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
                   },
                   "slideId": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Slide ID. Required for `slide_viewed` and `last_slide_reached`."
                   },
                   "slideIndex": {
                     "type": "integer"
@@ -8635,7 +8637,7 @@
                   },
                   "repMode": {
                     "type": "boolean",
-                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `session_summary`, and `narration_session_summary`."
+                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `last_slide_reached`, `session_summary`, and `narration_session_summary`."
                   },
                   "conversationId": {
                     "type": "string",
