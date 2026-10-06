@@ -15,6 +15,7 @@ AI Presentations emits these events:
 | `presentation.opened` | A viewer opens a presentation link |
 | `slide.viewed` | A viewer leaves a slide (includes duration and a skipped flag) |
 | `narration.played` | A viewer leaves a slide that had narration (includes whether playback started, whether it completed, and seconds played vs. seconds available) |
+| `presentation.completed` | A viewer reaches the last slide of a presentation. Fires once per presentation |
 | `cta.clicked` | A viewer clicks a call-to-action button |
 | `contract.signed` | A viewer signs a contract |
 | `question.asked` | A viewer asks a question and the AI answers confidently |
@@ -59,6 +60,12 @@ Both fields are populated by the viewer's browser, so each can legitimately be a
 - `conversationId` is absent when browser storage is unavailable, when the question was asked from an older client that did not send the field, or when the deck is being demoed by a sales rep rather than viewed by a homeowner. When it is absent, group the question by `presentationId` and timestamp instead.
 
 These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
+
+### Completed presentations
+
+`presentation.completed` fires when a viewer reaches the last slide of a ready presentation. Reaching the last slide is what counts, so a viewer who skims ahead still completes the presentation. Narration listen-through doesn't factor in; use `narration.played` to measure it. The event fires once per presentation, so rewatches and reloads don't emit it again. A run driven by a sales rep also counts as the presentation's one completion. Presentation previews never emit it.
+
+The payload carries `presentationId`, `deckId`, and `slideId` (the last slide). `deckId` is `null` when the template has been deleted. The email subscription for this event is **off by default**. To receive it, turn on **Presentation Completed** in the template editor's **Settings** tab.
 
 ### Blocked and failed presentations
 
