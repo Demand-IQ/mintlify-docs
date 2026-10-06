@@ -3427,7 +3427,7 @@
           "Decks"
         ],
         "summary": "Data a deck needs from a lead",
-        "description": "Every field this deck needs from a lead, and how badly. `blocking` fields stop delivery — the homeowner would otherwise read an unfilled token, or there is no address to send to at all — and a lead missing one parks the presentation at `missing_data`. `degrading` fields cost the sentence that mentions them, or swap an email subject or preview text for the default line, and nothing more.\n\nIntended for a journey editor: diff these fields against what the journey collects to catch a mismatch before any lead flows through.",
+        "description": "Every field this deck needs from a lead, and how badly. `blocking` fields stop delivery — the homeowner would otherwise read an unfilled token, or there is no address to send to at all — and a lead missing one parks the presentation at `missing_data`. `degrading` fields cost the sentence that mentions them, or swap an email subject, preview text, or body for its default, and nothing more. In the email body, roof-report fields (such as `roof_squares` and `estimated_cost`) are `blocking`, and every other field is `degrading`.\n\nIntended for a journey editor: diff these fields against what the journey collects to catch a mismatch before any lead flows through.",
         "parameters": [
           {
             "in": "path",
