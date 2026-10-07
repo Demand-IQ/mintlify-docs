@@ -8568,7 +8568,7 @@
                   },
                   "slideId": {
                     "type": "string",
-                    "description": "Slide ID. Required for `slide_viewed` and `last_slide_reached`."
+                    "description": "Slide ID. Required for `slide_viewed` and `last_slide_reached`. For `last_slide_reached`, send the presentation snapshot slide ID (the `deck_presentation_slides` row ID), not the deck slide ID. AI Presentations ignores any other ID and does not record `presentation.completed`. IDs longer than 100 characters are rejected with `400`."
                   },
                   "slideIndex": {
                     "type": "integer"
