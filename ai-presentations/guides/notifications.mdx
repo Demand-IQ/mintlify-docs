@@ -280,7 +280,7 @@ After retryable failures exhaust the processing limit, the event is retained for
 
 #### Event versions
 
-`event_version` identifies the payload schema for that `event_type`, not the API version or delivery attempt. Version `1` is the initial schema; later versions can add or change fields. Handle the versions your consumer supports explicitly, tolerate unknown optional fields, and review payload changes before relying on new fields. A retry keeps the recorded event version.
+`event_version` identifies the payload schema for that `event_type`, not the API version or delivery attempt. Version `1` is the initial schema. Later versions are additive unless the change is called out on this page, so accept higher versions you don't recognize and ignore unknown fields. Review payload changes before relying on new fields. A retry keeps the recorded event version.
 
 ### Email
 
