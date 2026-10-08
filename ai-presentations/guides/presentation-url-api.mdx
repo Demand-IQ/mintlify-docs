@@ -102,13 +102,10 @@ curl -b cookies.txt https://presentations.demand-iq.com/api/decks
 
 <Step title="Create the presentation">
 <span id="step-3-create-the-presentation" />
-<span id="sending-prospect-details-homeowner" />
-<span id="sending-a-prospect-id-prospect_id" />
-<span id="sending-both-prospect_id--homeowner" />
 Send `homeowner`, `prospect_id`, or both to the same endpoint. Sending neither returns a `400` ("Provide homeowner or prospect_id").
 
 <Tabs>
-<Tab title="Prospect details">
+<Tab title="Prospect details" id="sending-prospect-details-homeowner">
 
 ```bash
 curl -X POST \
@@ -157,7 +154,7 @@ If Demand IQ rejects the address or contact info, you'll get a `422` with code `
 If your template uses pricing formulas, you can pass values for its price variables in a `price_inputs` object alongside `homeowner` (e.g. `"price_inputs": {"system_size_kw": 8.4}`). Missing variables don't cause an error — the price is deferred and the slide shows a placeholder until values are available. Only variables that a pricing formula on the deck's current slides references count here; variables left over from a removed product slide are ignored.
 </Note>
 </Tab>
-<Tab title="Existing prospect">
+<Tab title="Existing prospect" id="sending-a-prospect-id-prospect_id">
 
 ```bash
 curl -X POST \
@@ -181,7 +178,7 @@ Looking up the prospect uses the **Read Prospects** permission covered in [Step 
 
 On this path AI Presentations pulls the prospect's Demand IQ journey and uses it to personalize the presentation. That includes contact fields (name, address, email, phone), roof and utility figures (roof squares, roof area, roof pitch, average utility bill, estimated/min/max cost, cost per square, ten-year financed cost), and any products the prospect selected in their journey. Selected-product prices are fed into `price_inputs` under each product's variable name, so pricing formulas that reference those variables render populated values without you having to pass anything. You can still pass `price_inputs` explicitly in the request body; journey-derived values override the ones you send for the same variable.
 </Tab>
-<Tab title="Prospect + updated details">
+<Tab title="Prospect + updated details" id="sending-both-prospect_id--homeowner">
 
 ```bash
 curl -X POST \
@@ -261,6 +258,7 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 Deliver the URL exactly as returned. The path segment after `/p/` is the presentation's UUID, and AI Presentations validates its format before looking anything up. A truncated or otherwise malformed link returns a 404 page.
 
 When the URL is pasted into SMS, iMessage, Slack, or similar apps, it unfurls into a rich preview: the deck name as the title, the deck description, your company name from branding, and the presentation's first slide as the preview image. Everything is derived automatically from the template — nothing to configure. If the deck has no description or first-slide image, the preview falls back to the template's intro background and default text. Unknown, deleted, or malformed links render no preview.
+
 Once the prospect opens the link, the browser tab is also branded automatically. The tab title reads `[Company Name] | [Presentation Name]`, drawn from your Branding settings and the deck name, and the favicon is your company logo (squared onto your brand background color so it stays readable at 16px). If the deck has no branding name, the tab shows the presentation name alone; if the deck has no logo, the tab keeps the default AI Presentations icon.
 
 </Step>
