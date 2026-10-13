@@ -363,6 +363,15 @@
             "nullable": true,
             "description": "S3 key for logo image"
           },
+          "logoSize": {
+            "type": "string",
+            "enum": [
+              "sm",
+              "md",
+              "lg",
+              "xl"
+            ]
+          },
           "avatar": {
             "type": "string",
             "nullable": true,
@@ -2314,6 +2323,16 @@
                     "type": "string",
                     "nullable": true,
                     "description": "S3 key for logo image"
+                  },
+                  "logoSize": {
+                    "type": "string",
+                    "enum": [
+                      "sm",
+                      "md",
+                      "lg",
+                      "xl"
+                    ],
+                    "description": "Logo size on the intro page and viewer header. Defaults to md; omit to keep the stored value."
                   },
                   "avatar": {
                     "type": "string",
