@@ -4513,6 +4513,17 @@
                   "repMode": {
                     "type": "boolean",
                     "description": "Set by the viewer when a sales rep is driving the presentation rather than a homeowner. Optional. Omit the field when the client cannot determine it. An absent value is read as unknown, not as `false`."
+                  },
+                  "firstScreen": {
+                    "type": "string",
+                    "enum": [
+                      "intro",
+                      "loading",
+                      "slides",
+                      "pending_data"
+                    ],
+                    "example": "intro",
+                    "description": "The first screen the viewer showed on this visit. Optional. Omit the field when the client cannot determine it. Any value outside the enum is rejected with a 400."
                   }
                 }
               }
@@ -8648,6 +8659,17 @@
                   "repMode": {
                     "type": "boolean",
                     "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `last_slide_reached`, `session_summary`, and `narration_session_summary`."
+                  },
+                  "firstScreen": {
+                    "type": "string",
+                    "enum": [
+                      "intro",
+                      "loading",
+                      "slides",
+                      "pending_data"
+                    ],
+                    "example": "intro",
+                    "description": "The first screen the viewer showed on this visit. Client-supplied and optional. Applies to `cta_clicked` and `session_summary`. Any value outside the enum is rejected with `400`."
                   },
                   "conversationId": {
                     "type": "string",
