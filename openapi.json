@@ -101,6 +101,10 @@
       "description": "Recent presentation activity feed"
     },
     {
+      "name": "Engagement",
+      "description": "Presentation engagement analytics"
+    },
+    {
       "name": "Onboarding",
       "description": "Per-user product onboarding milestones (ENG-641). Milestone endpoints are idempotent and are called by the app UI \u2014 they should not be treated as tenant-integration surface."
     }
@@ -1587,6 +1591,189 @@
           "tourCompletedAt",
           "tourDismissedAt",
           "tourVersion"
+        ]
+      },
+      "EngagementRate": {
+        "type": "object",
+        "description": "A rate returned as its raw numerator and denominator rather than a pre-computed percentage, so you can hide rates whose denominator is too small to be meaningful. `unknown` counts items whose underlying data is no longer available, which is distinct from a real 0.",
+        "properties": {
+          "numerator": {
+            "type": "integer",
+            "example": 42
+          },
+          "denominator": {
+            "type": "integer",
+            "example": 120
+          },
+          "unknown": {
+            "type": "integer",
+            "example": 0
+          }
+        },
+        "required": [
+          "numerator",
+          "denominator",
+          "unknown"
+        ]
+      },
+      "EngagementRateMetric": {
+        "type": "object",
+        "properties": {
+          "rate": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "percentChange": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.15,
+            "description": "Relative change in the ratio (numerator / denominator) compared with the equal-length window immediately before the requested one. `0.15` means +15%. `null` when the prior window could not be loaded because it exceeded the size limit, when either window has a denominator of 0, or when the prior ratio was 0 and the current one is not. A prior ratio of 0 and a current ratio of 0 returns `0`."
+          },
+          "directional": {
+            "type": "boolean",
+            "example": true,
+            "description": "`true` when the metric varies too much between companies at current volume to trend reliably. Display it as a directional indicator rather than a trend."
+          }
+        },
+        "required": [
+          "rate",
+          "percentChange",
+          "directional"
+        ]
+      },
+      "EngagementCountMetric": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 120
+          },
+          "percentChange": {
+            "type": "number",
+            "nullable": true,
+            "example": -0.08,
+            "description": "Relative change compared with the equal-length window immediately before the requested one. `0.15` means +15%. `null` when the prior window could not be loaded because it exceeded the size limit, or when the prior count was 0 and the current count is not. A prior count of 0 and a current count of 0 returns `0`."
+          }
+        },
+        "required": [
+          "count",
+          "percentChange"
+        ]
+      },
+      "EngagementSummary": {
+        "type": "object",
+        "description": "The seven engagement metrics for your organization over the requested window.",
+        "properties": {
+          "window": {
+            "type": "object",
+            "description": "The window the metrics cover: the requested `since`/`until`, or the last 30 days ending at request time.",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-09-01T00:00:00.000Z"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-10-01T00:00:00.000Z"
+              }
+            },
+            "required": [
+              "from",
+              "until"
+            ]
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "The template filter applied, or `null` when the summary covers all templates."
+          },
+          "presentationsSent": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementCountMetric"
+              }
+            ],
+            "description": "Presentations successfully sent in the window."
+          },
+          "opened": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRateMetric"
+              }
+            ],
+            "description": "Presentations whose viewer page was loaded at least once. This is not the email-open signal. `rate.denominator` is the number of presentations created in the window."
+          },
+          "avgConsumption": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRateMetric"
+              }
+            ],
+            "description": "Slides consumed out of the total slides in opened presentations created in the window. Unopened presentations are excluded, so this reflects viewing behavior rather than open rate."
+          },
+          "ctaClicks": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRateMetric"
+              }
+            ],
+            "description": "Call-to-action clicks. `rate.denominator` excludes presentations from templates with no call to action configured."
+          },
+          "questionsAsked": {
+            "type": "object",
+            "description": "Questions viewers asked during presentations.",
+            "properties": {
+              "count": {
+                "type": "integer",
+                "example": 37
+              },
+              "percentChange": {
+                "type": "number",
+                "nullable": true,
+                "example": 0.12,
+                "description": "Relative change in `count` compared with the prior window. Follows the same rules as `EngagementCountMetric.percentChange`."
+              },
+              "escalated": {
+                "type": "integer",
+                "example": 4,
+                "description": "Questions the AI could not answer or answered with low confidence. A breakdown of `count`, so it has no `percentChange` of its own."
+              }
+            },
+            "required": [
+              "count",
+              "percentChange",
+              "escalated"
+            ]
+          },
+          "appointmentsBooked": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementCountMetric"
+              }
+            ],
+            "description": "Appointments booked from presentations."
+          },
+          "contractsSigned": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementCountMetric"
+              }
+            ],
+            "description": "Contracts signed from presentations."
+          }
+        },
+        "required": [
+          "window",
+          "deckId",
+          "presentationsSent",
+          "opened",
+          "avgConsumption",
+          "ctaClicks",
+          "questionsAsked",
+          "appointmentsBooked",
+          "contractsSigned"
         ]
       }
     }
@@ -5176,6 +5363,109 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engagement/summary": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Get engagement summary",
+        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-09-01T00:00:00Z",
+            "description": "Start of the window (inclusive), as an RFC 3339 timestamp. Timezone offsets are accepted. Provide with `until`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-10-01T00:00:00Z",
+            "description": "End of the window (exclusive), as an RFC 3339 timestamp. Must be after `since`. Provide with `since`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Limit the summary to one template. An empty value is treated as absent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Engagement summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters, `since` or `until` provided without the other, or `since` not before `until`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The window contains too many presentations. Narrow the window and retry.",
             "content": {
               "application/json": {
                 "schema": {
