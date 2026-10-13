@@ -28,15 +28,16 @@ A send is also `failed` when AI Presentations could not load the homeowner's inf
 Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
-- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved.
+- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved.
 
-Four text fields have a maximum length:
+Five text fields have a maximum length:
 
 | Field | Maximum characters | Error message |
 | --- | --- | --- |
 | `fromName` | 100 | `Sender name must be 100 characters or fewer` |
 | `emailSubject` | 255 | `Subject line must be 255 characters or fewer` |
 | `emailPreheader` | 255 | `Preview text must be 255 characters or fewer` |
+| `reminderEmailSubject` | 255 | `Reminder subject line must be 255 characters or fewer` |
 | `ctaLabel` | 100 | `Button text must be 100 characters or fewer` |
 
 If any of these fields is too long, the request returns `400` with `{ "error": "<message>" }` naming the field, and nothing is saved. A value exactly at the limit saves. In the **Email** tab, these inputs stop accepting characters at the limit. If inserting a token chip would push a field past its limit, the editor refuses the insert and shows a toast. It never truncates the token, because a clipped `{{token}}` would be sent literally.
@@ -100,14 +101,25 @@ The email preview in the **Email** tab shows the footer link, but it does not un
 
 When a deck has no subject line of its own, AI Presentations uses a default at send time:
 
-- `Dana, your home's estimate is ready` when the homeowner's first name is known
-- `Your home's estimate is ready` when the first name is empty or missing
+- `Dana, your presentation is ready` when the homeowner's first name is known
+- `Your presentation is ready` when the first name is empty or missing
 
-A subject that contains only whitespace counts as no subject. The default is never saved to the deck, so it never makes the homeowner's first name a requirement for sending. When a deck has a saved subject, AI Presentations renders it for each homeowner at send time. If any token in the saved subject renders empty or is unknown, AI Presentations sends the default subject instead. For example, `{{homeowner.first_name}}, check this out!` goes to a homeowner with no first name as `Your home's estimate is ready`, not `, check this out!`. Because of this fallback, subject tokens never park a presentation at `missing_data`.
+A subject that contains only whitespace counts as no subject. The default is never saved to the deck, so it never makes the homeowner's first name a requirement for sending. When a deck has a saved subject, AI Presentations renders it for each homeowner at send time. If any token in the saved subject renders empty or is unknown, AI Presentations sends the default subject instead. For example, `{{homeowner.first_name}}, check this out!` goes to a homeowner with no first name as `Your presentation is ready`, not `, check this out!`. Because of this fallback, subject tokens never park a presentation at `missing_data`.
 
 AI Presentations checks the deck's copy once, when it creates the presentation. Every later send, including a manual resend and the release of a parked presentation, renders the deck's current subject. The fallback covers a subject you save after the presentation was created.
 
 In the deck editor, the subject field starts empty and shows the default as its placeholder. You must enter a subject before you can save the **Email** tab. The preview header fills in subject tokens with sample values and applies the same fallback as the sender, so it shows the subject AI Presentations will send. For a deck with no subject yet, the preview shows the default subject.
+
+### Reminder subject line
+
+A reminder uses its own subject line, separate from the first email's subject. When a deck has no reminder subject, AI Presentations uses a default at send time:
+
+- `Dana, don't forget to take a look` when the homeowner's first name is known
+- `Don't forget to take a look` when the first name is empty or missing
+
+To override the default, fill in the optional **Reminder subject line** field in the **Reminder email** section of the **Email** tab, or set `reminderEmailSubject` through the API. The field accepts the same tokens as the subject line. A blank value falls back to the default. If any token in a saved reminder subject renders empty or is unknown, AI Presentations sends the default reminder subject instead. Reminder subject tokens never park a presentation at `missing_data`.
+
+The first email never uses the reminder subject. A reminder reuses the deck's message body and CTA label.
 
 ### Preview text
 
