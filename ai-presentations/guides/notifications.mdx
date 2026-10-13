@@ -88,6 +88,14 @@ Replies go to the first valid address of these:
 
 If neither is set, the email has no reply-to, and replies go to `no-reply@demand-iq.com`. AI Presentations skips a stored address that is not a valid email instead of sending with it.
 
+### Unsubscribe link
+
+Every presentation email includes an unsubscribe link, whether it is the initial send, a reminder, or a manual send. The HTML footer reads "Don't want these emails? Unsubscribe", and the plain-text version ends with an unsubscribe line. AI Presentations also sends the one-click unsubscribe headers that Gmail and Yahoo require, so inbox clients can show their own **Unsubscribe** button next to the sender.
+
+The unsubscribe covers presentation emails only. Other Demand IQ email to the same address is unaffected. Once a homeowner unsubscribes, AI Presentations suppresses the address and skips later sends with the reason `suppressed`. See [Automated email delivery](#automated-email-delivery). Test sends carry the link too, so clicking it in your own inbox suppresses your address.
+
+The email preview in the **Email** tab shows the footer link, but it does not unsubscribe anyone.
+
 ### Default subject line
 
 When a deck has no subject line of its own, AI Presentations uses a default at send time:
