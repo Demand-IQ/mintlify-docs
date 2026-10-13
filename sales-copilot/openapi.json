@@ -61,6 +61,10 @@
       "description": "Available TTS voices"
     },
     {
+      "name": "Engagement",
+      "description": "Presentation engagement analytics"
+    },
+    {
       "name": "Utility",
       "description": "Health check and diagnostics"
     }
@@ -842,6 +846,147 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "EngagementRate": {
+        "type": "object",
+        "description": "A rate, never pre-divided — numerator/denominator so a consumer can suppress a rate whose denominator is too small to mean anything. `unknown` counts members whose fact aged out of Postgres (see EngagementSummary.window), distinct from a real 0.",
+        "properties": {
+          "numerator": {
+            "type": "integer"
+          },
+          "denominator": {
+            "type": "integer"
+          },
+          "unknown": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numerator",
+          "denominator",
+          "unknown"
+        ]
+      },
+      "EngagementRateMetric": {
+        "type": "object",
+        "properties": {
+          "rate": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "percentChange": {
+            "type": "number",
+            "nullable": true,
+            "description": "Relative change in the ratio vs. the equal-length prior window (0.15 = +15%). Null when the prior window could not be loaded (its cohort exceeded the cap), either window’s rate is undefined (0 denominator), or the prior ratio was exactly 0 and the current one is not (undefined relative change — not expressible as a percentage). A prior ratio of 0 with a current ratio of 0 too is a real, defined 0% change."
+          },
+          "directional": {
+            "type": "boolean",
+            "description": "True when contractor-to-contractor variance dominates this metric at current volume (docs/metric-dictionary.md) — label it, don’t trend it."
+          }
+        },
+        "required": [
+          "rate",
+          "percentChange",
+          "directional"
+        ]
+      },
+      "EngagementCountMetric": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "percentChange": {
+            "type": "number",
+            "nullable": true,
+            "description": "Relative change vs. the equal-length prior window (0.15 = +15%). Null when the prior window could not be loaded (its cohort exceeded the cap), or the prior count was 0 and the current count is not (a prior count of 0 with a current count of 0 too is a real, defined 0% change)."
+          }
+        },
+        "required": [
+          "count",
+          "percentChange"
+        ]
+      },
+      "EngagementSummary": {
+        "type": "object",
+        "description": "The 7 engagement cards for the authenticated org (ENG-1442.1).",
+        "properties": {
+          "window": {
+            "type": "object",
+            "description": "The bounded window the cards cover — the requested one, or the default last 30 days ending at request time.",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "from",
+              "until"
+            ]
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "presentationsSent": {
+            "$ref": "#/components/schemas/EngagementCountMetric"
+          },
+          "opened": {
+            "$ref": "#/components/schemas/EngagementRateMetric",
+            "description": "From deck_presentations.first_viewed_at (the viewer page loading), not the delivered/email-open signal. rate.denominator is presentations CREATED in the window."
+          },
+          "avgConsumption": {
+            "$ref": "#/components/schemas/EngagementRateMetric",
+            "description": "Consumed slides over the slides of OPENED presentations created in the window, so it reflects viewing behavior alone rather than moving with open rate."
+          },
+          "ctaClicks": {
+            "$ref": "#/components/schemas/EngagementRateMetric",
+            "description": "rate.denominator excludes decks with no CTA configured (ctaType ‘none’)."
+          },
+          "questionsAsked": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "percentChange": {
+                "type": "number",
+                "nullable": true
+              },
+              "escalated": {
+                "type": "integer",
+                "description": "question.escalated rows (deflected or low-confidence). No percentChange of its own."
+              }
+            },
+            "required": [
+              "count",
+              "percentChange",
+              "escalated"
+            ]
+          },
+          "appointmentsBooked": {
+            "$ref": "#/components/schemas/EngagementCountMetric"
+          },
+          "contractsSigned": {
+            "$ref": "#/components/schemas/EngagementCountMetric"
+          }
+        },
+        "required": [
+          "window",
+          "deckId",
+          "presentationsSent",
+          "opened",
+          "avgConsumption",
+          "ctaClicks",
+          "questionsAsked",
+          "appointmentsBooked",
+          "contractsSigned"
         ]
       }
     }
@@ -4343,6 +4488,104 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engagement/summary": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Engagement summary cards",
+        "description": "The 7 engagement cards for the authenticated org: presentations sent, opened, avg. consumption, CTA clicks, questions asked, appointments booked, contracts signed. Each carries a percentChange against the equal-length prior window, and every rate carries a `directional` flag per docs/metric-dictionary.md’s sample-size section.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted) for a bounded window, or omit both for the last 30 days ending now. The window is always bounded; a cohort over the cap returns 422, so narrow the window. `deckId` narrows to one deck; a deckId belonging to another tenant returns a zero-valued summary rather than a 404, since the cohort is already scoped to the caller’s organization.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO datetime lower bound (inclusive). Provide with `until`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO datetime upper bound (exclusive). Provide with `since`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Limit to one deck. An empty value is treated as absent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Engagement summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable entity",
             "content": {
               "application/json": {
                 "schema": {
