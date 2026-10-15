@@ -254,6 +254,8 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 }
 ```
 
+While a presentation is `generating`, the response also carries `current_slide` and `total_slides` once slide work starts. `current_slide` counts from 1 and can jump, because slides with nothing to personalize are skipped. During the `measuring` phase, no slide count is reported.
+
 For eager generation, wait for `ready`; for lazy generation (`not_started`), share the link so the homeowner can start it. Deliver the `url` to the homeowner however your platform sends messages — text, email, or straight from your CRM. When they open it, they'll see your branded landing page with their name and address woven into the narration.
 </Step>
 </Steps>
