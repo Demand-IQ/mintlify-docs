@@ -13,6 +13,7 @@ Use the table below to match your caller to the credentials its endpoints accept
 | Server or automation creating presentations | `Authorization: Bearer` with a Demand IQ API key or supported JWT | `POST /api/decks/{deckId}/presentations` and `POST /api/decks/{deckId}/ingest`; both also accept a session |
 | Viewer asking questions or playing narration | `presentationId` in the request body, or an authenticated session | `POST /api/qa`, `POST /api/narration/single`, and `POST /api/narration/resume` |
 | Viewer loading content, booking an appointment, or signing | HMAC-signed presentation token in `x-presentation-token` | `GET /api/presentations/{presentationId}/content`; `GET` and `POST` on `/api/presentations/{presentationId}/appointment` and `/api/presentations/{presentationId}/sign-contract` |
+| Viewer playing a streamed answer | Sealed token in the `t` query parameter of the `audioUrl` returned by `POST /api/qa`; expires after 6 hours | `GET /api/qa/audio` |
 | Viewer sending engagement events or refreshing a token | The same signed presentation token in the JSON body's `_token` field | `POST /api/presentations/{presentationId}/events` and `POST /api/presentations/{presentationId}/events-token` |
 | Portal integration starting a session | Short-lived SSO authorization code | `GET /api/auth/sso` creates a cookie session; `POST /api/auth/sso/exchange` returns a Bearer session token |
 
