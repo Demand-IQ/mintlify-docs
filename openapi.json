@@ -943,7 +943,11 @@
           },
           "audioUrl": {
             "type": "string",
-            "description": "Accessible URL for the TTS audio of the answer"
+            "description": "URL for the spoken audio of the answer. Either an accessible stored file, or a relative `/api/qa/audio?t=…` URL that synthesizes the audio on request when `audioStreamed` is `true`."
+          },
+          "audioStreamed": {
+            "type": "boolean",
+            "description": "`true` when `audioUrl` streams the audio as it is synthesized. Streamed audio can't be seeked while it plays."
           },
           "wordTimings": {
             "type": "array",
@@ -4635,7 +4639,7 @@
           "Q&A"
         ],
         "summary": "Answer a question",
-        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at >= 0.6 confidence), falls back to GPT-4o with slide context. Returns answer text plus synthesized audio.\n\n`deckId` and `presentationId` must be valid UUIDs; other values are rejected with a 400. When a `presentationId` is provided, the answer is drawn from the deck that presentation belongs to; the body's `deckId` is used only as a fallback when that deck has been deleted. If `slideId` doesn't match a slide in the deck, the question is answered without slide context instead of failing.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
+        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at >= 0.6 confidence), falls back to GPT-4o with slide context. Returns the answer text plus an audio URL. For ElevenLabs voices, `audioUrl` usually points to `GET /api/qa/audio`, which streams the audio as it is synthesized.\n\n`deckId` and `presentationId` must be valid UUIDs; other values are rejected with a 400. When a `presentationId` is provided, the answer is drawn from the deck that presentation belongs to; the body's `deckId` is used only as a fallback when that deck has been deleted. If `slideId` doesn't match a slide in the deck, the question is answered without slide context instead of failing.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
         "requestBody": {
           "required": true,
           "content": {
@@ -4770,6 +4774,53 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/qa/audio": {
+      "get": {
+        "tags": [
+          "Q&A"
+        ],
+        "summary": "Stream the spoken audio for an answer",
+        "description": "Synthesizes an answer that `POST /api/qa` already produced and streams MP3 audio as it is generated, so playback can start before the clip is complete. The response doesn't support byte ranges.\n\nOnce the clip has been stored for a cached answer, the same token redirects to the stored file. If synthesis can't start, the endpoint redirects to the default answer clip.\n\nYou don't build this URL yourself. Use the `audioUrl` returned by `POST /api/qa` when `audioStreamed` is `true`.\n\n**Authentication**: The sealed token in the `t` query parameter of `QaResponse.audioUrl`. Tokens expire after 6 hours.",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "t",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sealed answer-audio token from `QaResponse.audioUrl`"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MP3 audio, streamed",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to the stored clip for a cached answer, or to `/audio/answer-default.mp3` when synthesis can't start"
+          },
+          "401": {
+            "description": "Missing, tampered, or expired token",
             "content": {
               "application/json": {
                 "schema": {

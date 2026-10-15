@@ -159,6 +159,7 @@
                   "GET /api/decks/{deckId}/qa-settings",
                   "PUT /api/decks/{deckId}/qa-settings",
                   "POST /api/qa",
+                  "GET /api/qa/audio",
                   "POST /api/intent/continue"
                 ]
               },
