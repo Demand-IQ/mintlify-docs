@@ -652,7 +652,11 @@
           },
           "audioUrl": {
             "type": "string",
-            "description": "Accessible URL for the TTS audio of the answer"
+            "description": "URL for the TTS audio of the answer. Either an accessible stored file, or a relative `/api/qa/audio?t=…` URL that synthesizes on request when `audioStreamed` is true."
+          },
+          "audioStreamed": {
+            "type": "boolean",
+            "description": "True when `audioUrl` streams as it is synthesized; such audio cannot be seeked while playing."
           },
           "wordTimings": {
             "type": "array",
@@ -3895,6 +3899,52 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/qa/audio": {
+      "get": {
+        "tags": [
+          "Q&A"
+        ],
+        "summary": "Stream the spoken audio for an answer",
+        "description": "Synthesizes an answer the server already produced and streams MP3 bytes as they are generated, so playback can start before the clip is complete. The response carries no byte ranges. Once the clip has been stored for a cached answer, the same token redirects to the stored file; if synthesis cannot start, it redirects to the default answer clip.\n\n**Authentication**: the sealed token minted into a `QaResponse.audioUrl` by `POST /api/qa`. Tokens expire after 6 hours.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "t",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sealed answer-audio token from `QaResponse.audioUrl`"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MP3 audio, streamed",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to the stored clip for a cached answer, or to `/audio/answer-default.mp3` when synthesis cannot start"
+          },
+          "401": {
+            "description": "Missing, tampered, or expired token",
             "content": {
               "application/json": {
                 "schema": {
