@@ -1833,8 +1833,11 @@
           "Decks"
         ],
         "summary": "List decks",
-        "description": "Returns all decks for the authenticated organization, ordered by most recently created.",
+        "description": "Returns all decks for the authenticated organization, ordered by most recently created. A Demand IQ API key lists the decks of its own company. Service tokens are rejected with `401`.",
         "security": [
+          {
+            "bearerAuth": []
+          },
           {
             "sessionCookie": []
           }
@@ -1870,6 +1873,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Upstream service is unreachable while validating the API key. Retry with backoff",
             "content": {
               "application/json": {
                 "schema": {

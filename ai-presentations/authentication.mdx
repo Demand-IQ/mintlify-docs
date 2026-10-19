@@ -10,7 +10,7 @@ Use the table below to match your caller to the credentials its endpoints accept
 | Caller | Auth method | Endpoints |
 | --- | --- | --- |
 | Dashboard user or an integration managing templates | Session cookie from `POST /api/auth/login`, or a Bearer session token from SSO exchange | Template management, including `GET /api/decks`, slides, branding, FAQs, and notification subscriptions; also presentation creation and journey ingest |
-| Server or automation creating presentations | `Authorization: Bearer` with a Demand IQ API key or supported JWT | `POST /api/decks/{deckId}/presentations` and `POST /api/decks/{deckId}/ingest`; both also accept a session |
+| Server or automation creating presentations | `Authorization: Bearer` with a Demand IQ API key or supported JWT | `GET /api/decks`, `POST /api/decks/{deckId}/presentations`, and `POST /api/decks/{deckId}/ingest`; all three also accept a session |
 | Viewer asking questions or playing narration | `presentationId` in the request body, or an authenticated session | `POST /api/qa`, `POST /api/narration/single`, and `POST /api/narration/resume` |
 | Viewer loading content, booking an appointment, or signing | HMAC-signed presentation token in `x-presentation-token` | `GET /api/presentations/{presentationId}/content`; `GET` and `POST` on `/api/presentations/{presentationId}/appointment` and `/api/presentations/{presentationId}/sign-contract` |
 | Viewer playing a streamed answer | Sealed token in the `t` query parameter of the `audioUrl` returned by `POST /api/qa`; expires after 6 hours | `GET /api/qa/audio` |
@@ -23,17 +23,17 @@ Use the table below to match your caller to the credentials its endpoints accept
 
 Call `POST /api/auth/login` with your email and password and retain the session cookie returned by the server. Send that cookie with subsequent requests. The [API Quickstart](/ai-presentations/api-quickstart#step-1-authenticate) demonstrates login and requests using a cookie jar.
 
-Session tokens returned by SSO exchange can also be sent as `Authorization: Bearer <token>`. These are session credentials, not API keys or JWTs. Template management and notification subscription endpoints accept sessions; a Bearer API key does not replace a session on those endpoints.
+Session tokens returned by SSO exchange can also be sent as `Authorization: Bearer <token>`. These are session credentials, not API keys or JWTs. Template management and notification subscription endpoints accept sessions. A Bearer API key does not replace a session on those endpoints, except `GET /api/decks`.
 
 If a request returns `401 Unauthorized`, check that the credential is present, valid, and appropriate for that endpoint. For an expired session, sign in again.
 
 ## API keys and Bearer JWTs
 
-For server integrations and automations, presentation creation and journey ingest accept a Demand IQ API credential in the `Authorization: Bearer <credential>` header. Presentation creation also accepts a session cookie or an SSO Bearer session token.
+For server integrations and automations, deck listing, presentation creation, and journey ingest accept a Demand IQ API credential in the `Authorization: Bearer <credential>` header. Presentation creation also accepts a session cookie or an SSO Bearer session token.
 
 See [Get a Presentation URL via API](/ai-presentations/guides/presentation-url-api#step-1-generate-an-api-key) for API key setup. A key needs **Write Prospects** when creating a prospect from `homeowner` details and **Read Prospects** when using an existing `prospect_id`. Enable both if your integration uses both paths. A `401` with code `CORE_AUTH_REJECTED` means the credential was rejected or lacks the required prospect permissions.
 
-Bearer support is endpoint-specific. For example, use a session to list templates with `GET /api/decks`, or copy the deck ID from the dashboard before making a presentation-creation request with an API key.
+Bearer support is endpoint-specific. `GET /api/decks` accepts an API key and returns only the decks of the key's company, so an automation such as Zapier can offer a deck picker. Service tokens are rejected on this endpoint with `401` because they belong to no company.
 
 ## Presentation viewer access
 
