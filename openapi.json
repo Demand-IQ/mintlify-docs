@@ -1707,7 +1707,7 @@
                 "$ref": "#/components/schemas/EngagementRateMetric"
               }
             ],
-            "description": "Presentations whose viewer page was loaded at least once. This is not the email-open signal. `rate.denominator` is the number of presentations created in the window."
+            "description": "Presentations whose viewer page was loaded at least once. This is not the email-open signal. Includes opens by a signed-in member of your organization, so previewing your own presentation link counts as an open. `rate.denominator` is the number of presentations created in the window."
           },
           "avgConsumption": {
             "allOf": [
@@ -1715,7 +1715,7 @@
                 "$ref": "#/components/schemas/EngagementRateMetric"
               }
             ],
-            "description": "Slides consumed out of the total slides in opened presentations created in the window. Unopened presentations are excluded, so this reflects viewing behavior rather than open rate."
+            "description": "Slides consumed out of the total slides in opened presentations created in the window. Unopened presentations are excluded, so this reflects viewing behavior rather than open rate. Slides viewed by a signed-in member of your organization are excluded."
           },
           "ctaClicks": {
             "allOf": [
@@ -1723,11 +1723,11 @@
                 "$ref": "#/components/schemas/EngagementRateMetric"
               }
             ],
-            "description": "Call-to-action clicks. `rate.denominator` excludes presentations from templates with no call to action configured."
+            "description": "Call-to-action clicks. `rate.denominator` excludes presentations from templates with no call to action configured. Clicks by a signed-in member of your organization are excluded."
           },
           "questionsAsked": {
             "type": "object",
-            "description": "Questions viewers asked during presentations.",
+            "description": "Questions viewers asked during presentations. Questions asked by a signed-in member of your organization are excluded.",
             "properties": {
               "count": {
                 "type": "integer",
@@ -4702,7 +4702,7 @@
           "Q&A"
         ],
         "summary": "Answer a question",
-        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at >= 0.6 confidence), falls back to GPT-4o with slide context. Returns the answer text plus an audio URL. For ElevenLabs voices, `audioUrl` usually points to `GET /api/qa/audio`, which streams the audio as it is synthesized.\n\n`deckId` and `presentationId` must be valid UUIDs; other values are rejected with a 400. When a `presentationId` is provided, the answer is drawn from the deck that presentation belongs to; the body's `deckId` is used only as a fallback when that deck has been deleted. If `slideId` doesn't match a slide in the deck, the question is answered without slide context instead of failing.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
+        "description": "Answers a viewer question. Checks FAQs first (exact then semantic match at >= 0.6 confidence), falls back to GPT-4o with slide context. Returns the answer text plus an audio URL. For ElevenLabs voices, `audioUrl` usually points to `GET /api/qa/audio`, which streams the audio as it is synthesized.\n\n`deckId` and `presentationId` must be valid UUIDs; other values are rejected with a 400. When a `presentationId` is provided, the answer is drawn from the deck that presentation belongs to; the body's `deckId` is used only as a fallback when that deck has been deleted. If `slideId` doesn't match a slide in the deck, the question is answered without slide context instead of failing.\n\nWhen a `presentationId` is provided, the question is recorded against the organization that owns the presentation, even when the caller is signed in to a different organization. A question asked from a signed-in browser is excluded from engagement metrics.\n\n**Authentication**: Accepts either a session cookie (admin) or a `presentationId` (public viewer).",
         "requestBody": {
           "required": true,
           "content": {
@@ -5504,7 +5504,7 @@
           "Engagement"
         ],
         "summary": "Get engagement summary",
-        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
+        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nActivity from a browser signed in to AI Presentations is left out of average consumption, CTA clicks, and questions asked, so previewing your own presentation link doesn't inflate them. That activity still counts toward `opened`. A teammate viewing a link on a device where they never signed in is counted as a prospect. Activity recorded before this exclusion shipped is counted as prospect activity.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
         "security": [
           {
             "bearerAuth": []
