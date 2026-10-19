@@ -1002,8 +1002,11 @@
           "Decks"
         ],
         "summary": "List decks",
-        "description": "Returns all decks for the authenticated organization, ordered by most recently created.",
+        "description": "Returns all decks for the authenticated organization, ordered by most recently created. A Core API key lists the decks of its own company.",
         "security": [
+          {
+            "bearerAuth": []
+          },
           {
             "sessionCookie": []
           }
@@ -1039,6 +1042,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
             "content": {
               "application/json": {
                 "schema": {
