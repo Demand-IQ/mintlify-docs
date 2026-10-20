@@ -195,6 +195,7 @@ AI Presentations emits these events:
 | Event type | Fired when |
 |------------|------------|
 | `presentation.opened` | A viewer opens a presentation link |
+| `presentation.started` | A viewer presses Start on a presentation's intro screen |
 | `slide.viewed` | A viewer leaves a slide (includes duration and a skipped flag) |
 | `narration.played` | A viewer leaves a slide that had narration (includes whether playback started, whether it completed, and seconds played vs. seconds available) |
 | `presentation.completed` | A viewer reaches the last slide of a presentation. Fires on every visit |
@@ -247,6 +248,12 @@ Both fields are populated by the viewer's browser, so each can legitimately be a
 - `conversationId` is absent when browser storage is unavailable, when the question was asked from an older client that did not send the field, or when the deck is being demoed by a sales rep rather than viewed by a homeowner. When it is absent, group the question by `presentationId` and timestamp instead.
 
 These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
+
+### Started presentations
+
+`presentation.started` fires when a viewer presses Start on a presentation's intro screen. Presentations whose template has no intro, and visits that skip the intro, never emit it. Presentation previews never emit it either.
+
+The payload carries `presentationId` and `deckId`. `deckId` is `null` when the template has been deleted. AI Presentations doesn't send an email notification for this event, and it has no toggle in the template editor's **Settings** tab.
 
 ### Completed presentations
 
