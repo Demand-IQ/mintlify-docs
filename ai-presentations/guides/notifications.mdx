@@ -28,7 +28,7 @@ A send is also `failed` when AI Presentations could not load the homeowner's inf
 Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
-- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved.
+- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), reminder switch (`reminderEnabled`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved. `reminderEnabled` must be `true` or `false`. Any other value returns `400` with `{ "error": "reminderEnabled must be true or false" }`. If you omit `reminderEnabled`, AI Presentations stores `false`.
 
 Five text fields have a maximum length:
 
@@ -60,12 +60,12 @@ After ingest sends the first email, call `POST /api/presentations/send` to send 
 - `skip_if` is optional and defaults to `[]`. `opened` skips the send if the homeowner opened an earlier email. Machine opens don't count. `viewed` skips the send if the homeowner viewed the presentation.
 - `subject_variant` must be `reminder`. Ingest sends the first email, so `initial` returns `400`.
 
-The suppression, parked, failed, and first-send checks always run, whatever `skip_if` contains.
+The suppression, parked, failed, first-send, and reminder switch checks always run, whatever `skip_if` contains. AI Presentations reads the deck's reminder switch at send time. If reminders are off for the deck, or the deck has no saved email settings, the reminder is skipped with the reason `reminder_disabled`. Turning the switch off therefore cancels reminders that are already scheduled.
 
 | Status | Meaning | Retry? |
 | --- | --- | --- |
 | `200` | `send_status: "sent"`, with `presentation_id` and `delivery_id` | No |
-| `200` | `send_status: "skipped"`, with `reason`: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `opened`, or `viewed` | No. A skip is a correct outcome. |
+| `200` | `send_status: "skipped"`, with `reason`: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `reminder_disabled`, `opened`, or `viewed` | No. A skip is a correct outcome. |
 | `200` | `send_status: "failed"`, with `reason` | No. A retry returns the same result. |
 | `400` | Malformed request body | No. Fix the request. |
 | `401` | Credential rejected | No. Fix the credential. |
@@ -112,12 +112,16 @@ In the deck editor, the subject field starts empty and shows the default as its 
 
 ### Reminder subject line
 
-A reminder uses its own subject line, separate from the first email's subject. When a deck has no reminder subject, AI Presentations uses a default at send time:
+Reminders are off by default. To turn them on for a deck, switch on **Send a reminder if the first email isn't opened in 2 days** in the **Reminder email** section of the **Email** tab, or set `reminderEnabled` to `true` through the API. The switch applies to every presentation sent from the deck. While the switch is off, the **Reminder subject line** field is disabled.
 
-- `Dana, don't forget to take a look` when the homeowner's first name is known
-- `Don't forget to take a look` when the first name is empty or missing
+A reminder is the same email with a different subject line. When a deck has no reminder subject, AI Presentations uses `Reminder: ` followed by the first email's subject at send time. For example, a deck with the subject `Your solar quote, {{homeowner.first_name}}` sends the reminder `Reminder: Your solar quote, Dana`. When the deck has no first-email subject either, AI Presentations uses the default subject:
 
-To override the default, fill in the optional **Reminder subject line** field in the **Reminder email** section of the **Email** tab, or set `reminderEmailSubject` through the API. The field accepts the same tokens as the subject line. A blank value falls back to the default. If any token in a saved reminder subject renders empty or is unknown, AI Presentations sends the default reminder subject instead. Reminder subject tokens never park a presentation at `missing_data`.
+- `Reminder: Dana, your presentation is ready` when the homeowner's first name is known
+- `Reminder: Your presentation is ready` when the first name is empty or missing
+
+If a token in the first email's subject renders empty, the reminder falls back the same way the first email does, so it still reads `Reminder: ` followed by the subject the homeowner received first.
+
+To override the default, fill in the optional **Reminder subject line** field, or set `reminderEmailSubject` through the API. The field's placeholder shows the default reminder subject. The field accepts the same tokens as the subject line. A saved reminder subject renders as entered. A blank value falls back to the default. If any token in a saved reminder subject renders empty or is unknown, AI Presentations sends the default reminder subject instead. Reminder subject tokens never park a presentation at `missing_data`.
 
 The first email never uses the reminder subject. A reminder reuses the deck's message body and CTA label.
 
@@ -369,6 +373,7 @@ For `email.sent` events, each entry includes top-level `recipientEmail`, `skipRe
 | Skipped | `suppressed` | Reminder Not Sent | previously bounced or unsubscribed |
 | Skipped | `no_initial_send` | Reminder Not Sent | the first email was never sent |
 | Skipped | `presentation_parked` or `presentation_failed` | Reminder Not Sent | the presentation isn't ready |
+| Skipped | `reminder_disabled` | Reminder Not Sent | reminders are off for this template |
 
 A reminder doesn't change a presentation's delivery `sentAt`. `sentAt` stays the earliest accepted send across all attempts.
 

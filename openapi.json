@@ -1473,14 +1473,14 @@
           "skipReason": {
             "type": "string",
             "nullable": true,
-            "enum": ["no_email", "suppressed", "presentation_parked", "presentation_failed", "no_initial_send", "opened", "viewed", null],
-            "description": "Present on `email.sent` entries only. Why the delivery attempt was skipped, resolved from the delivery attempt referenced by the payload's `deliveryId`. `no_email` means the homeowner had no email address. `suppressed` means a recipient previously hard-bounced, reported spam, or unsubscribed within the last 90 days, so AI Presentations sent nothing. The remaining values apply to reminder attempts (`variant` is `reminder`): `opened` means the homeowner already opened the first email, `viewed` means the homeowner already viewed the presentation, `no_initial_send` means the first email was never sent, and `presentation_parked` or `presentation_failed` means the presentation isn't ready. `null` when the attempt was not skipped."
+            "enum": ["no_email", "suppressed", "presentation_parked", "presentation_failed", "no_initial_send", "reminder_disabled", "opened", "viewed", null],
+            "description": "Present on `email.sent` entries only. Why the delivery attempt was skipped, resolved from the delivery attempt referenced by the payload's `deliveryId`. `no_email` means the homeowner had no email address. `suppressed` means a recipient previously hard-bounced, reported spam, or unsubscribed within the last 90 days, so AI Presentations sent nothing. The remaining values apply to reminder attempts (`variant` is `reminder`): `opened` means the homeowner already opened the first email, `viewed` means the homeowner already viewed the presentation, `no_initial_send` means the first email was never sent, `reminder_disabled` means reminders are off for the deck's template, and `presentation_parked` or `presentation_failed` means the presentation isn't ready. `null` when the attempt was not skipped."
           },
           "variant": {
             "type": "string",
             "nullable": true,
             "enum": ["initial", "reminder", null],
-            "description": "Present on `email.sent` entries only. Which send the delivery attempt represents, resolved from the delivery attempt referenced by the payload's `deliveryId`. `initial` is the first presentation email. `reminder` is the follow-up sent to a homeowner who never opened the first email. `null` when no matching delivery attempt was found. The activity log labels reminder entries as `Reminder Sent`, `Reminder Failed`, `Reminder Not Needed` (skipped because of `opened` or `viewed`), or `Reminder Not Sent` (any other skip reason)."
+            "description": "Present on `email.sent` entries only. Which send the delivery attempt represents, resolved from the delivery attempt referenced by the payload's `deliveryId`. `initial` is the first presentation email. `reminder` is the follow-up sent to a homeowner who never opened the first email. `null` when no matching delivery attempt was found. The activity log labels reminder entries as `Reminder Sent`, `Reminder Failed`, `Reminder Not Needed` (skipped because of `opened` or `viewed`), or `Reminder Not Sent` (any other skip reason, including `reminder_disabled`)."
           },
           "machineOpen": {
             "type": "boolean",
@@ -4800,7 +4800,7 @@
           "Presentations"
         ],
         "summary": "Send a follow-up email for an ingested presentation",
-        "description": "Sends a follow-up email, such as a reminder, for the presentation that `POST /api/decks/{deckId}/ingest` created from `(deck_id, source_event_id)`. Server-to-server callers authenticate with a Bearer token. A company credential only reaches its own company's presentations.\n\nEvery decided outcome returns `200`: `sent`, `skipped` with a `reason`, or `failed`. AI Presentations records each outcome as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent) always run. `skip_if` only adds conditions.\n\n`409` with code `SEND_IN_PROGRESS` means another call with the same key hasn't finished. Retry it with the same key. `5xx` responses are also safe to retry with the same key.",
+        "description": "Sends a follow-up email, such as a reminder, for the presentation that `POST /api/decks/{deckId}/ingest` created from `(deck_id, source_event_id)`. Server-to-server callers authenticate with a Bearer token. A company credential only reaches its own company's presentations.\n\nEvery decided outcome returns `200`: `sent`, `skipped` with a `reason`, or `failed`. AI Presentations records each outcome as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent, reminders turned off for the deck) always run. `skip_if` only adds conditions.\n\n`409` with code `SEND_IN_PROGRESS` means another call with the same key hasn't finished. Retry it with the same key. `5xx` responses are also safe to retry with the same key.",
         "security": [
           {
             "bearerAuth": []
@@ -4885,7 +4885,7 @@
                     },
                     "reason": {
                       "type": "string",
-                      "description": "Set when skipped: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `opened`, or `viewed`. Set when failed: the error message."
+                      "description": "Set when skipped: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `reminder_disabled`, `opened`, or `viewed`. Set when failed: the error message."
                     },
                     "presentation_id": {
                       "type": "string",
