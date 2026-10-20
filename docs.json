@@ -91,6 +91,7 @@
                 "expanded": false,
                 "pages": [
                   "GET /api/engagement/summary",
+                  "GET /api/engagement/questions",
                   "GET /api/delivery/template-performance"
                 ]
               },
