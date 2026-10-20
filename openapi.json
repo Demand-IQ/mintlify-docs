@@ -1663,9 +1663,97 @@
           "percentChange"
         ]
       },
+      "EngagementFunnelStep": {
+        "type": "object",
+        "description": "One step of the engagement funnel.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 96,
+            "description": "Presentations created in the window that reached this step."
+          },
+          "overPrevious": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRate"
+              }
+            ],
+            "description": "Presentations that reached both this step and the previous one, over the presentations that reached the previous step. Because both steps are required, this rate never exceeds 100%."
+          },
+          "overCreated": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRate"
+              }
+            ],
+            "description": "Presentations that reached this step, over the presentations created in the window."
+          }
+        },
+        "required": [
+          "count",
+          "overPrevious",
+          "overCreated"
+        ]
+      },
+      "EngagementFunnel": {
+        "type": "object",
+        "description": "The Created \u2192 Sent \u2192 Opened \u2192 Started \u2192 Completed funnel for presentations created in the window. Each step reports a count, a rate over the previous step, and a rate over Created. `completed.overCreated` is the headline conversion rate.",
+        "properties": {
+          "created": {
+            "type": "integer",
+            "example": 120,
+            "description": "Presentations created in the window."
+          },
+          "sent": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementFunnelStep"
+              }
+            ],
+            "description": "Presentations with at least one accepted email send. `overPrevious` is over Created."
+          },
+          "opened": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementFunnelStep"
+              }
+            ],
+            "description": "Presentations whose viewer page loaded at least once. A presentation opened from a copied link counts toward `count` but not toward `overPrevious`, which is over Sent."
+          },
+          "started": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementFunnelStep"
+              }
+            ],
+            "description": "Presentations where the viewer pressed Start on the intro screen. Only presentations opened on an intro count. `overPrevious` is over opened presentations that showed an intro. An opened presentation with no recorded start that was first viewed before AI Presentations began recording starts counts as `unknown`."
+          },
+          "completed": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementFunnelStep"
+              }
+            ],
+            "description": "Presentations whose viewer reached the last slide. `overPrevious` is over Started."
+          },
+          "noStartStep": {
+            "type": "integer",
+            "example": 14,
+            "description": "Opened presentations that had no intro screen, so the viewer had no Start to press. These are left out of `started` rather than counted as a 0% start rate."
+          }
+        },
+        "required": [
+          "created",
+          "sent",
+          "opened",
+          "started",
+          "completed",
+          "noStartStep"
+        ]
+      },
       "EngagementSummary": {
         "type": "object",
-        "description": "The seven engagement metrics for your organization over the requested window.",
+        "description": "The seven engagement metrics for your organization over the requested window, plus the engagement funnel, visits per opened presentation, and delivery path counts.",
         "properties": {
           "window": {
             "type": "object",
@@ -1766,6 +1854,62 @@
               }
             ],
             "description": "Contracts signed from presentations."
+          },
+          "funnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementFunnel"
+              }
+            ],
+            "description": "The Created \u2192 Completed funnel for presentations created in the window."
+          },
+          "visits": {
+            "type": "object",
+            "description": "Visits per opened presentation. AI Presentations splits a presentation's opens into separate visits wherever 30 minutes pass between opens. Each opened presentation counts as at least one visit. Treat these values as a lower bound, because opens are rate-limited.",
+            "properties": {
+              "opened": {
+                "type": "integer",
+                "example": 82,
+                "description": "Opened presentations the averages are computed over."
+              },
+              "avg": {
+                "type": "number",
+                "nullable": true,
+                "example": 1.6,
+                "description": "Mean visits per opened presentation. `null` when `opened` is 0."
+              },
+              "median": {
+                "type": "number",
+                "nullable": true,
+                "example": 1,
+                "description": "Median visits per opened presentation. `null` when `opened` is 0."
+              }
+            },
+            "required": [
+              "opened",
+              "avg",
+              "median"
+            ]
+          },
+          "deliveryPath": {
+            "type": "object",
+            "description": "How opened presentations reached the viewer.",
+            "properties": {
+              "viewedWithoutEmailOpen": {
+                "type": "integer",
+                "example": 11,
+                "description": "Opened presentations that were sent and delivered by email, with no email open by a person recorded."
+              },
+              "viewedWithoutSend": {
+                "type": "integer",
+                "example": 7,
+                "description": "Opened presentations that were never sent by email, for example because the link was copied and shared directly."
+              }
+            },
+            "required": [
+              "viewedWithoutEmailOpen",
+              "viewedWithoutSend"
+            ]
           }
         },
         "required": [
@@ -1777,7 +1921,10 @@
           "ctaClicks",
           "questionsAsked",
           "appointmentsBooked",
-          "contractsSigned"
+          "contractsSigned",
+          "funnel",
+          "visits",
+          "deliveryPath"
         ]
       },
       "TemplateVersionPerformance": {
@@ -5647,7 +5794,7 @@
           "Engagement"
         ],
         "summary": "Get engagement summary",
-        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nActivity from a browser signed in to AI Presentations is left out of average consumption, CTA clicks, and questions asked, so previewing your own presentation link doesn't inflate them. That activity still counts toward `opened`. A teammate viewing a link on a device where they never signed in is counted as a prospect. Activity recorded before this exclusion shipped is counted as prospect activity.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
+        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nThe response also includes three breakdowns for the requested window, without a `percentChange`: `funnel` (Created \u2192 Sent \u2192 Opened \u2192 Started \u2192 Completed for presentations created in the window), `visits` (visits per opened presentation), and `deliveryPath` (opened presentations that arrived without an email open or without an email send).\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nActivity from a browser signed in to AI Presentations is left out of average consumption, CTA clicks, and questions asked, so previewing your own presentation link doesn't inflate them. That activity still counts toward `opened`. A teammate viewing a link on a device where they never signed in is counted as a prospect. Activity recorded before this exclusion shipped is counted as prospect activity.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
         "security": [
           {
             "bearerAuth": []
@@ -9174,7 +9321,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (opens, slide views, narration playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once per page load when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready. It records a completion for every visit, including reloads on the last slide. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit of 60 requests per minute, including `narration_played_batch` requests. Every view in a batch after the first costs 1 more. For `slide_viewed_batch`, that extra cost counts against the same per-IP limit. For `narration_played_batch`, it counts against a separate narration bucket. The limit returns `429` when exceeded. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
+        "description": "Ingests interaction events from the presentation viewer (opens, presses of the intro Start button, slide views, narration playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once per page load when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready. It records a completion for every visit, including reloads on the last slide. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit of 60 requests per minute, including `narration_played_batch` requests. Every view in a batch after the first costs 1 more. For `slide_viewed_batch`, that extra cost counts against the same per-IP limit. For `narration_played_batch`, it counts against a separate narration bucket. The limit returns `429` when exceeded. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -9205,6 +9352,7 @@
                     "type": "string",
                     "enum": [
                       "presentation_opened",
+                      "presentation_started",
                       "slide_viewed",
                       "slide_viewed_batch",
                       "narration_played_batch",
@@ -9215,7 +9363,15 @@
                       "action_detection",
                       "action_execution"
                     ],
-                    "description": "Event type. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
+                    "description": "Event type. `presentation_started` is sent when the viewer presses Start on the intro screen, and records a `presentation.started` event. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
+                  },
+                  "pointerCoarse": {
+                    "type": "boolean",
+                    "description": "Whether the viewer's primary pointer is coarse, as reported by the `(pointer: coarse)` media query. Optional. Applies to `presentation_opened`. AI Presentations combines it with the request's user agent to classify the device as mobile, tablet, or desktop."
+                  },
+                  "introShown": {
+                    "type": "boolean",
+                    "description": "Whether this visit opened on the intro screen, so the viewer had a Start button to press. Optional. Applies to `presentation_opened`."
                   },
                   "viewId": {
                     "type": "string",
