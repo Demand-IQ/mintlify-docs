@@ -2069,6 +2069,284 @@
           "minimumDelivered",
           "versions"
         ]
+      },
+      "QuestionOutcomeCounts": {
+        "type": "object",
+        "description": "Question counts by outcome.",
+        "properties": {
+          "asked": {
+            "type": "integer",
+            "example": 48,
+            "description": "Total questions asked."
+          },
+          "answered": {
+            "type": "integer",
+            "example": 39
+          },
+          "low_confidence": {
+            "type": "integer",
+            "example": 4,
+            "description": "Answered with low confidence."
+          },
+          "deflected": {
+            "type": "integer",
+            "example": 3,
+            "description": "Not answered because the FAQs, slides, and knowledge base had no answer."
+          },
+          "degraded": {
+            "type": "integer",
+            "example": 2,
+            "description": "Not answered because of a service failure. Not a content gap."
+          }
+        },
+        "required": [
+          "asked",
+          "answered",
+          "low_confidence",
+          "deflected",
+          "degraded"
+        ]
+      },
+      "HomeownerQuestion": {
+        "type": "object",
+        "description": "One question a homeowner asked in a presentation.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "askedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-14T17:32:08.000Z"
+          },
+          "presentationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deck": {
+            "type": "object",
+            "description": "The template the presentation was created from.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true
+              },
+              "name": {
+                "type": "string",
+                "nullable": true,
+                "example": "Residential Solar Proposal"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "slide": {
+            "type": "object",
+            "description": "The slide the homeowner was on. All fields are `null` on older questions recorded before slide tracking was available.",
+            "properties": {
+              "deckSlideId": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true
+              },
+              "title": {
+                "type": "string",
+                "nullable": true,
+                "example": "Your estimated savings"
+              },
+              "index": {
+                "type": "integer",
+                "nullable": true,
+                "example": 3,
+                "description": "0-based position of the slide in the presentation."
+              }
+            },
+            "required": [
+              "deckSlideId",
+              "title",
+              "index"
+            ]
+          },
+          "modality": {
+            "type": "string",
+            "enum": [
+              "voice",
+              "text",
+              "unknown"
+            ],
+            "description": "Whether the homeowner asked by voice or by typing."
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "low_confidence",
+              "deflected",
+              "degraded"
+            ]
+          },
+          "text": {
+            "type": "object",
+            "description": "`available`: the question and answer text are included. `redacted`: the question is older than 90 days, so its text was removed. Its outcome is still counted. `not_recorded`: no text was recorded for the question.",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "available",
+                  "redacted",
+                  "not_recorded"
+                ]
+              },
+              "question": {
+                "type": "string",
+                "nullable": true,
+                "example": "Does the warranty cover the inverter?"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "example": "Yes. The inverter is covered by a 25-year manufacturer warranty."
+              }
+            },
+            "required": [
+              "status",
+              "question",
+              "answer"
+            ]
+          },
+          "category": {
+            "type": "object",
+            "description": "Where the answer came from and which knowledge sources had nothing.",
+            "properties": {
+              "answerSource": {
+                "type": "string",
+                "nullable": true,
+                "example": "generated",
+                "description": "One of `faq_exact`, `faq_semantic`, `generated`, `fallback`, or `greeting`."
+              },
+              "contentSource": {
+                "type": "string",
+                "nullable": true,
+                "example": "slide",
+                "description": "For generated answers: `slide`, `kb`, `both`, or `unknown`."
+              },
+              "emptySources": {
+                "type": "array",
+                "description": "Knowledge sources that were checked and had no answer.",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "faq",
+                    "slides",
+                    "kb"
+                  ]
+                }
+              },
+              "degradedReason": {
+                "type": "string",
+                "nullable": true,
+                "description": "Why the answer was degraded, when `outcome` is `degraded`."
+              }
+            },
+            "required": [
+              "answerSource",
+              "contentSource",
+              "emptySources",
+              "degradedReason"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "askedAt",
+          "presentationId",
+          "deck",
+          "slide",
+          "modality",
+          "outcome",
+          "text",
+          "category"
+        ]
+      },
+      "QuestionReport": {
+        "type": "object",
+        "description": "Homeowner questions for your organization over the requested window, grouped by ISO week.",
+        "properties": {
+          "window": {
+            "type": "object",
+            "description": "The window the questions were asked in: the requested `since`/`until`, or the last 30 days ending at request time.",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-10-12T00:00:00.000Z"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-10-19T00:00:00.000Z"
+              }
+            },
+            "required": [
+              "from",
+              "until"
+            ]
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "The template filter applied, or `null` when the list covers all templates."
+          },
+          "counts": {
+            "$ref": "#/components/schemas/QuestionOutcomeCounts"
+          },
+          "unansweredRate": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "weeks": {
+            "type": "array",
+            "description": "ISO weeks (UTC), oldest first. Questions within a week are newest first.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "isoWeek": {
+                  "type": "string",
+                  "example": "2026-W42"
+                },
+                "counts": {
+                  "$ref": "#/components/schemas/QuestionOutcomeCounts"
+                },
+                "unansweredRate": {
+                  "$ref": "#/components/schemas/EngagementRate"
+                },
+                "questions": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HomeownerQuestion"
+                  }
+                }
+              },
+              "required": [
+                "isoWeek",
+                "counts",
+                "unansweredRate",
+                "questions"
+              ]
+            }
+          }
+        },
+        "required": [
+          "window",
+          "deckId",
+          "counts",
+          "unansweredRate",
+          "weeks"
+        ]
       }
     }
   },
@@ -5963,6 +6241,109 @@
           },
           "401": {
             "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engagement/questions": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "List homeowner questions",
+        "description": "Returns every question homeowners asked in your presentations during the requested window, grouped by ISO week (UTC). Each question includes its template, slide, modality, outcome, question and answer text, and the knowledge sources involved.\n\nAI Presentations classifies each question with one outcome, checked in this order:\n\n- `degraded`: AI Presentations couldn't answer because of a service failure. This isn't a content gap.\n- `deflected`: the FAQs, slides, and knowledge base had no answer.\n- `low_confidence`: AI Presentations answered with low confidence.\n- `answered`: every other question.\n\nThe response includes counts per week and for the whole window, plus an `unansweredRate`: deflected questions divided by asked questions minus degraded ones.\n\nThe window applies to when each question was asked, so back-to-back windows list each question exactly once. The counts match `questionsAsked` from `GET /api/engagement/summary` only when every presentation in the window was also created inside it, because the summary counts questions on presentations created in the window.\n\nQuestions from browsers signed in to AI Presentations and from the template editor preview are left out. Question and answer text is removed after 90 days. Those questions keep their outcome and count, and show `text.status` as `redacted`.\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains more than 5,000 questions, AI Presentations returns `422`. Narrow the window and retry.\n\nPass `deckId` to limit the list to one template. A `deckId` that doesn't belong to your organization returns an empty list rather than `404`.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-10-12T00:00:00Z",
+            "description": "Start of the window for when questions were asked (inclusive), as an RFC 3339 timestamp. Timezone offsets are accepted. Provide with `until`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-10-19T00:00:00Z",
+            "description": "End of the window for when questions were asked (exclusive), as an RFC 3339 timestamp. Must be after `since`. Provide with `since`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Limit the list to one template. An empty value is treated as absent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Homeowner questions by ISO week, with outcome counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters, `since` or `until` provided without the other, or `since` not before `until`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The window contains more than 5,000 questions. Narrow the window and retry.",
             "content": {
               "application/json": {
                 "schema": {
