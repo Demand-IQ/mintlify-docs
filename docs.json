@@ -90,7 +90,8 @@
                 "group": "Engagement",
                 "expanded": false,
                 "pages": [
-                  "GET /api/engagement/summary"
+                  "GET /api/engagement/summary",
+                  "GET /api/delivery/template-performance"
                 ]
               },
               {

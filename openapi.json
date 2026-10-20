@@ -1779,6 +1779,149 @@
           "appointmentsBooked",
           "contractsSigned"
         ]
+      },
+      "TemplateVersionPerformance": {
+        "type": "object",
+        "description": "Email performance for one email template version, counted on first sends to the homeowner.",
+        "properties": {
+          "templateVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "example": "3f1c9a2e-7b4d-4e8a-9c21-5d6f0a8b1e47",
+            "description": "The email template version. `null` marks the \"Unknown version\" row, which holds first sends made before AI Presentations recorded template versions. These sends are never assigned to your current copy."
+          },
+          "copy": {
+            "type": "object",
+            "nullable": true,
+            "description": "The version's email copy before tokens are filled in. `null` on the unknown version row.",
+            "properties": {
+              "subject": {
+                "type": "string",
+                "example": "{{homeowner.first_name}}, your roof presentation is ready"
+              },
+              "preheader": {
+                "type": "string",
+                "example": "Watch a 3-minute walkthrough of your quote"
+              },
+              "ctaLabel": {
+                "type": "string",
+                "example": "Watch your presentation"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-09-14T16:02:11.000Z",
+                "description": "When AI Presentations first sent an email with this copy."
+              }
+            },
+            "required": [
+              "subject",
+              "preheader",
+              "ctaLabel",
+              "createdAt"
+            ]
+          },
+          "sent": {
+            "type": "integer",
+            "example": 148,
+            "description": "Presentations whose first send to the homeowner used this version and fell in the window."
+          },
+          "delivered": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRate"
+              }
+            ],
+            "description": "Delivered first sends over first sends whose delivery outcome is known. `unknown` counts sends whose outcome is no longer available."
+          },
+          "emailOpened": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRate"
+              }
+            ],
+            "description": "First sends a person opened over delivered first sends. Automatic opens, such as Apple Mail Privacy Protection prefetches, are excluded. Compare versions on this rate."
+          },
+          "started": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EngagementRate"
+              }
+            ],
+            "description": "Presentations whose viewer page was loaded over `sent`. Link scanners in mail clients can load the page, which inflates this rate by about the same amount for every version."
+          },
+          "reportable": {
+            "type": "boolean",
+            "example": true,
+            "description": "`false` when fewer first sends were delivered than `minimumDelivered`. Treat the rates as directional only."
+          },
+          "fallbackSent": {
+            "type": "integer",
+            "example": 3,
+            "description": "First sends whose subject or preview text fell back to the default because a token rendered empty. The homeowner never saw this version's copy, so these sends are left out of `sent` and every rate."
+          }
+        },
+        "required": [
+          "templateVersionId",
+          "copy",
+          "sent",
+          "delivered",
+          "emailOpened",
+          "started",
+          "reportable",
+          "fallbackSent"
+        ]
+      },
+      "TemplatePerformance": {
+        "type": "object",
+        "description": "Email performance per email template version for your organization over the requested window.",
+        "properties": {
+          "window": {
+            "type": "object",
+            "description": "The window the first sends fall in: the requested `since`/`until`, or the last 30 days ending at request time.",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-09-01T00:00:00.000Z"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-10-01T00:00:00.000Z"
+              }
+            },
+            "required": [
+              "from",
+              "until"
+            ]
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "The template filter applied, or `null` when the results cover all templates."
+          },
+          "minimumDelivered": {
+            "type": "integer",
+            "example": 10,
+            "description": "The smallest number of delivered first sends at which a version's rates are `reportable`."
+          },
+          "versions": {
+            "type": "array",
+            "description": "One entry per email template version, newest first. The unknown version row, if present, is last.",
+            "items": {
+              "$ref": "#/components/schemas/TemplateVersionPerformance"
+            }
+          }
+        },
+        "required": [
+          "window",
+          "deckId",
+          "minimumDelivered",
+          "versions"
+        ]
       }
     }
   },
@@ -5580,6 +5723,99 @@
           },
           "422": {
             "description": "The window contains too many presentations. Narrow the window and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delivery/template-performance": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Get email template performance",
+        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to the homeowner, using that email's own delivery and open outcomes. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out manual sends to override recipients, sends to Demand IQ staff addresses, deleted presentations, and automatic opens.\n\nProvide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nPass `deckId` to limit the results to one template. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-09-01T00:00:00Z",
+            "description": "Start of the window for the first send (inclusive), as an RFC 3339 timestamp. Timezone offsets are accepted. Provide with `until`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-10-01T00:00:00Z",
+            "description": "End of the window for the first send (exclusive), as an RFC 3339 timestamp. Must be after `since`. Provide with `since`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Limit the results to one template. An empty value is treated as absent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email performance per template version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatePerformance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters, `since` or `until` provided without the other, or `since` not before `until`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
             "content": {
               "application/json": {
                 "schema": {
