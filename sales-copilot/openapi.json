@@ -1206,6 +1206,259 @@
           "minimumDelivered",
           "versions"
         ]
+      },
+      "QuestionOutcomeCounts": {
+        "type": "object",
+        "properties": {
+          "asked": {
+            "type": "integer"
+          },
+          "answered": {
+            "type": "integer"
+          },
+          "low_confidence": {
+            "type": "integer",
+            "description": "Answered with low confidence."
+          },
+          "deflected": {
+            "type": "integer",
+            "description": "No answer: FAQ, slides and knowledge base all came up empty."
+          },
+          "degraded": {
+            "type": "integer",
+            "description": "Our infrastructure failed to answer. Not a content gap."
+          }
+        },
+        "required": [
+          "asked",
+          "answered",
+          "low_confidence",
+          "deflected",
+          "degraded"
+        ]
+      },
+      "HomeownerQuestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "askedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "presentationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deck": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "slide": {
+            "type": "object",
+            "description": "Recorded since ENG-1186; null on older questions.",
+            "properties": {
+              "deckSlideId": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true
+              },
+              "title": {
+                "type": "string",
+                "nullable": true
+              },
+              "index": {
+                "type": "integer",
+                "nullable": true,
+                "description": "0-based position in the presentation."
+              }
+            },
+            "required": [
+              "deckSlideId",
+              "title",
+              "index"
+            ]
+          },
+          "modality": {
+            "type": "string",
+            "enum": [
+              "voice",
+              "text",
+              "unknown"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "low_confidence",
+              "deflected",
+              "degraded"
+            ]
+          },
+          "text": {
+            "type": "object",
+            "description": "`redacted`: the question is older than the 90-day retention window, so its text was removed; its outcome is still counted. `not_recorded`: the event never carried text.",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "available",
+                  "redacted",
+                  "not_recorded"
+                ]
+              },
+              "question": {
+                "type": "string",
+                "nullable": true
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "status",
+              "question",
+              "answer"
+            ]
+          },
+          "category": {
+            "type": "object",
+            "properties": {
+              "answerSource": {
+                "type": "string",
+                "nullable": true,
+                "description": "faq_exact, faq_semantic, generated, fallback or greeting."
+              },
+              "contentSource": {
+                "type": "string",
+                "nullable": true,
+                "description": "slide, kb, both or unknown, when generated."
+              },
+              "emptySources": {
+                "type": "array",
+                "description": "Knowledge sources that were checked and had nothing.",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "faq",
+                    "slides",
+                    "kb"
+                  ]
+                }
+              },
+              "degradedReason": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "answerSource",
+              "contentSource",
+              "emptySources",
+              "degradedReason"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "askedAt",
+          "presentationId",
+          "deck",
+          "slide",
+          "modality",
+          "outcome",
+          "text",
+          "category"
+        ]
+      },
+      "QuestionReport": {
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "from",
+              "until"
+            ]
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "counts": {
+            "$ref": "#/components/schemas/QuestionOutcomeCounts"
+          },
+          "unansweredRate": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "weeks": {
+            "type": "array",
+            "description": "ISO weeks (UTC), oldest first. Questions within a week are newest first.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "isoWeek": {
+                  "type": "string",
+                  "example": "2026-W42"
+                },
+                "counts": {
+                  "$ref": "#/components/schemas/QuestionOutcomeCounts"
+                },
+                "unansweredRate": {
+                  "$ref": "#/components/schemas/EngagementRate"
+                },
+                "questions": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HomeownerQuestion"
+                  }
+                }
+              },
+              "required": [
+                "isoWeek",
+                "counts",
+                "unansweredRate",
+                "questions"
+              ]
+            }
+          }
+        },
+        "required": [
+          "window",
+          "deckId",
+          "counts",
+          "unansweredRate",
+          "weeks"
+        ]
       }
     }
   },
@@ -4998,6 +5251,104 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engagement/questions": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Homeowner questions",
+        "description": "Every homeowner question asked in the window for the authenticated org, grouped by ISO week (UTC) and classified answered / low_confidence / deflected / degraded. Windowed on when the question was asked, so consecutive windows list each question exactly once. Questions from admin and staff sessions, and from the editor preview, are excluded. A spoofing admin sees the target company.\n\nQuestion and answer text is removed after 90 days; those rows keep their outcome and show `text.status: redacted`.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404. A window with more than 5000 questions returns 422.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO datetime lower bound on when the question was asked (inclusive). Provide with `until`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO datetime upper bound on when the question was asked (exclusive). Provide with `since`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Limit to one deck. An empty value is treated as absent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Questions by ISO week, with outcome counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable entity",
             "content": {
               "application/json": {
                 "schema": {
