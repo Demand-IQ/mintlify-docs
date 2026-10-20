@@ -3757,7 +3757,7 @@
                     },
                     "reason": {
                       "type": "string",
-                      "description": "Set when skipped: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `opened` or `viewed`. Set when failed: the error message."
+                      "description": "Set when skipped: `no_presentation`, `no_email`, `suppressed`, `presentation_parked`, `presentation_failed`, `no_initial_send`, `reminder_disabled`, `opened` or `viewed`. Set when failed: the error message."
                     },
                     "presentation_id": {
                       "type": "string",
