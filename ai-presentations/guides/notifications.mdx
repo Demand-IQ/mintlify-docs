@@ -175,6 +175,19 @@ Each send emits an `email.sent` event. When SendGrid reports the recipient has o
 
 AI Presentations also records every delivery outcome SendGrid reports, including delivered, deferred, bounced, dropped, spam report, unsubscribe, and click events. Failures that need your attention emit their own events: `email.bounced`, `email.dropped`, `email.complained`, and `email.unsubscribed`. Subscribe to them to find out when a presentation email never reached the homeowner or when a homeowner opts out. There is no `email.delivered` event; `email.sent` already covers the send itself.
 
+### Compare email copy performance
+
+Call `GET /api/delivery/template-performance` to compare versions of a template's email copy. AI Presentations records a new template version the first time it sends an email with a new combination of subject, preview text, body, CTA label, and sender name. A version stores the copy before tokens are filled in. For each version, the response returns how many first emails were sent, delivered, and opened, and how many homeowners loaded the presentation.
+
+- AI Presentations counts each presentation once, under the version used for its first email to the homeowner. Opens of a later reminder don't count toward any version.
+- Compare versions on `emailOpened`, which counts opens by a person over delivered emails. Automatic opens are excluded.
+- A version with fewer than `minimumDelivered` delivered emails has `reportable: false`. Treat its rates as directional.
+- First sends whose subject or preview text fell back to the default are reported in `fallbackSent` and left out of the rates, because the homeowner never saw that version's copy.
+- Manual sends to override recipients, sends to Demand IQ staff addresses, and deleted presentations are excluded.
+- First sends made before AI Presentations recorded template versions appear in a final row with `templateVersionId: null`.
+
+Pass `since` and `until` to bound when the first email was sent, or omit both for the last 30 days. Pass `deckId` to limit results to one template.
+
 ## Event types
 
 AI Presentations emits these events:
@@ -391,5 +404,6 @@ Key notification endpoints:
 - `GET/PUT /api/decks/{deckId}/delivery` — manage per-deck email delivery settings
 - `POST /api/presentations/{presentationId}/send` — send or resend the homeowner email
 - `POST /api/presentations/send` — send a follow-up email, such as a reminder, for a presentation created by ingest
+- `GET /api/delivery/template-performance` — compare sent, delivered, and opened counts per email template version
 
 See the **API Reference** tab for full request and response details.
