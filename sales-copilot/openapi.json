@@ -992,6 +992,120 @@
           "appointmentsBooked",
           "contractsSigned"
         ]
+      },
+      "TemplateVersionPerformance": {
+        "type": "object",
+        "description": "One email template version’s first sends to the homeowner (ENG-1441.4).",
+        "properties": {
+          "templateVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Null is the \"Unknown version\" row: sends from before versions were recorded."
+          },
+          "copy": {
+            "type": "object",
+            "nullable": true,
+            "description": "The version’s template copy, before tokens are filled in. Null on the unknown row.",
+            "properties": {
+              "subject": {
+                "type": "string"
+              },
+              "preheader": {
+                "type": "string"
+              },
+              "ctaLabel": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "subject",
+              "preheader",
+              "ctaLabel",
+              "createdAt"
+            ]
+          },
+          "sent": {
+            "type": "integer"
+          },
+          "delivered": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "emailOpened": {
+            "$ref": "#/components/schemas/EngagementRate",
+            "description": "Human opens over delivered. The number to compare versions on."
+          },
+          "started": {
+            "$ref": "#/components/schemas/EngagementRate",
+            "description": "first_viewed_at over sent: the metric dictionary’s start rate. Link scanners inflate it."
+          },
+          "reportable": {
+            "type": "boolean",
+            "description": "False below `minimumDelivered`: label it directional internally, hide it from customers."
+          },
+          "fallbackSent": {
+            "type": "integer",
+            "description": "First sends whose subject or preheader fell back to default copy for a blank token. The homeowner never saw this version’s copy, so they are in none of the counts or rates above."
+          }
+        },
+        "required": [
+          "templateVersionId",
+          "copy",
+          "sent",
+          "delivered",
+          "emailOpened",
+          "started",
+          "reportable",
+          "fallbackSent"
+        ]
+      },
+      "TemplatePerformance": {
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "until": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "from",
+              "until"
+            ]
+          },
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "minimumDelivered": {
+            "type": "integer",
+            "description": "Smallest delivered count a rate is reportable at."
+          },
+          "versions": {
+            "type": "array",
+            "description": "Newest version first; the unknown row last.",
+            "items": {
+              "$ref": "#/components/schemas/TemplateVersionPerformance"
+            }
+          }
+        },
+        "required": [
+          "window",
+          "deckId",
+          "minimumDelivered",
+          "versions"
+        ]
       }
     }
   },
@@ -4696,6 +4810,94 @@
           },
           "422": {
             "description": "Unprocessable entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delivery/template-performance": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Email template performance",
+        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to the homeowner, if that send falls in the window. Rep override sends, @demand-iq.com recipients and deleted presentations are excluded.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO datetime lower bound on the first send (inclusive). Provide with `until`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO datetime upper bound on the first send (exclusive). Provide with `since`, or omit both for the last 30 days."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Limit to one deck. An empty value is treated as absent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-version email performance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatePerformance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
