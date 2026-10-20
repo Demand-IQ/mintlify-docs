@@ -911,9 +911,64 @@
           "percentChange"
         ]
       },
+      "EngagementFunnelStep": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "overPrevious": {
+            "$ref": "#/components/schemas/EngagementRate",
+            "description": "Reached this step AND the previous one, over the previous one, so it never exceeds 100%."
+          },
+          "overCreated": {
+            "$ref": "#/components/schemas/EngagementRate"
+          }
+        },
+        "required": [
+          "count",
+          "overPrevious",
+          "overCreated"
+        ]
+      },
+      "EngagementFunnel": {
+        "type": "object",
+        "description": "Created → Sent → Opened → Started → Completed on the create cohort (docs/metric-dictionary.md).",
+        "properties": {
+          "created": {
+            "type": "integer"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/EngagementFunnelStep"
+          },
+          "opened": {
+            "$ref": "#/components/schemas/EngagementFunnelStep"
+          },
+          "started": {
+            "$ref": "#/components/schemas/EngagementFunnelStep",
+            "description": "Only presentations whose deck has an intro. Opens from before presentation.started existed are `unknown`."
+          },
+          "completed": {
+            "$ref": "#/components/schemas/EngagementFunnelStep",
+            "description": "overCreated is the headline; overPrevious is over Started."
+          },
+          "noStartStep": {
+            "type": "integer",
+            "description": "Opened presentations on a deck with no intro, which never emit Started."
+          }
+        },
+        "required": [
+          "created",
+          "sent",
+          "opened",
+          "started",
+          "completed",
+          "noStartStep"
+        ]
+      },
       "EngagementSummary": {
         "type": "object",
-        "description": "The 7 engagement cards for the authenticated org (ENG-1442.1).",
+        "description": "The 7 engagement cards for the authenticated org (ENG-1442.1), plus the funnel, visits and delivery path (ENG-1540).",
         "properties": {
           "window": {
             "type": "object",
@@ -979,6 +1034,48 @@
           },
           "contractsSigned": {
             "$ref": "#/components/schemas/EngagementCountMetric"
+          },
+          "funnel": {
+            "$ref": "#/components/schemas/EngagementFunnel"
+          },
+          "visits": {
+            "type": "object",
+            "description": "Visits per opened presentation: presentation.opened rows split at 30-minute gaps. A lower bound, because the event is rate-limited.",
+            "properties": {
+              "opened": {
+                "type": "integer"
+              },
+              "avg": {
+                "type": "number",
+                "nullable": true
+              },
+              "median": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "required": [
+              "opened",
+              "avg",
+              "median"
+            ]
+          },
+          "deliveryPath": {
+            "type": "object",
+            "properties": {
+              "viewedWithoutEmailOpen": {
+                "type": "integer",
+                "description": "Opened, sent and delivered, with no human email open."
+              },
+              "viewedWithoutSend": {
+                "type": "integer",
+                "description": "Opened but never sent: the link was copied out of the app."
+              }
+            },
+            "required": [
+              "viewedWithoutEmailOpen",
+              "viewedWithoutSend"
+            ]
           }
         },
         "required": [
@@ -990,7 +1087,10 @@
           "ctaClicks",
           "questionsAsked",
           "appointmentsBooked",
-          "contractsSigned"
+          "contractsSigned",
+          "funnel",
+          "visits",
+          "deliveryPath"
         ]
       },
       "TemplateVersionPerformance": {
@@ -1041,7 +1141,7 @@
           },
           "started": {
             "$ref": "#/components/schemas/EngagementRate",
-            "description": "first_viewed_at over sent: the metric dictionary’s start rate. Link scanners inflate it."
+            "description": "first_viewed_at over sent: the metric dictionary’s Opened (weekly digest). Link scanners inflate it."
           },
           "reportable": {
             "type": "boolean",
