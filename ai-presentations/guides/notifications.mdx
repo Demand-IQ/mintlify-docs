@@ -108,7 +108,7 @@ A subject that contains only whitespace counts as no subject. The default is nev
 
 AI Presentations checks the deck's copy once, when it creates the presentation. Every later send, including a manual resend and the release of a parked presentation, renders the deck's current subject. The fallback covers a subject you save after the presentation was created.
 
-In the deck editor, the subject field starts empty and shows the default as its placeholder. You must enter a subject before you can save the **Email** tab. The preview header fills in subject tokens with sample values and applies the same fallback as the sender, so it shows the subject AI Presentations will send. For a deck with no subject yet, the preview shows the default subject.
+In the deck editor, the subject field starts empty and shows the default as its placeholder. If you save the **Email** tab with an empty subject, AI Presentations stores no subject and sends the default. The preview header fills in subject tokens with sample values and applies the same fallback as the sender, so it shows the subject AI Presentations will send. For a deck with no subject yet, the preview shows the default subject.
 
 ### Reminder subject line
 
@@ -189,8 +189,13 @@ Call `GET /api/delivery/template-performance` to compare versions of a template'
 - First sends whose subject or preview text fell back to the default are reported in `fallbackSent` and left out of the rates, because the homeowner never saw that version's copy.
 - Manual sends to override recipients, sends to Demand IQ staff addresses, and deleted presentations are excluded.
 - First sends made before AI Presentations recorded template versions appear in a final row with `templateVersionId: null`.
+- Each version's `copy` includes the subject, preview text, body, CTA label, and sender name. `fromName` is `null` when the version used your organization's name.
+- `kind` tells you where the copy came from: `deck` for copy saved on a template, `default` for the current Demand IQ default, `previous_default` for an earlier Demand IQ default, and `unknown` for the row with no recorded copy.
+- When you pass `deckId`, `current: true` marks the version the template would send now. Without `deckId`, `current` is always `false`.
 
 Pass `since` and `until` to bound when the first email was sent, or omit both for the last 30 days. Pass `deckId` to limit results to one template.
+
+If email template performance isn't enabled for your organization, the endpoint returns `404`.
 
 ## Event types
 
