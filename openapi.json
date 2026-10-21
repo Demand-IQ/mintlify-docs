@@ -4826,7 +4826,7 @@
           "Presentations"
         ],
         "summary": "Send a follow-up email for an ingested presentation",
-        "description": "Sends a follow-up email, such as a reminder, for the presentation that `POST /api/decks/{deckId}/ingest` created from `(deck_id, source_event_id)`. Server-to-server callers authenticate with a Bearer token. A company credential only reaches its own company's presentations.\n\nEvery decided outcome returns `200`: `sent`, `skipped` with a `reason`, or `failed`. AI Presentations records each outcome as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent, reminders turned off for the deck) always run. `skip_if` only adds conditions.\n\n`409` with code `SEND_IN_PROGRESS` means another call with the same key hasn't finished. Retry it with the same key. `5xx` responses are also safe to retry with the same key.",
+        "description": "Sends a follow-up email, such as a reminder, for a presentation that `POST /api/decks/{deckId}/ingest` created. Name the presentation with `presentation_id`, or with the `deck_id` and `source_event_id` you passed to ingest. Server-to-server callers authenticate with a Bearer token. A company credential only reaches its own company's presentations.\n\nEvery decided outcome returns `200`: `sent`, `skipped` with a `reason`, or `failed`. AI Presentations records each outcome as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent, reminders turned off for the deck) always run. `skip_if` only adds conditions.\n\n`409` with code `SEND_IN_PROGRESS` means another call with the same key hasn't finished. Retry it with the same key. `5xx` responses are also safe to retry with the same key.",
         "security": [
           {
             "bearerAuth": []
@@ -4842,15 +4842,21 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "deck_id",
-                  "source_event_id",
                   "idempotency_key",
                   "subject_variant"
                 ],
+                "description": "Name the presentation with `presentation_id`, or with `deck_id` and `source_event_id` together. A request that includes both shapes returns `400`.",
                 "properties": {
+                  "presentation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The presentation to send, as returned by ingest",
+                    "example": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c"
+                  },
                   "deck_id": {
                     "type": "string",
                     "format": "uuid",
+                    "description": "With `source_event_id`, identifies the presentation ingest created",
                     "example": "3f6c2a1e-8b4d-4c7a-9e2f-1d5b7a9c0e4f"
                   },
                   "source_event_id": {

@@ -44,18 +44,18 @@ If any of these fields is too long, the request returns `400` with `{ "error": "
 
 ### Follow-up sends
 
-After ingest sends the first email, call `POST /api/presentations/send` to send a follow-up, such as a reminder. Authenticate with a Bearer token in the `Authorization` header. AI Presentations finds the presentation by the `deck_id` and `source_event_id` you passed to ingest. A company credential only reaches its own company's presentations.
+After ingest sends the first email, call `POST /api/presentations/send` to send a follow-up, such as a reminder. Authenticate with a Bearer token in the `Authorization` header. Name the presentation with the `presentation_id` that ingest returned. A company credential only reaches its own company's presentations.
 
 ```json
 {
-  "deck_id": "3f6c2a1e-8b4d-4c7a-9e2f-1d5b7a9c0e4f",
-  "source_event_id": "journey-complete-48213",
+  "presentation_id": "7c2e5f8b-1a4d-4e6f-9b3c-8d0e2f4a6b1c",
   "idempotency_key": "reminder-48213-1",
   "skip_if": ["opened", "viewed"],
   "subject_variant": "reminder"
 }
 ```
 
+- Instead of `presentation_id`, you can send the `deck_id` and `source_event_id` you passed to ingest. Both fields are then required. A request that includes `presentation_id` together with `deck_id` or `source_event_id` returns `400`.
 - `idempotency_key` is required and must be 1 to 64 characters. Each key gets one delivery attempt and at most one email.
 - `skip_if` is optional and defaults to `[]`. `opened` skips the send if the homeowner opened an earlier email. Machine opens don't count. `viewed` skips the send if the homeowner viewed the presentation.
 - `subject_variant` must be `reminder`. Ingest sends the first email, so `initial` returns `400`.
