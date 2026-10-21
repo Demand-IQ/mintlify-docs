@@ -1114,8 +1114,16 @@
               "preheader": {
                 "type": "string"
               },
+              "bodyTemplate": {
+                "type": "string"
+              },
               "ctaLabel": {
                 "type": "string"
+              },
+              "fromName": {
+                "type": "string",
+                "nullable": true,
+                "description": "Null means the organization’s name."
               },
               "createdAt": {
                 "type": "string",
@@ -1125,9 +1133,25 @@
             "required": [
               "subject",
               "preheader",
+              "bodyTemplate",
               "ctaLabel",
+              "fromName",
               "createdAt"
             ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "deck",
+              "default",
+              "previous_default",
+              "unknown"
+            ],
+            "description": "`deck` is copy saved on a deck; `default` is today’s system default; `previous_default` is an earlier system default; `unknown` is the row with no recorded copy."
+          },
+          "current": {
+            "type": "boolean",
+            "description": "True for the version the deck would send now. Always false without `deckId`."
           },
           "sent": {
             "type": "integer"
@@ -1155,6 +1179,8 @@
         "required": [
           "templateVersionId",
           "copy",
+          "kind",
+          "current",
           "sent",
           "delivered",
           "emailOpened",
@@ -5190,7 +5216,7 @@
           "Engagement"
         ],
         "summary": "Email template performance",
-        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to the homeowner, if that send falls in the window. Rep override sends, @demand-iq.com recipients and deleted presentations are excluded.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404.",
+        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to the homeowner, if that send falls in the window. Rep override sends, @demand-iq.com recipients and deleted presentations are excluded.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404. Returns 404 when the `email-template-performance` flag is off for the org.",
         "security": [
           {
             "sessionCookie": []
@@ -5251,6 +5277,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
