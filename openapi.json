@@ -1951,9 +1951,20 @@
                 "type": "string",
                 "example": "Watch a 3-minute walkthrough of your quote"
               },
+              "bodyTemplate": {
+                "type": "string",
+                "example": "Hi {{homeowner.first_name}},\n\nYour personalized roof presentation is ready. Watch it any time.",
+                "description": "The email body."
+              },
               "ctaLabel": {
                 "type": "string",
                 "example": "Watch your presentation"
+              },
+              "fromName": {
+                "type": "string",
+                "nullable": true,
+                "example": "Summit Roofing",
+                "description": "The sender name. `null` means your organization's name."
               },
               "createdAt": {
                 "type": "string",
@@ -1965,9 +1976,22 @@
             "required": [
               "subject",
               "preheader",
+              "bodyTemplate",
               "ctaLabel",
+              "fromName",
               "createdAt"
             ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["deck", "default", "previous_default", "unknown"],
+            "example": "deck",
+            "description": "Where the version's copy came from. `deck` is copy saved on a template. `default` is the current Demand IQ default copy. `previous_default` is an earlier Demand IQ default. `unknown` is the row for sends made before AI Presentations recorded template versions."
+          },
+          "current": {
+            "type": "boolean",
+            "example": true,
+            "description": "`true` for the version the template would send now, based on its saved email copy. Always `false` when you omit `deckId`."
           },
           "sent": {
             "type": "integer",
@@ -2012,6 +2036,8 @@
         "required": [
           "templateVersionId",
           "copy",
+          "kind",
+          "current",
           "sent",
           "delivered",
           "emailOpened",
@@ -6175,7 +6201,7 @@
           "Engagement"
         ],
         "summary": "Get email template performance",
-        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to the homeowner, using that email's own delivery and open outcomes. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out manual sends to override recipients, sends to Demand IQ staff addresses, deleted presentations, and automatic opens.\n\nProvide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nPass `deckId` to limit the results to one template. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.",
+        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to the homeowner, using that email's own delivery and open outcomes. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out manual sends to override recipients, sends to Demand IQ staff addresses, deleted presentations, and automatic opens.\n\nProvide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nPass `deckId` to limit the results to one template. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.\n\nReturns `404` when email template performance isn't enabled for your organization.",
         "security": [
           {
             "bearerAuth": []
@@ -6241,6 +6267,16 @@
           },
           "401": {
             "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Email template performance isn't enabled for your organization",
             "content": {
               "application/json": {
                 "schema": {
