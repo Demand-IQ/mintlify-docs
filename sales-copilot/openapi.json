@@ -3703,7 +3703,7 @@
           "Presentations"
         ],
         "summary": "Send a later touch for an ingested presentation",
-        "description": "Sends a reminder for the presentation `POST /api/decks/{deckId}/ingest` created from `(deck_id, source_event_id)`. Called by Core's follow-up service with a Core service token; a tenant credential only reaches its own company's presentations.\n\nEvery decided outcome is a `200` — `sent`, `skipped` with a `reason`, or `failed` — and is recorded as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent) always run; `skip_if` only adds conditions.\n\n`409 SEND_IN_PROGRESS` means another call with the same key has not finished; retry it. `5xx` is retryable.",
+        "description": "Sends a reminder for an existing presentation, named by `presentation_id` or by the `(deck_id, source_event_id)` `POST /api/decks/{deckId}/ingest` created it from. Called by Core's follow-up service with a Core service token; a tenant credential only reaches its own company's presentations.\n\nEvery decided outcome is a `200` — `sent`, `skipped` with a `reason`, or `failed` — and is recorded as one delivery attempt per `idempotency_key`. A repeated key returns the original result without sending again. The safety checks (suppressed address, parked or failed presentation, no first email sent) always run; `skip_if` only adds conditions.\n\n`409 SEND_IN_PROGRESS` means another call with the same key has not finished; retry it. `5xx` is retryable.",
         "security": [
           {
             "bearerAuth": []
@@ -3719,15 +3719,20 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "deck_id",
-                  "source_event_id",
                   "idempotency_key",
                   "subject_variant"
                 ],
+                "description": "Name the presentation with `presentation_id`, or with `deck_id` and `source_event_id` together. Sending both shapes is a `400`.",
                 "properties": {
+                  "presentation_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The presentation to send, as returned by ingest"
+                  },
                   "deck_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "description": "With `source_event_id`, the presentation ingest created"
                   },
                   "source_event_id": {
                     "type": "string",
