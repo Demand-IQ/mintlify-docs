@@ -757,7 +757,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Earliest accepted delivery attempt (`status = 'sent'`), aggregated across every attempt on the presentation. Skipped and failed attempts do not count as sends. `null` when no attempt has been accepted, including for presentations shared by a rep rather than emailed. Delivery half of the status ladder Created → Sent → Email Opened → Viewed (the badge shows the furthest rung reached)."
+            "description": "Earliest accepted delivery attempt (`status = 'sent'`), aggregated across every attempt on the presentation. Skipped and failed attempts do not count as sends. `null` when no attempt has been accepted, including for presentations shared by a rep rather than emailed. Delivery half of the status ladder Created \u2192 Sent \u2192 Email Opened \u2192 Viewed (the badge shows the furthest rung reached)."
           },
           "emailOpenedAt": {
             "type": "string",
@@ -943,7 +943,7 @@
           },
           "audioUrl": {
             "type": "string",
-            "description": "URL for the spoken audio of the answer. Either an accessible stored file, or a relative `/api/qa/audio?t=…` URL that synthesizes the audio on request when `audioStreamed` is `true`."
+            "description": "URL for the spoken audio of the answer. Either an accessible stored file, or a relative `/api/qa/audio?t=\u2026` URL that synthesizes the audio on request when `audioStreamed` is `true`."
           },
           "audioStreamed": {
             "type": "boolean",
@@ -1473,13 +1473,27 @@
           "skipReason": {
             "type": "string",
             "nullable": true,
-            "enum": ["no_email", "suppressed", "presentation_parked", "presentation_failed", "no_initial_send", "reminder_disabled", "opened", "viewed", null],
+            "enum": [
+              "no_email",
+              "suppressed",
+              "presentation_parked",
+              "presentation_failed",
+              "no_initial_send",
+              "reminder_disabled",
+              "opened",
+              "viewed",
+              null
+            ],
             "description": "Present on `email.sent` entries only. Why the delivery attempt was skipped, resolved from the delivery attempt referenced by the payload's `deliveryId`. `no_email` means the homeowner had no email address. `suppressed` means a recipient previously hard-bounced, reported spam, or unsubscribed within the last 90 days, so AI Presentations sent nothing. The remaining values apply to reminder attempts (`variant` is `reminder`): `opened` means the homeowner already opened the first email, `viewed` means the homeowner already viewed the presentation, `no_initial_send` means the first email was never sent, `reminder_disabled` means reminders are off for the deck's template, and `presentation_parked` or `presentation_failed` means the presentation isn't ready. `null` when the attempt was not skipped."
           },
           "variant": {
             "type": "string",
             "nullable": true,
-            "enum": ["initial", "reminder", null],
+            "enum": [
+              "initial",
+              "reminder",
+              null
+            ],
             "description": "Present on `email.sent` entries only. Which send the delivery attempt represents, resolved from the delivery attempt referenced by the payload's `deliveryId`. `initial` is the first presentation email. `reminder` is the follow-up sent to a homeowner who never opened the first email. `null` when no matching delivery attempt was found. The activity log labels reminder entries as `Reminder Sent`, `Reminder Failed`, `Reminder Not Needed` (skipped because of `opened` or `viewed`), or `Reminder Not Sent` (any other skip reason, including `reminder_disabled`)."
           },
           "machineOpen": {
@@ -1970,7 +1984,7 @@
                 "type": "string",
                 "format": "date-time",
                 "example": "2026-09-14T16:02:11.000Z",
-                "description": "When AI Presentations first sent an email with this copy."
+                "description": "When AI Presentations first recorded this copy, on a save or a send by any template. Use `firstSavedAt` and `firstSentAt` to date a version on one template's list."
               }
             },
             "required": [
@@ -1984,19 +1998,24 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["deck", "default", "previous_default", "unknown"],
+            "enum": [
+              "deck",
+              "default",
+              "previous_default",
+              "unknown"
+            ],
             "example": "deck",
             "description": "Where the version's copy came from. `deck` is copy saved on a template. `default` is the current Demand IQ default copy. `previous_default` is an earlier Demand IQ default. `unknown` is the row for sends made before AI Presentations recorded template versions."
           },
           "current": {
             "type": "boolean",
             "example": true,
-            "description": "`true` for the version the template would send now, based on its saved email copy. Always `false` when you omit `deckId`."
+            "description": "`true` for the template's active version: the copy it sends now. Always `false` when you omit `deckId`."
           },
           "sent": {
             "type": "integer",
             "example": 148,
-            "description": "Presentations whose first send to the homeowner used this version and fell in the window."
+            "description": "Presentations whose first send to the homeowner used this version. In the organization-wide view, only first sends in the window count."
           },
           "delivered": {
             "allOf": [
@@ -2074,7 +2093,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "The template filter applied, or `null` when the results cover all templates."
+            "description": "Always `null`. A request with `deckId` returns `DeckTemplateList` instead."
           },
           "minimumDelivered": {
             "type": "integer",
@@ -2091,6 +2110,65 @@
         },
         "required": [
           "window",
+          "deckId",
+          "minimumDelivered",
+          "versions"
+        ]
+      },
+      "DeckTemplate": {
+        "description": "One version on a template's version list, with all-time counts.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TemplateVersionPerformance"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "firstSavedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "example": "2026-09-14T16:02:11.000Z",
+                "description": "When this template first saved this version. `null` for a version that was only ever sent."
+              },
+              "firstSentAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "example": "2026-09-15T13:40:02.000Z",
+                "description": "This template's earliest counted first send of this version. `null` when it has none."
+              }
+            },
+            "required": [
+              "firstSavedAt",
+              "firstSentAt"
+            ]
+          }
+        ]
+      },
+      "DeckTemplateList": {
+        "type": "object",
+        "description": "Every version of a template's email copy, with all-time counts.",
+        "properties": {
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384"
+          },
+          "minimumDelivered": {
+            "type": "integer",
+            "example": 10,
+            "description": "The smallest number of delivered first sends at which a version's rates are `reportable`."
+          },
+          "versions": {
+            "type": "array",
+            "description": "Every version the template has had, all-time, with removed versions left out. The active version comes first, then the newest by `firstSavedAt` or else `firstSentAt`. The unknown version row, if present, is last. The active version is always present. Its `templateVersionId` is `null` when its copy was never saved or sent.",
+            "items": {
+              "$ref": "#/components/schemas/DeckTemplate"
+            }
+          }
+        },
+        "required": [
           "deckId",
           "minimumDelivered",
           "versions"
@@ -4557,7 +4635,7 @@
           "Presentations"
         ],
         "summary": "List presentations",
-        "description": "Returns all non-deleted presentations created from this deck. Each row carries the four status-ladder timestamps (`sentAt`, `emailOpenedAt`, `firstViewedAt`, plus `createdAt`); the badge shows the furthest rung reached along Created → Sent → Email Opened → Viewed. Any of the three delivery-side timestamps is `null` when that rung has not been reached — for example, a rep-shared link that was opened without ever being emailed carries `sentAt: null`, `emailOpenedAt: null`, and a non-null `firstViewedAt`.",
+        "description": "Returns all non-deleted presentations created from this deck. Each row carries the four status-ladder timestamps (`sentAt`, `emailOpenedAt`, `firstViewedAt`, plus `createdAt`); the badge shows the furthest rung reached along Created \u2192 Sent \u2192 Email Opened \u2192 Viewed. Any of the three delivery-side timestamps is `null` when that rung has not been reached \u2014 for example, a rep-shared link that was opened without ever being emailed carries `sentAt: null`, `emailOpenedAt: null`, and a non-null `firstViewedAt`.",
         "security": [
           {
             "sessionCookie": []
@@ -5327,7 +5405,7 @@
                   "deckId": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "Deck to answer from. Ignored when `presentationId` is provided — the deck is resolved from the presentation, and this value is used only as a fallback if that deck has been deleted."
+                    "description": "Deck to answer from. Ignored when `presentationId` is provided \u2014 the deck is resolved from the presentation, and this value is used only as a fallback if that deck has been deleted."
                   },
                   "presentationId": {
                     "type": "string",
@@ -6207,7 +6285,7 @@
           "Engagement"
         ],
         "summary": "Get email template performance",
-        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to a recipient outside Demand IQ, using that email's own delivery and open outcomes. Manual sends from the **Send** dialog count. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out sends only to Demand IQ staff (`@demand-iq.com`) addresses, deleted presentations, and automatic opens. Delivered and opened counts come only from events for recipients outside Demand IQ.\n\nProvide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nPass `deckId` to limit the results to one template. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.\n\nReturns `404` when email template performance isn't enabled for your organization.",
+        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to a recipient outside Demand IQ, using that email's own delivery and open outcomes. Manual sends from the **Send** dialog count. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out sends only to Demand IQ staff (`@demand-iq.com`) addresses, deleted presentations, and automatic opens. Delivered and opened counts come only from events for recipients outside Demand IQ.\n\nPass `deckId` to get one template's version list (`DeckTemplateList`). It includes every version the template has had, with all-time counts, from the moment the version is saved. Versions you removed are left out. The template's active version is always listed first, even before its first send. `since` and `until` are ignored when you pass `deckId`. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.\n\nOmit `deckId` for the organization-wide view (`TemplatePerformance`). Provide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nReturns `404` when email template performance isn't enabled for your organization.",
         "security": [
           {
             "bearerAuth": []
@@ -6226,7 +6304,7 @@
               "format": "date-time"
             },
             "example": "2026-09-01T00:00:00Z",
-            "description": "Start of the window for the first send (inclusive), as an RFC 3339 timestamp. Timezone offsets are accepted. Provide with `until`, or omit both for the last 30 days."
+            "description": "Organization-wide view only. Ignored when you pass `deckId`. Start of the window for the first send (inclusive), as an RFC 3339 timestamp. Timezone offsets are accepted. Provide with `until`, or omit both for the last 30 days."
           },
           {
             "in": "query",
@@ -6237,7 +6315,7 @@
               "format": "date-time"
             },
             "example": "2026-10-01T00:00:00Z",
-            "description": "End of the window for the first send (exclusive), as an RFC 3339 timestamp. Must be after `since`. Provide with `since`, or omit both for the last 30 days."
+            "description": "Organization-wide view only. Ignored when you pass `deckId`. End of the window for the first send (exclusive), as an RFC 3339 timestamp. Must be after `since`. Provide with `since`, or omit both for the last 30 days."
           },
           {
             "in": "query",
@@ -6247,22 +6325,30 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "Limit the results to one template. An empty value is treated as absent."
+            "description": "Return this template's all-time version list instead of the organization-wide view. An empty value is treated as absent.",
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384"
           }
         ],
         "responses": {
           "200": {
-            "description": "Email performance per template version",
+            "description": "The template's version list when you pass `deckId`, otherwise email performance per template version for your organization",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplatePerformance"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/DeckTemplateList"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TemplatePerformance"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid query parameters, `since` or `until` provided without the other, or `since` not before `until`",
+            "description": "Invalid query parameters, `since` or `until` provided without the other, or `since` not before `until` (organization-wide view only)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6283,6 +6369,198 @@
           },
           "404": {
             "description": "Email template performance isn't enabled for your organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delivery/template-performance/{versionId}": {
+      "delete": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Remove an earlier email template version",
+        "description": "Removes a version from one template's version list for good. The version's sends are kept in your organization-wide counts, but the template never lists or activates it again. Saving identical copy later creates a new version with zero counts.\n\nPass `untracked` as `versionId` to remove the row for sends made before AI Presentations recorded template versions. Removing the Demand IQ default copy affects only this template.\n\nYou can't remove the template's active version. Doing so returns `409`. Returns `404` when email template performance isn't enabled for your organization, or the template or version isn't on the list, including a template that belongs to another organization.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "untracked"
+                  ]
+                }
+              ]
+            },
+            "example": "3f1c9a2e-7b4d-4e8a-9c21-5d6f0a8b1e47",
+            "description": "The template version ID, or `untracked` for the row of sends made before AI Presentations recorded template versions."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384",
+            "description": "The template whose version list to remove the version from."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The version was removed from the template's list"
+          },
+          "400": {
+            "description": "Invalid `versionId` or `deckId`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Email template performance isn't enabled for your organization, or the template or version isn't on the list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The version is the template's active version and can't be removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delivery/template-performance/{versionId}/activate": {
+      "post": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Activate an earlier email template version",
+        "description": "Makes an earlier version the template's active version. AI Presentations writes the version's subject, preview text, body, CTA label, and sender name to the template's saved email copy and marks the version active in one step. The next email uses this version under the same ID, so its counts continue.\n\nA version that used the default subject or preview text saves that field empty. Activating the version that's already active returns `204` with no change.\n\nReturns `400` when the version's copy is longer than the template's email copy limits, with an `error` such as `\"Subject line must be 255 characters or fewer\"`. Returns `404` when email template performance isn't enabled for your organization, the template belongs to another organization, or the version isn't on the template's list, including a removed version.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "3f1c9a2e-7b4d-4e8a-9c21-5d6f0a8b1e47",
+            "description": "The template version ID."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384",
+            "description": "The template to activate the version on."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The version is the template's active version"
+          },
+          "400": {
+            "description": "Invalid `versionId` or `deckId`, or the version's copy exceeds the template's email copy limits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Email template performance isn't enabled for your organization, or the template or version isn't on the list",
             "content": {
               "application/json": {
                 "schema": {
@@ -9065,7 +9343,9 @@
             "name": "recent",
             "schema": {
               "type": "string",
-              "enum": ["1"]
+              "enum": [
+                "1"
+              ]
             },
             "description": "Poll mode. Returns only rows from the last 90 seconds on the server clock. Mutually exclusive with `cursor`."
           }
@@ -9099,7 +9379,11 @@
                           "description": "Opaque cursor for the next older page. `null` whenever `hasMore` is false."
                         }
                       },
-                      "required": ["limit", "hasMore", "nextCursor"]
+                      "required": [
+                        "limit",
+                        "hasMore",
+                        "nextCursor"
+                      ]
                     }
                   }
                 }

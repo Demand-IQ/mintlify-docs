@@ -92,7 +92,9 @@
                 "pages": [
                   "GET /api/engagement/summary",
                   "GET /api/engagement/questions",
-                  "GET /api/delivery/template-performance"
+                  "GET /api/delivery/template-performance",
+                  "DELETE /api/delivery/template-performance/{versionId}",
+                  "POST /api/delivery/template-performance/{versionId}/activate"
                 ]
               },
               {
