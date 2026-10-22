@@ -1212,7 +1212,8 @@
           "deckId": {
             "type": "string",
             "format": "uuid",
-            "nullable": true
+            "nullable": true,
+            "description": "Always null: a `deckId` request returns `DeckTemplateList`."
           },
           "minimumDelivered": {
             "type": "integer",
@@ -1228,6 +1229,59 @@
         },
         "required": [
           "window",
+          "deckId",
+          "minimumDelivered",
+          "versions"
+        ]
+      },
+      "DeckTemplate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TemplateVersionPerformance"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "firstSavedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "When the deck first saved this version. Null for a version that was only ever sent."
+              },
+              "firstSentAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "This deck’s earliest counted first send of this version. Null when it has none. `copy.createdAt` is when the version row was first written (a save, or any deck’s first use of the shared default), so it never dates a template on this list."
+              }
+            },
+            "required": [
+              "firstSavedAt",
+              "firstSentAt"
+            ]
+          }
+        ]
+      },
+      "DeckTemplateList": {
+        "type": "object",
+        "properties": {
+          "deckId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minimumDelivered": {
+            "type": "integer",
+            "description": "Smallest delivered count a rate is reportable at."
+          },
+          "versions": {
+            "type": "array",
+            "description": "Every initial-email template the deck has had, all-time, removed ones left out. The current template first, then newest by `firstSavedAt` or else `firstSentAt`, the unknown row last. The current template is always present; its `templateVersionId` is null when its copy was never saved or sent.",
+            "items": {
+              "$ref": "#/components/schemas/DeckTemplate"
+            }
+          }
+        },
+        "required": [
           "deckId",
           "minimumDelivered",
           "versions"
@@ -5221,7 +5275,7 @@
           "Engagement"
         ],
         "summary": "Email template performance",
-        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to a non-staff address, if that send falls in the window. Sends only to @demand-iq.com recipients and deleted presentations are excluded.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404. Returns 404 when the `email-template-performance` flag is off for the org.",
+        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to a non-staff address, if that send falls in the window. Sends only to @demand-iq.com recipients and deleted presentations are excluded.\n\nWith `deckId`, returns the deck’s template list (`DeckTemplateList`): every template it has had, with all-time numbers, removed ones left out. A deckId belonging to another tenant returns an empty list rather than a 404, and `since`/`until` alongside `deckId` are ignored.\n\nWithout `deckId`, the org-wide view (`TemplatePerformance`): provide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. Returns 404 when the `email-template-performance` flag is off for the org.",
         "security": [
           {
             "sessionCookie": []
@@ -5236,7 +5290,7 @@
               "type": "string",
               "format": "date-time"
             },
-            "description": "ISO datetime lower bound on the first send (inclusive). Provide with `until`, or omit both for the last 30 days."
+            "description": "Org-wide view only; ignored with `deckId`. ISO datetime lower bound on the first send (inclusive). Provide with `until`, or omit both for the last 30 days."
           },
           {
             "in": "query",
@@ -5246,7 +5300,7 @@
               "type": "string",
               "format": "date-time"
             },
-            "description": "ISO datetime upper bound on the first send (exclusive). Provide with `since`, or omit both for the last 30 days."
+            "description": "Org-wide view only; ignored with `deckId`. ISO datetime upper bound on the first send (exclusive). Provide with `since`, or omit both for the last 30 days."
           },
           {
             "in": "query",
@@ -5256,19 +5310,208 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "Limit to one deck. An empty value is treated as absent."
+            "description": "Return this deck’s all-time template list instead of the org-wide view. An empty value is treated as absent."
           }
         ],
         "responses": {
           "200": {
-            "description": "Per-version email performance",
+            "description": "The deck’s template list with `deckId`, else per-version org-wide performance",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplatePerformance"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/DeckTemplateList"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TemplatePerformance"
+                    }
+                  ]
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delivery/template-performance/{versionId}": {
+      "delete": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Remove an earlier email template from a deck’s list",
+        "description": "Hides a template from one deck’s template list for good; the template and its sends are kept, but the deck never lists or activates it again, and saving identical copy later creates a new template. `versionId` is a template version id, or `untracked` for the “Sent before version tracking” row. The deck’s active template returns 409. Returns 404 when the `email-template-performance` flag is off for the org, or the deck or template isn’t on the list (including a deck belonging to another tenant).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "untracked"
+                  ]
+                }
+              ]
+            },
+            "description": "Template version id, or `untracked`"
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck whose list to remove it from"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Template removed from the deck’s list"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delivery/template-performance/{versionId}/activate": {
+      "post": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Make an earlier email template the deck’s active one",
+        "description": "Writes the template’s copy (subject, preheader, body, button text, sender name) to the deck’s saved email copy and marks it the deck’s active template, in one transaction. The next send uses it under the same id, so its numbers continue. Default subject and preheader are saved empty. Already active returns 204 with no change. Returns 404 when the `email-template-performance` flag is off for the org, the deck belongs to another tenant, or the template isn’t on the deck’s list (including a removed one).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Template version id"
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck to activate it on"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The template is the deck’s active one"
           },
           "400": {
             "description": "Bad request",
