@@ -1095,7 +1095,7 @@
       },
       "TemplateVersionPerformance": {
         "type": "object",
-        "description": "One email template version’s first sends to the homeowner (ENG-1441.4).",
+        "description": "One email template version’s first sends to an external (non-staff) recipient (ENG-1441.4).",
         "properties": {
           "templateVersionId": {
             "type": "string",
@@ -5221,7 +5221,7 @@
           "Engagement"
         ],
         "summary": "Email template performance",
-        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to the homeowner, if that send falls in the window. Rep override sends, @demand-iq.com recipients and deleted presentations are excluded.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404. Returns 404 when the `email-template-performance` flag is off for the org.",
+        "description": "Sent vs. opened per email template version for the authenticated org. Each presentation counts once, under the version of its first send to a non-staff address, if that send falls in the window. Sends only to @demand-iq.com recipients and deleted presentations are excluded.\n\nProvide `since`/`until` together (RFC 3339, offsets accepted), or omit both for the last 30 days ending now. `deckId` narrows to one deck; a deckId belonging to another tenant returns an empty list rather than a 404. Returns 404 when the `email-template-performance` flag is off for the org.",
         "security": [
           {
             "sessionCookie": []
