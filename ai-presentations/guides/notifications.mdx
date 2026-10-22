@@ -181,7 +181,7 @@ AI Presentations also records every delivery outcome SendGrid reports, including
 
 ### Compare email copy performance
 
-Call `GET /api/delivery/template-performance` to compare versions of a template's email copy. AI Presentations records a new template version the first time it sends an email with a new combination of subject, preview text, body, CTA label, and sender name. A version stores the copy before tokens are filled in. For each version, the response returns how many first emails were sent, delivered, and opened, and how many homeowners loaded the presentation.
+Call `GET /api/delivery/template-performance` to compare versions of a template's email copy. AI Presentations records a new template version when you save a template with changed subject, preview text, body, CTA label, or sender name. Each template has one active version, which is the copy it sends now. A version stores the copy before tokens are filled in. For each version, the response returns how many first emails were sent, delivered, and opened, and how many homeowners loaded the presentation.
 
 - AI Presentations counts each presentation once, under the version used for its first email to a recipient outside Demand IQ. Manual sends, including sends to override recipients, count. Opens of a later reminder don't count toward any version.
 - Compare versions on `emailOpened`, which counts opens by a person over delivered emails. Automatic opens are excluded.
@@ -192,11 +192,20 @@ Call `GET /api/delivery/template-performance` to compare versions of a template'
 - First sends made before AI Presentations recorded template versions appear in a final row with `templateVersionId: null`.
 - Each version's `copy` includes the subject, preview text, body, CTA label, and sender name. `fromName` is `null` when the version used your organization's name.
 - `kind` tells you where the copy came from: `deck` for copy saved on a template, `default` for the current Demand IQ default, `previous_default` for an earlier Demand IQ default, and `unknown` for the row with no recorded copy.
-- When you pass `deckId`, `current: true` marks the version the template would send now. Without `deckId`, `current` is always `false`.
+- When you pass `deckId`, `current: true` marks the template's active version. Without `deckId`, `current` is always `false`.
 
-Pass `since` and `until` to bound when the first email was sent, or omit both for the last 30 days. Pass `deckId` to limit results to one template.
+Pass `deckId` to list every version one template has had, with all-time counts. The active version comes first and is listed from the moment it's saved, even before its first send. Each version also carries `firstSavedAt` and `firstSentAt`, the dates this template first saved and first sent it. `since` and `until` are ignored when you pass `deckId`.
 
-If email template performance isn't enabled for your organization, the endpoint returns `404`.
+Without `deckId`, the response covers your whole organization. Pass `since` and `until` to bound when the first email was sent, or omit both for the last 30 days.
+
+Manage a template's versions with these endpoints:
+
+- `POST /api/delivery/template-performance/{versionId}/activate?deckId=…` makes an earlier version active. AI Presentations writes that version's copy to the template's saved email copy, and its counts continue. Returns `204`.
+- `DELETE /api/delivery/template-performance/{versionId}?deckId=…` removes an earlier version from the template's list for good. Saving identical copy later creates a new version with zero counts. Pass `untracked` as `versionId` to remove the row of sends made before versions were recorded. Removing the Demand IQ default copy affects only that template. Removing the active version returns `409`.
+
+Both endpoints return `404` when the version isn't on the template's list or the template belongs to another organization.
+
+If email template performance isn't enabled for your organization, these endpoints return `404`.
 
 ## Event types
 
@@ -423,5 +432,7 @@ Key notification endpoints:
 - `POST /api/presentations/{presentationId}/send` — send or resend the homeowner email
 - `POST /api/presentations/send` — send a follow-up email, such as a reminder, for a presentation created by ingest
 - `GET /api/delivery/template-performance` — compare sent, delivered, and opened counts per email template version
+- `POST /api/delivery/template-performance/{versionId}/activate` — make an earlier email template version active
+- `DELETE /api/delivery/template-performance/{versionId}` — remove an earlier email template version from a template's list
 
 See the **API Reference** tab for full request and response details.
