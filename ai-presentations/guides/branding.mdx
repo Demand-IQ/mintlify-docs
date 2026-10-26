@@ -61,8 +61,12 @@ The **Intro** tab (next to Branding) lets you customize the landing page homeown
 
 - **Background Image** — full-bleed image behind the intro screen
 - **Headline** — main heading, supports personalization tokens like `{{first_name}}`
-- **Subtitle** — supporting line below the headline
-- **CTA Button Label** — the "Get Started" button text
+- **Subtitle** — supporting line below the headline, up to 120 characters
+- **CTA Button Label** — the "Get Started" button text, up to 30 characters
+
+The Intro tab shows a live `n / 120` counter under the subtitle. The counter turns red when the subtitle is over the limit, and AI Presentations blocks the save. `PUT /api/decks/{deckId}/intro` also rejects a changed subtitle over 120 characters or a changed button label over 30 characters with a `400`. Limits count the copy as typed, before tokens expand. Existing over-length copy is grandfathered and only re-validates when you change it.
+
+These limits keep the Get Started button above the fold on every phone. The intro page also clamps the headline to two lines, the subtitle to three, and the button label to one, truncating longer text with an ellipsis.
 
 A strong headline example: `"Welcome, {{first_name}}! Your personalized report is ready."`
 

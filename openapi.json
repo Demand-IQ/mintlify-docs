@@ -8486,7 +8486,7 @@
           "Decks"
         ],
         "summary": "Upsert intro page config",
-        "description": "Creates or updates the intro page for a deck. Enabling an intro page switches the deck to lazy generation mode.\n\nThe `headline`, `subtitle`, and `ctaButtonLabel` fields may include homeowner tokens from the intro allowlist: `{{first_name}}`, `{{last_name}}`, `{{address}}`, `{{city}}`, `{{state}}`, `{{zip}}`, `{{email}}`, `{{phone}}`, `{{average_utility_bill}}`, and `{{journey_name}}`. Both `{{field}}` and `{{homeowner.field}}` forms are accepted. Any other token (roof or cost fields, product or datetime tokens, or a typo like `{{firstname}}`) is rejected with `400`, and the error message names the offending token. A field is only re-validated when this request changes its current value, so decks that already hold a legacy token can save unrelated fields without editing the legacy copy first.",
+        "description": "Creates or updates the intro page for a deck. Enabling an intro page switches the deck to lazy generation mode.\n\nThe `headline`, `subtitle`, and `ctaButtonLabel` fields may include homeowner tokens from the intro allowlist: `{{first_name}}`, `{{last_name}}`, `{{address}}`, `{{city}}`, `{{state}}`, `{{zip}}`, `{{email}}`, `{{phone}}`, `{{average_utility_bill}}`, and `{{journey_name}}`. Both `{{field}}` and `{{homeowner.field}}` forms are accepted. Any other token (roof or cost fields, product or datetime tokens, or a typo like `{{firstname}}`) is rejected with `400`, and the error message names the offending token. A field is only re-validated when this request changes its current value, so decks that already hold a legacy token can save unrelated fields without editing the legacy copy first.\n\nWhen changed, `subtitle` must be 120 characters or fewer and `ctaButtonLabel` must be 30 characters or fewer, counted before tokens expand. Longer values are rejected with `400`. Existing over-length values are grandfathered the same way as legacy tokens.",
         "security": [
           {
             "sessionCookie": []
@@ -8523,10 +8523,14 @@
                     "example": "Your Custom Solar Proposal"
                   },
                   "subtitle": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 120,
+                    "description": "Supporting line below the headline. Maximum 120 characters, counted before tokens expand."
                   },
                   "ctaButtonLabel": {
                     "type": "string",
+                    "maxLength": 30,
+                    "description": "Get Started button text. Maximum 30 characters.",
                     "example": "View My Proposal"
                   }
                 }
