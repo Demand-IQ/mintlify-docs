@@ -29,6 +29,9 @@ Configure per-deck delivery settings from the **Email** tab in the deck editor, 
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config
 - `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), reminder switch (`reminderEnabled`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved. `reminderEnabled` must be `true` or `false`. Any other value returns `400` with `{ "error": "reminderEnabled must be true or false" }`. If you omit `reminderEnabled`, AI Presentations stores `false`.
+- `GET /api/decks/{deckId}/email-preview` — return the presentation picture the deck's next email would carry, as `{ "url": "https://..." }`. `url` is `null` when the email would go out without a picture. The request returns `404` with `{ "error": "Deck not found" }` for a deck outside your company.
+
+If `emailBodyTemplate` or `ctaLabel` matches the current default exactly, AI Presentations stores it as unset. The deck then follows future changes to the default copy.
 
 Five text fields have a maximum length:
 
@@ -123,7 +126,7 @@ If a token in the first email's subject renders empty, the reminder falls back t
 
 To override the default, fill in the optional **Reminder subject line** field, or set `reminderEmailSubject` through the API. The field's placeholder shows the default reminder subject. The field accepts the same tokens as the subject line. A saved reminder subject renders as entered. A blank value falls back to the default. If any token in a saved reminder subject renders empty or is unknown, AI Presentations sends the default reminder subject instead. Reminder subject tokens never park a presentation at `missing_data`.
 
-The first email never uses the reminder subject. A reminder reuses the deck's message body and CTA label.
+The first email never uses the reminder subject. A reminder reuses the deck's message body, CTA label, and presentation picture.
 
 ### Preview text
 
@@ -140,9 +143,28 @@ To override the default, fill in the optional **Preview text** field in the **Em
 
 The preview header in the deck editor shows the subject and preview text together as an inbox row.
 
+### Presentation picture
+
+When the presentation picture is enabled for your organization, presentation and reminder emails show a linked picture of the presentation with a play button. The picture sits between the email header and the greeting, and links to the homeowner's presentation. Its alt text names your company. The CTA button stays below the message body.
+
+AI Presentations builds the picture from the first slide with a usable image. Product slides are skipped. If AI Presentations can't build the picture, the email sends without it and leaves no empty gap.
+
+The email preview in the **Email** tab shows the same picture the sender would use.
+
 ### Default message body
 
-When a deck has no message body of its own, AI Presentations uses a default at send time. It greets the homeowner as `Hi Dana,` when the first name is known, and as `Hi,` when the first name is empty or missing. The rest of the default body is the same either way. A body that contains only whitespace counts as no body, and the default is never saved to the deck.
+When a deck has no message body of its own, AI Presentations uses a default at send time. It uses the most personal version whose tokens all render for the homeowner:
+
+1. `Hi Dana,` followed by `We put together a short presentation for your home at 123 Main St.` when the first name and address are known
+2. `Hi Dana,` followed by `We put together a short presentation just for you.` when only the first name is known
+3. `Hi,` followed by `We put together a short presentation for your home at 123 Main St.` when only the address is known
+4. `Hi,` followed by `We put together a short presentation just for you.` when neither is known
+
+Every version ends with `Watch it, then ask anything in the chat. You'll get an answer right away.` A body that contains only whitespace counts as no body, and the default is never saved to the deck.
+
+### Default CTA label
+
+When a deck has no CTA label of its own, the email button reads `Watch Your Presentation →`.
 
 When a deck has a saved body, AI Presentations renders it for each homeowner at send time. If a contact or journey token in the saved body renders empty, AI Presentations sends the default body instead. For example, a body that opens with `Hi {{homeowner.first_name}},` never reaches a homeowner with no first name as `Hi ,`. Because of this fallback, contact and journey tokens in the body never park a presentation at `missing_data`.
 
