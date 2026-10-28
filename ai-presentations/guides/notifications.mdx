@@ -27,7 +27,7 @@ A send is also `failed` when AI Presentations could not load the homeowner's inf
 
 Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
-- `GET /api/decks/{deckId}/delivery` — read the current delivery config
+- `GET /api/decks/{deckId}/delivery` — read the current delivery config as `delivery`, plus the sender the deck's email goes out from as `sender`. `sender.email` is the from address, and `sender.defaultName` is the sender name used when `fromName` is unset. AI Presentations resolves both the same way it does at send time. See [Sender and reply-to](#sender-and-reply-to).
 - `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), reminder switch (`reminderEnabled`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved. `reminderEnabled` must be `true` or `false`. Any other value returns `400` with `{ "error": "reminderEnabled must be true or false" }`. If you omit `reminderEnabled`, AI Presentations stores `false`.
 - `GET /api/decks/{deckId}/email-preview` — return the presentation picture the deck's next email would carry, as `{ "url": "https://..." }`. `url` is `null` when the email would go out without a picture. The request returns `404` with `{ "error": "Deck not found" }` for a deck outside your company.
 
