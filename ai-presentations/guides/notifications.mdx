@@ -92,6 +92,15 @@ Replies go to the first valid address of these:
 
 If neither is set, the email has no reply-to, and replies go to `no-reply@demand-iq.com`. AI Presentations skips a stored address that is not a valid email instead of sending with it.
 
+The company name in the email header and footer is the first of these that is set:
+
+1. The deck's **Company Name** from the Branding tab
+2. Your organization's name
+3. The deck's sender name (`fromName`)
+4. `Demand IQ`
+
+The **Email** tab preview uses the same order, so it shows the company name AI Presentations sends. Company Name never sets the sender name or the reply-to address.
+
 ### Unsubscribe link
 
 Every presentation email includes an unsubscribe link, whether it is the initial send, a reminder, or a manual send. The HTML footer reads "Don't want these emails? Unsubscribe", and the plain-text version ends with an unsubscribe line. AI Presentations also sends the one-click unsubscribe headers that Gmail and Yahoo require, so inbox clients can show their own **Unsubscribe** button next to the sender.
