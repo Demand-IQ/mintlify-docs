@@ -189,7 +189,7 @@ The subject line, preview text, and message body accept `{{token}}` placeholders
 | --- | --- |
 | Contact | `{{homeowner.first_name}}`, `{{homeowner.last_name}}`, `{{homeowner.address}}`, `{{homeowner.city}}`, `{{homeowner.state}}`, `{{homeowner.zip}}`, `{{homeowner.email}}`, `{{homeowner.phone}}` |
 | Journey | `{{homeowner.journey_name}}`, `{{homeowner.average_utility_bill}}` (blank if the homeowner did not provide it) |
-| Presentation | `{{presentation_url}}` — the homeowner's presentation link |
+| Presentation | `{{presentation_url}}`: the homeowner's presentation link. This is the short link (for example, `https://mypresi.co/bcd2345`) when one exists, else the full `/p/` URL. |
 | Date & time | `{{today}}`, `{{todayShort}}`, `{{month}}`, `{{monthShort}}`, `{{monthNum}}`, `{{monthYear}}`, `{{day}}`, `{{dayName}}`, `{{year}}`, `{{yearShort}}`, `{{quarter}}`, `{{season}}`, `{{dateISO}}` |
 
 Datetime tokens resolve from the presentation's `datetimeSnapshot` (America/Los_Angeles, en-US), the same basis slide narration uses, so a template that says `{{today}}` renders as `January 21, 2026`.
