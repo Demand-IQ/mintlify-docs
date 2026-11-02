@@ -1076,11 +1076,19 @@
               "viewedWithoutSend": {
                 "type": "integer",
                 "description": "Opened but never sent: the link was copied out of the app."
+              },
+              "byOpenSource": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "Opened presentations by the utm_source on their first open's link. `email` is our own send; `none` is no source, which includes every open before ENG-1578."
               }
             },
             "required": [
               "viewedWithoutEmailOpen",
-              "viewedWithoutSend"
+              "viewedWithoutSend",
+              "byOpenSource"
             ]
           }
         },
