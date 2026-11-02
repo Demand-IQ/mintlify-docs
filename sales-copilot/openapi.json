@@ -575,6 +575,11 @@
               "failed"
             ]
           },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The link the homeowner gets: the short link (`https://mypresi.co/<slug>`) where one exists, else the `/p/` URL with the same params"
+          },
           "homeownerData": {
             "$ref": "#/components/schemas/HomeownerData"
           },
@@ -605,6 +610,7 @@
           "deckId",
           "companyId",
           "status",
+          "url",
           "createdAt",
           "updatedAt"
         ]
