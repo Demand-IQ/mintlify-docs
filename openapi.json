@@ -1962,7 +1962,7 @@
       },
       "TemplateVersionPerformance": {
         "type": "object",
-        "description": "Email performance for one email template version, counted on first sends to a recipient outside Demand IQ.",
+        "description": "Email performance for one email template version, counted on first sends to a recipient outside Demand IQ and your organization's own users.",
         "properties": {
           "templateVersionId": {
             "type": "string",
@@ -2058,7 +2058,7 @@
                 "$ref": "#/components/schemas/EngagementRate"
               }
             ],
-            "description": "Presentations whose viewer page was loaded over `sent`. Link scanners in mail clients can load the page, which inflates this rate by about the same amount for every version."
+            "description": "Homeowners who started the presentation after the first send over first sends a person opened. A start is the first time the viewer showed slides to a homeowner. Visits by your own team, rep-mode visits, and link scanners don't count. Opened sends from before AI Presentations began recording starts count as `unknown`."
           },
           "reportable": {
             "type": "boolean",
@@ -6304,7 +6304,7 @@
           "Engagement"
         ],
         "summary": "Get email template performance",
-        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to a recipient outside Demand IQ, using that email's own delivery and open outcomes. Manual sends from the **Send** dialog count. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out sends only to Demand IQ staff (`@demand-iq.com`) addresses, deleted presentations, and automatic opens. Delivered and opened counts come only from events for recipients outside Demand IQ.\n\nPass `deckId` to get one template's version list (`DeckTemplateList`). It includes every version the template has had, with all-time counts, from the moment the version is saved. Versions you removed are left out. The template's active version is always listed first, even before its first send. `since` and `until` are ignored when you pass `deckId`. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.\n\nOmit `deckId` for the organization-wide view (`TemplatePerformance`). Provide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nReturns `404` when email template performance isn't enabled for your organization.",
+        "description": "Returns sent, delivered, opened, and started counts for each version of your email template copy, so you can compare subject lines, preview text, body copy, and CTA labels. Each presentation counts once, under the template version of its first email to a recipient outside Demand IQ and your organization's own users, using that email's own delivery and open outcomes. Manual sends from the **Send** dialog count. An open of a later reminder doesn't count toward any version.\n\nAI Presentations leaves out sends only to Demand IQ staff (`@demand-iq.com`) addresses, sends only to your organization's own users, deleted presentations, and automatic opens. Delivered and opened counts come only from events for recipients outside Demand IQ.\n\nPass `deckId` to get one template's version list (`DeckTemplateList`). It includes every version the template has had, with all-time counts, from the moment the version is saved. Versions you removed are left out. The template's active version is always listed first, even before its first send. `since` and `until` are ignored when you pass `deckId`. A `deckId` that doesn't belong to your organization returns an empty `versions` list rather than `404`.\n\nOmit `deckId` for the organization-wide view (`TemplatePerformance`). Provide `since` and `until` together to bound when the first send happened, or omit both for the last 30 days ending now.\n\nReturns `404` when email template performance isn't enabled for your organization.",
         "security": [
           {
             "bearerAuth": []
@@ -10051,7 +10051,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (opens, presses of the intro Start button, slide views, narration playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once per page load when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready. It records a completion for every visit, including reloads on the last slide. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit of 60 requests per minute, including `narration_played_batch` requests. Every view in a batch after the first costs 1 more. For `slide_viewed_batch`, that extra cost counts against the same per-IP limit. For `narration_played_batch`, it counts against a separate narration bucket. The limit returns `429` when exceeded. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
+        "description": "Ingests interaction events from the presentation viewer (opens, presses of the intro Start button, the first time slides are shown, slide views, narration playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once per page load when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready. It records a completion for every visit, including reloads on the last slide. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit of 60 requests per minute, including `narration_played_batch` requests. Every view in a batch after the first costs 1 more. For `slide_viewed_batch`, that extra cost counts against the same per-IP limit. For `narration_played_batch`, it counts against a separate narration bucket. The limit returns `429` when exceeded. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -10083,6 +10083,7 @@
                     "enum": [
                       "presentation_opened",
                       "presentation_started",
+                      "slides_shown",
                       "slide_viewed",
                       "slide_viewed_batch",
                       "narration_played_batch",
@@ -10093,7 +10094,7 @@
                       "action_detection",
                       "action_execution"
                     ],
-                    "description": "Event type. `presentation_started` is sent when the viewer presses Start on the intro screen, and records a `presentation.started` event. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
+                    "description": "Event type. `presentation_started` is sent when the viewer presses Start on the intro screen, and records a `presentation.started` event. `slides_shown` is sent once per visit, the first time the viewer shows slides. AI Presentations records the first time slides are shown to a homeowner as the presentation's start, once, and later visits never change it. Visits by Demand IQ staff, by signed-in members of your organization, in rep mode, or from presentations whose opened emails all went to Demand IQ staff or your organization's own users don't record a start. Visits from link scanners, such as Microsoft Safe Links, are ignored. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
                   },
                   "pointerCoarse": {
                     "type": "boolean",
@@ -10188,7 +10189,7 @@
                   },
                   "repMode": {
                     "type": "boolean",
-                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `last_slide_reached`, `session_summary`, and `narration_session_summary`."
+                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `slides_shown`, `last_slide_reached`, `session_summary`, and `narration_session_summary`."
                   },
                   "firstScreen": {
                     "type": "string",
