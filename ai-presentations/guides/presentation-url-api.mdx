@@ -260,6 +260,10 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 
 Deliver the URL exactly as returned. A short link redirects to the hosted viewer. Short links ignore letter case and any trailing `.`, `,`, `)`, `!`, or `?` picked up from surrounding text. An unknown short link returns a 404 page.
 
+To record how you shared the link, add a `utm_source` query parameter, for example `https://mypresi.co/bcd2345?utm_source=journeys`. AI Presentations lower-cases the value and keeps it only when it is 1 to 40 characters of `a-z`, `0-9`, `_`, or `-`. Any other value is ignored. A short link carries a valid `utm_source` through to the hosted viewer and drops every other query parameter. Links that AI Presentations emails use `utm_source=email`.
+
+The source of each presentation's first homeowner open appears in `deliveryPath.byOpenSource` from `GET /api/engagement/summary`. Opens with no source are counted under `none`. The source records who shared the link, not how it last traveled. A forwarded email still counts as `email`.
+
 A short link expires 365 days after AI Presentations creates it. An expired short link returns a `410` page that reads "This link has expired. Contact [Company Name] for a new link." The page shows your logo and phone number from the deck's Branding settings. When the deck has no company name or phone, the page uses your organization's name and contact phone instead. Demand IQ can also turn off a single short link, or every short link your organization has. A turned-off link returns a `410` with no branding.
 
 For a full `/p/` URL, the path segment after `/p/` is the presentation's UUID, and AI Presentations validates its format before looking anything up. A truncated or otherwise malformed link returns a 404 page.
