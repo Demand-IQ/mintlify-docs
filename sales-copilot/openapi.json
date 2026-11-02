@@ -1179,7 +1179,7 @@
           },
           "started": {
             "$ref": "#/components/schemas/EngagementRate",
-            "description": "first_viewed_at over sent: the metric dictionary’s Opened (weekly digest). Link scanners inflate it."
+            "description": "Homeowner starts (slides first shown, after the send) over human email opens. Opens sent before first starts were recorded are `unknown`."
           },
           "reportable": {
             "type": "boolean",
