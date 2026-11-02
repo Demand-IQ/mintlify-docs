@@ -258,7 +258,11 @@ curl https://presentations.demand-iq.com/api/presentations/{presentationId}/stat
 
 `status` moves through `pending` → `generating` → `ready` (a `not_started` status means generation kicks off when the prospect opens the link — the link is still ready to share). Once you have the URL, deliver it however you reach your prospects: text, email, a CRM field, or let AI Presentations send it (see [Notifications](/ai-presentations/guides/notifications) for delivery and open tracking).
 
-Deliver the URL exactly as returned. A short link redirects to the hosted viewer. Short links ignore letter case and any trailing `.`, `,`, `)`, `!`, or `?` picked up from surrounding text. An unknown short link returns a 404 page. For a full `/p/` URL, the path segment after `/p/` is the presentation's UUID, and AI Presentations validates its format before looking anything up. A truncated or otherwise malformed link returns a 404 page.
+Deliver the URL exactly as returned. A short link redirects to the hosted viewer. Short links ignore letter case and any trailing `.`, `,`, `)`, `!`, or `?` picked up from surrounding text. An unknown short link returns a 404 page.
+
+A short link expires 365 days after AI Presentations creates it. An expired short link returns a `410` page that reads "This link has expired. Contact [Company Name] for a new link." The page shows your logo and phone number from the deck's Branding settings. When the deck has no company name or phone, the page uses your organization's name and contact phone instead. Demand IQ can also turn off a single short link, or every short link your organization has. A turned-off link returns a `410` with no branding.
+
+For a full `/p/` URL, the path segment after `/p/` is the presentation's UUID, and AI Presentations validates its format before looking anything up. A truncated or otherwise malformed link returns a 404 page.
 
 When the URL is pasted into SMS, iMessage, Slack, or similar apps, it unfurls into a rich preview: the deck name as the title, the deck description, your company name from branding, and the presentation's first slide as the preview image. Everything is derived automatically from the template — nothing to configure. If the deck has no description or first-slide image, the preview falls back to the template's intro background and default text. Unknown, deleted, or malformed links render no preview.
 
