@@ -212,13 +212,14 @@ AI Presentations also records every delivery outcome SendGrid reports, including
 
 ### Compare email copy performance
 
-Call `GET /api/delivery/template-performance` to compare versions of a template's email copy. AI Presentations records a new template version when you save a template with changed subject, preview text, body, CTA label, or sender name. Each template has one active version, which is the copy it sends now. A version stores the copy before tokens are filled in. For each version, the response returns how many first emails were sent, delivered, and opened, and how many homeowners loaded the presentation.
+Call `GET /api/delivery/template-performance` to compare versions of a template's email copy. AI Presentations records a new template version when you save a template with changed subject, preview text, body, CTA label, or sender name. Each template has one active version, which is the copy it sends now. A version stores the copy before tokens are filled in. For each version, the response returns how many first emails were sent, delivered, and opened, and how many homeowners started the presentation.
 
-- AI Presentations counts each presentation once, under the version used for its first email to a recipient outside Demand IQ. Manual sends, including sends to override recipients, count. Opens of a later reminder don't count toward any version.
+- AI Presentations counts each presentation once, under the version used for its first email to a recipient outside Demand IQ and your organization's own users. Manual sends, including sends to override recipients, count. Opens of a later reminder don't count toward any version.
 - Compare versions on `emailOpened`, which counts opens by a person over delivered emails. Automatic opens are excluded.
+- `started` counts homeowners who started the presentation after the first email, over first emails a person opened. A start is the first time the viewer shows slides to a homeowner. Visits by Demand IQ staff, by members of your organization, in rep mode, and by link scanners such as Microsoft Safe Links don't count. Opened emails sent before AI Presentations began recording starts count as `unknown`.
 - A version with fewer than `minimumDelivered` delivered emails has `reportable: false`. Treat its rates as directional.
 - First sends whose subject or preview text fell back to the default are reported in `fallbackSent` and left out of the rates, because the homeowner never saw that version's copy.
-- Sends where every recipient is a Demand IQ staff (`@demand-iq.com`) address are excluded, as are deleted presentations. A test send to a staff address before the homeowner's email doesn't count as the first email.
+- Sends where every recipient is a Demand IQ staff (`@demand-iq.com`) address are excluded, as are sends where every recipient is one of your organization's own users, and deleted presentations. A test send to a staff address before the homeowner's email doesn't count as the first email.
 - Delivered and opened counts come only from events for recipients outside Demand IQ. An open by a staff co-recipient doesn't count.
 - First sends made before AI Presentations recorded template versions appear in a final row with `templateVersionId: null`.
 - Each version's `copy` includes the subject, preview text, body, CTA label, and sender name. `fromName` is `null` when the version used your organization's name.
