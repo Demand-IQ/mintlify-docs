@@ -1924,11 +1924,24 @@
                 "type": "integer",
                 "example": 7,
                 "description": "Opened presentations that were never sent by email, for example because the link was copied and shared directly."
+              },
+              "byOpenSource": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "example": {
+                  "email": 42,
+                  "journeys": 9,
+                  "none": 15
+                },
+                "description": "Opened presentations counted by the `utm_source` on the link of their first homeowner open. `email` means AI Presentations sent the link. Any other key is the value the system that shared the link declared. `none` counts opens with no source, including every open recorded before this breakdown was added."
               }
             },
             "required": [
               "viewedWithoutEmailOpen",
-              "viewedWithoutSend"
+              "viewedWithoutSend",
+              "byOpenSource"
             ]
           }
         },
@@ -6188,7 +6201,7 @@
           "Engagement"
         ],
         "summary": "Get engagement summary",
-        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nThe response also includes three breakdowns for the requested window, without a `percentChange`: `funnel` (Created \u2192 Sent \u2192 Opened \u2192 Started \u2192 Completed for presentations created in the window), `visits` (visits per opened presentation), and `deliveryPath` (opened presentations that arrived without an email open or without an email send).\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nActivity from a browser signed in to AI Presentations is left out of average consumption, CTA clicks, and questions asked, so previewing your own presentation link doesn't inflate them. That activity still counts toward `opened`. A teammate viewing a link on a device where they never signed in is counted as a prospect. Activity recorded before this exclusion shipped is counted as prospect activity.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
+        "description": "Returns seven engagement metrics for your organization: presentations sent, opened, average consumption, CTA clicks, questions asked, appointments booked, and contracts signed. Each metric includes a `percentChange` compared with the equal-length window immediately before the requested one, and every rate includes a `directional` flag.\n\nThe response also includes three breakdowns for the requested window, without a `percentChange`: `funnel` (Created \u2192 Sent \u2192 Opened \u2192 Started \u2192 Completed for presentations created in the window), `visits` (visits per opened presentation), and `deliveryPath` (opened presentations that arrived without an email open or without an email send, plus opened presentations counted by the `utm_source` their link was shared with).\n\nProvide `since` and `until` together for a custom window, or omit both for the last 30 days ending now. If the window contains too many presentations, AI Presentations returns `422`. Narrow the window and retry. If only the prior comparison window is too large, the request still succeeds and every `percentChange` is `null`.\n\nActivity from a browser signed in to AI Presentations is left out of average consumption, CTA clicks, and questions asked, so previewing your own presentation link doesn't inflate them. That activity still counts toward `opened`. A teammate viewing a link on a device where they never signed in is counted as a prospect. Activity recorded before this exclusion shipped is counted as prospect activity.\n\nPass `deckId` to limit the summary to one template. A `deckId` that doesn't belong to your organization returns a zero-valued summary rather than `404`.",
         "security": [
           {
             "bearerAuth": []
@@ -7674,8 +7687,8 @@
               }
             }
           },
-          "404": {
-            "description": "Document not found",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -7684,8 +7697,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized",
+          "404": {
+            "description": "Document not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -10090,6 +10103,10 @@
                     "type": "boolean",
                     "description": "Whether this visit opened on the intro screen, so the viewer had a Start button to press. Optional. Applies to `presentation_opened`."
                   },
+                  "openSource": {
+                    "type": "string",
+                    "description": "The `utm_source` value from the presentation link. Optional. Applies to `presentation_opened`. AI Presentations lower-cases it and keeps it only when it is 1 to 40 characters of `a-z`, `0-9`, `_`, or `-`. Any other value is dropped."
+                  },
                   "viewId": {
                     "type": "string",
                     "format": "uuid",
@@ -10425,8 +10442,8 @@
               }
             }
           },
-          "503": {
-            "description": "Validation service not configured",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -10435,8 +10452,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "503": {
+            "description": "Validation service not configured",
             "content": {
               "application/json": {
                 "schema": {
