@@ -722,6 +722,11 @@
               "failed"
             ]
           },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The link the homeowner receives. This is the short link (`https://mypresi.co/<slug>`) when one exists. Otherwise it is the `/p/{presentationId}` URL with the same query parameters the delivery email uses."
+          },
           "homeownerData": {
             "$ref": "#/components/schemas/HomeownerData"
           },
@@ -782,6 +787,7 @@
           "deckId",
           "companyId",
           "status",
+          "url",
           "createdAt",
           "updatedAt"
         ]
