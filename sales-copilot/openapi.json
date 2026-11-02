@@ -3647,7 +3647,7 @@
                     "url": {
                       "type": "string",
                       "format": "uri",
-                      "description": "Shareable presentation URL"
+                      "description": "Shareable presentation URL: the homeowner short link (`https://mypresi.co/<slug>`) where the short-link host is configured, else the `/p/` URL"
                     },
                     "status": {
                       "type": "string",
