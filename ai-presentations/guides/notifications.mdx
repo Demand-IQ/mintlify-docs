@@ -28,7 +28,7 @@ A send is also `failed` when AI Presentations could not load the homeowner's inf
 Configure per-deck delivery settings from the **Email** tab in the deck editor, or via the API:
 
 - `GET /api/decks/{deckId}/delivery` — read the current delivery config as `delivery`, plus the sender the deck's email goes out from as `sender`. `sender.email` is the from address, and `sender.defaultName` is the sender name used when `fromName` is unset. AI Presentations resolves both the same way it does at send time. See [Sender and reply-to](#sender-and-reply-to).
-- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), reminder switch (`reminderEnabled`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved. `reminderEnabled` must be `true` or `false`. Any other value returns `400` with `{ "error": "reminderEnabled must be true or false" }`. If you omit `reminderEnabled`, AI Presentations stores `false`.
+- `PUT /api/decks/{deckId}/delivery` — set sender name (`fromName`), reply-to address (`replyToEmail`), subject (`emailSubject`), preview text (`emailPreheader`), reminder subject (`reminderEmailSubject`), reminder switch (`reminderEnabled`), body (`emailBodyTemplate`), and CTA label (`ctaLabel`). AI Presentations trims `replyToEmail` and stores a blank value as unset. If `replyToEmail` is not a valid email address, the request returns `400` with `{ "error": "Reply-to must be a valid email address" }` and nothing is saved. `reminderEnabled` must be `true` or `false`. Any other value returns `400` with `{ "error": "reminderEnabled must be true or false" }`. If you omit `reminderEnabled`, AI Presentations stores `false`. `emailHomePhotoEnabled` turns the [home photo](#home-photo) on or off and must be `true` or `false`. Any other value returns `400` with `{ "error": "emailHomePhotoEnabled must be true or false" }`. If you omit `emailHomePhotoEnabled`, AI Presentations keeps the stored value. New decks start with it off.
 - `GET /api/decks/{deckId}/email-preview` — return the presentation picture the deck's next email would carry, as `{ "url": "https://..." }`. `url` is `null` when the email would go out without a picture. The request returns `404` with `{ "error": "Deck not found" }` for a deck outside your company.
 
 If `emailBodyTemplate` or `ctaLabel` matches the current default exactly, AI Presentations stores it as unset. The deck then follows future changes to the default copy.
@@ -159,6 +159,28 @@ When the presentation picture is enabled for your organization, presentation and
 AI Presentations builds the picture from the first slide with a usable image. Product slides are skipped. If AI Presentations can't build the picture, the email sends without it and leaves no empty gap.
 
 The email preview in the **Email** tab shows the same picture the sender would use.
+
+### Home photo
+
+The **Photo of their home** switch, marked Beta, sits under **Your presentation preview** in the **Email** tab. It is off by default. The switch appears only when the home photo feature is turned on for your account. Contact Demand IQ to turn it on.
+
+When the switch is on, AI Presentations looks up a photo of the homeowner's home at send time. The lookup needs a street address for the homeowner. If AI Presentations finds a photo, the email leads with it in place of the presentation picture:
+
+- The photo is 4:3 and carries the same play button as the presentation picture. It links to the homeowner's presentation.
+- Its alt text names the home, for example `Your home at 412 Maple Drive. Watch your presentation.`
+- The street address appears as a caption under the photo.
+- The reminder email reuses the same photo.
+
+If AI Presentations can't find a photo, or the homeowner has no street address, the email falls back to the presentation picture when that switch is on. Otherwise the email sends without a picture. The two switches are independent:
+
+| Presentation preview | Photo of their home | Photo found | No photo found |
+| --- | --- | --- | --- |
+| Off | Off | No picture | No picture |
+| On | Off | Presentation picture | Presentation picture |
+| Off | On | Home photo | No picture |
+| On | On | Home photo | Presentation picture |
+
+A missing home photo never stops the email from sending.
 
 ### Default message body
 
