@@ -1384,6 +1384,10 @@
           "ctaButtonLabel": {
             "type": "string",
             "nullable": true
+          },
+          "homePhotoEnabled": {
+            "type": "boolean",
+            "description": "Whether the intro page shows a photo of the homeowner's home above the headline. Takes effect only when the intro home photo feature is turned on for your company."
           }
         },
         "required": [
@@ -8449,7 +8453,7 @@
           "Decks"
         ],
         "summary": "Get intro page config",
-        "description": "Returns the intro page configuration for a deck, including the background image, headline, and CTA button label.",
+        "description": "Returns the intro page configuration for a deck, including the background image, headline, CTA button label, and home photo setting. `homePhotoAvailable` reports whether the intro home photo feature is turned on for your company.",
         "parameters": [
           {
             "in": "path",
@@ -8472,6 +8476,10 @@
                     "intro": {
                       "nullable": true,
                       "$ref": "#/components/schemas/IntroConfig"
+                    },
+                    "homePhotoAvailable": {
+                      "type": "boolean",
+                      "description": "Whether the intro home photo feature is turned on for your company. When `false`, the intro page never shows a home photo, whatever `homePhotoEnabled` says."
                     }
                   }
                 }
@@ -8551,6 +8559,10 @@
                     "maxLength": 30,
                     "description": "Get Started button text. Maximum 30 characters.",
                     "example": "View My Proposal"
+                  },
+                  "homePhotoEnabled": {
+                    "type": "boolean",
+                    "description": "Show a photo of the homeowner's home above the headline. Must be `true` or `false`; any other value returns `400`. Omit to keep the stored value. New intro pages start with it on."
                   }
                 }
               }
