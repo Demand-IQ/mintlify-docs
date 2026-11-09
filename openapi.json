@@ -2480,7 +2480,7 @@
           "Activity"
         ],
         "summary": "List recent activity",
-        "description": "Returns the 10 most recent presentation events for your organization, enriched with the homeowner name, address, and template ID for deep-linking.",
+        "description": "Returns the 10 most recent presentation events for your organization, enriched with the homeowner name, address, and template ID for deep-linking. Events for presentations that have been deleted are excluded.",
         "security": [
           {
             "sessionCookie": []
