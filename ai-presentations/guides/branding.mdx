@@ -72,7 +72,7 @@ A strong headline example: `"Welcome, {{first_name}}! Your personalized report i
 
 ### Home photo on the intro page
 
-The **Show the homeowner's home** switch, marked Beta, sits in the **Intro** tab. It appears only when the intro home photo feature is turned on for your account. Contact Demand IQ to turn it on. The switch is on by default, and a small mock of your welcome page shows where the photo goes.
+The **Show the homeowner's home** switch, marked Beta, sits in the **Intro** tab. The switch is off by default. When you turn it on, a small mock of your welcome page shows where the photo goes.
 
 When the switch is on, AI Presentations looks for a photo of the homeowner's home when they open their presentation link. The lookup needs a full street address for a single home. If AI Presentations finds a photo:
 
@@ -82,7 +82,7 @@ When the switch is on, AI Presentations looks for a photo of the homeowner's hom
 
 If AI Presentations can't find a photo, or the homeowner has no street address, the intro page shows without it. On short screens the photo shrinks first, then the caption hides, then the photo hides. The photo also hides on phones held in landscape. The Get Started button never moves. Presentation previews never show the photo.
 
-The intro page and the presentation email share one stored photo per presentation, so the homeowner sees the same home in both places. You can also set the switch with `homePhotoEnabled` on `PUT /api/decks/{deckId}/intro`. `GET /api/decks/{deckId}/intro` returns `homePhotoAvailable`, which reports whether the feature is turned on for your account.
+The intro page and the presentation email share one stored photo per presentation, so the homeowner sees the same home in both places. You can also set the switch with `homePhotoEnabled` on `PUT /api/decks/{deckId}/intro`.
 
 ### Supported intro tokens
 

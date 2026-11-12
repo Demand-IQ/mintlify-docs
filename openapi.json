@@ -1387,7 +1387,7 @@
           },
           "homePhotoEnabled": {
             "type": "boolean",
-            "description": "Whether the intro page shows a photo of the homeowner's home above the headline. Takes effect only when the intro home photo feature is turned on for your company."
+            "description": "Whether the intro page shows a photo of the homeowner's home above the headline."
           }
         },
         "required": [
@@ -8453,7 +8453,7 @@
           "Decks"
         ],
         "summary": "Get intro page config",
-        "description": "Returns the intro page configuration for a deck, including the background image, headline, CTA button label, and home photo setting. `homePhotoAvailable` reports whether the intro home photo feature is turned on for your company.",
+        "description": "Returns the intro page configuration for a deck, including the background image, headline, CTA button label, and home photo setting.",
         "parameters": [
           {
             "in": "path",
@@ -8476,10 +8476,6 @@
                     "intro": {
                       "nullable": true,
                       "$ref": "#/components/schemas/IntroConfig"
-                    },
-                    "homePhotoAvailable": {
-                      "type": "boolean",
-                      "description": "Whether the intro home photo feature is turned on for your company. When `false`, the intro page never shows a home photo, whatever `homePhotoEnabled` says."
                     }
                   }
                 }
@@ -8562,7 +8558,7 @@
                   },
                   "homePhotoEnabled": {
                     "type": "boolean",
-                    "description": "Show a photo of the homeowner's home above the headline. Must be `true` or `false`; any other value returns `400`. Omit to keep the stored value. New intro pages start with it on."
+                    "description": "Show a photo of the homeowner's home above the headline. Must be `true` or `false`; any other value returns `400`. Omit to keep the stored value. New intro pages start with it off."
                   }
                 }
               }
