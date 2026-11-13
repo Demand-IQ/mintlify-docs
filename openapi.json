@@ -422,8 +422,14 @@
             "type": "string",
             "enum": [
               "standard",
-              "product_pricing_v1"
+              "product_pricing_v1",
+              "video"
             ]
+          },
+          "video_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Canonical YouTube watch link (`https://www.youtube.com/watch?v=<id>`) on a `video` slide. `null` on other slide types."
           }
         },
         "required": [
@@ -3359,9 +3365,14 @@
                     "type": "string",
                     "enum": [
                       "standard",
-                      "product_pricing_v1"
+                      "product_pricing_v1",
+                      "video"
                     ],
                     "default": "standard"
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "description": "YouTube link for the video. Allowed only when `slideType` is `video`. Accepts youtube.com, youtu.be, embed, Shorts and live links. AI Presentations stores it in canonical `https://www.youtube.com/watch?v=<id>` form. Returns `400` for playlist links, non-YouTube links, or links without a video ID."
                   }
                 }
               }
@@ -3587,6 +3598,11 @@
                   },
                   "orderIndex": {
                     "type": "integer"
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "YouTube link for the video. Allowed only on `video` slides; other slide types return `400`. Stored in canonical `https://www.youtube.com/watch?v=<id>` form. Send `null` or an empty string to clear it."
                   }
                 }
               }
@@ -10051,7 +10067,7 @@
           "Presentations"
         ],
         "summary": "Record a presentation event",
-        "description": "Ingests interaction events from the presentation viewer (opens, presses of the intro Start button, the first time slides are shown, slide views, narration playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once per page load when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready. It records a completion for every visit, including reloads on the last slide. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit of 60 requests per minute, including `narration_played_batch` requests. Every view in a batch after the first costs 1 more. For `slide_viewed_batch`, that extra cost counts against the same per-IP limit. For `narration_played_batch`, it counts against a separate narration bucket. The limit returns `429` when exceeded. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
+        "description": "Ingests interaction events from the presentation viewer (opens, presses of the intro Start button, the first time slides are shown, slide views, narration playback, video slide playback, CTA clicks, last-slide arrivals, and per-session summaries). Authenticated via an HMAC token in the request body. Every slide exit is recorded: `slide_viewed` accepts an optional `skipped` flag for views under the 2-second skip threshold, and `slide_viewed_batch` submits up to 25 slide views in one request. Narration playback outcomes are always batched via `narration_played_batch` (up to 25 outcomes per request); each outcome reports whether narration actually started, whether it completed, and seconds played vs. seconds available. `last_slide_reached` is sent once per page load when the viewer arrives on the last slide. AI Presentations records `presentation.completed` only when that slide is the presentation's last slide and the presentation is ready. It records a completion for every visit, including reloads on the last slide. `session_summary` and `narration_session_summary` are cumulative, monotone, page-exit mirrors written to PostHog only. Each request costs 1 against the per-IP rate limit of 60 requests per minute, including `narration_played_batch` requests. Every view in a batch after the first costs 1 more. For `slide_viewed_batch`, that extra cost counts against the same per-IP limit. For `narration_played_batch`, it counts against a separate narration bucket. The limit returns `429` when exceeded. The `action_detection` and `action_execution` types, and untyped Q&A interaction bodies, are acknowledged with `200` for backward compatibility but are no longer stored.",
         "parameters": [
           {
             "in": "path",
@@ -10087,6 +10103,7 @@
                       "slide_viewed",
                       "slide_viewed_batch",
                       "narration_played_batch",
+                      "video_played",
                       "cta_clicked",
                       "last_slide_reached",
                       "session_summary",
@@ -10094,7 +10111,7 @@
                       "action_detection",
                       "action_execution"
                     ],
-                    "description": "Event type. `presentation_started` is sent when the viewer presses Start on the intro screen, and records a `presentation.started` event. `slides_shown` is sent once per visit, the first time the viewer shows slides. AI Presentations records the first time slides are shown to a homeowner as the presentation's start, once, and later visits never change it. Visits by Demand IQ staff, by signed-in members of your organization, in rep mode, or from presentations whose opened emails all went to Demand IQ staff or your organization's own users don't record a start. Visits from link scanners, such as Microsoft Safe Links, are ignored. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored."
+                    "description": "Event type. `presentation_started` is sent when the viewer presses Start on the intro screen, and records a `presentation.started` event. `slides_shown` is sent once per visit, the first time the viewer shows slides. AI Presentations records the first time slides are shown to a homeowner as the presentation's start, once, and later visits never change it. Visits by Demand IQ staff, by signed-in members of your organization, in rep mode, or from presentations whose opened emails all went to Demand IQ staff or your organization's own users don't record a start. Visits from link scanners, such as Microsoft Safe Links, are ignored. `action_detection` and `action_execution` are deprecated: they are acknowledged but not stored. `video_played` is sent once per video slide whose video the viewer was offered, and records a `video.played` event."
                   },
                   "pointerCoarse": {
                     "type": "boolean",
@@ -10115,7 +10132,7 @@
                   },
                   "slideId": {
                     "type": "string",
-                    "description": "Slide ID. Required for `slide_viewed` and `last_slide_reached`. For `last_slide_reached`, send the presentation snapshot slide ID (the `deck_presentation_slides` row ID), not the deck slide ID. AI Presentations ignores any other ID and does not record `presentation.completed`. IDs longer than 100 characters are rejected with `400`."
+                    "description": "Slide ID. Required for `slide_viewed`, `video_played`, and `last_slide_reached`. For `last_slide_reached`, send the presentation snapshot slide ID (the `deck_presentation_slides` row ID), not the deck slide ID. AI Presentations ignores any other ID and does not record `presentation.completed`. IDs longer than 100 characters are rejected with `400`."
                   },
                   "slideIndex": {
                     "type": "integer"
@@ -10270,6 +10287,36 @@
                     "type": "integer",
                     "minimum": 0,
                     "description": "Session-to-date count of Q&A answer audio plays that finished, where the question was typed. Skips, errors, and rejected plays do not count. `narration_session_summary` only."
+                  },
+                  "videoStarted": {
+                    "type": "boolean",
+                    "description": "Whether the YouTube video started playing. Required for `video_played`."
+                  },
+                  "completed": {
+                    "type": "boolean",
+                    "description": "Whether the video played to the end. Required for `video_played`."
+                  },
+                  "secondsWatched": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 86400,
+                    "description": "Seconds of the video the viewer watched. Required for `video_played`."
+                  },
+                  "videoDurationSeconds": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 86400,
+                    "nullable": true,
+                    "description": "Length of the video in seconds, or `null` when the player never loaded far enough to know it. Required for `video_played`."
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "ended",
+                      "left",
+                      "failed"
+                    ],
+                    "description": "How the video slide ended: `ended` when the video finished, `left` when the viewer moved on or left the page, `failed` when the video could not load. Required for `video_played`."
                   }
                 }
               }
