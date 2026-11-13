@@ -66,6 +66,19 @@ Blank slides are surfaced two ways in the editor so they're easy to spot:
 
 The marker also applies to product pricing slides added this way. Its narration is derived when you save the slide, so a freshly added product slide starts out silent and clears the marker on the next save.
 
+## Add a video slide
+
+A video slide plays a YouTube video after the slide's narration. To add one:
+
+1. Choose **Video Slide** from the **Add Slide** menu in the deck editor.
+2. Paste a link to the video in the **YouTube Video** field. The editor shows the player once the link is valid.
+3. Optionally, write a narration script.
+4. Save the slide.
+
+AI Presentations accepts youtube.com, youtu.be, embed, Shorts, and live links, and stores them in the standard `https://www.youtube.com/watch?v=<id>` form. Playlist links and links from other sites, such as Vimeo, are rejected. Upload the video to YouTube as public or unlisted and paste the link to that one video. Until a video slide has a valid link, its rail entry shows a **Needs a video** marker. The slide rail and template previews show the video's YouTube thumbnail.
+
+In a presentation, the slide's narration plays first, then the video, and then the deck advances to the next slide. If the viewer's browser blocks the video from starting on its own, a play button appears and the deck waits. If the video can't load, the slide stays up for 6 seconds and then moves on. The Q&A assistant can't watch the video. It knows the slide plays a video and reads what you write in the slide's **AI Instructions** field, so describe the video there if you want the assistant to answer questions about it.
+
 ## Narrating bulk-uploaded slides
 
 Slide images added through the upload area land un-narrated by default. After a bulk upload, the editor opens a wizard that walks the batch one slide at a time, showing the image preview alongside the narration script field and the **Use AI to Generate Script** action.
