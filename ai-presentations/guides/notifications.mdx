@@ -13,7 +13,7 @@ Start with [Get a Presentation URL via API](/ai-presentations/guides/presentatio
 AI Presentations emails the presentation link directly to homeowners when a presentation is created from a journey ingest, and on demand when you call the send endpoint. Each deck has its own delivery configuration with a custom sender name, reply-to address, subject line, preview text, body template, and CTA label. Every send is recorded as a delivery attempt regardless of outcome.
 
 <Note>
-A homeowner with no email address cannot receive the presentation email. Manual sends with override recipients bypass this check; recipient suppression still applies.
+A homeowner with no email address cannot receive the presentation email. Manual sends with override recipients bypass this check; recipient suppression still applies. A missing email address never parks a presentation at `missing_data`. AI Presentations still creates the presentation and its link works, but nothing is emailed.
 </Note>
 
 A send is `skipped` in two cases:
@@ -336,7 +336,7 @@ The payload carries `presentationId`, `deckId`, and `slideId` (the last slide). 
 
 ### Blocked and failed presentations
 
-`presentation.blocked` fires 24 hours after a presentation parks at `missing_data`, once for that presentation. The payload carries `presentationId`, `deckId`, a `missingFields` array of the token field names the journey never supplied (for example, `email` or `roof_squares`), and a `reason` of either `missing_lead_data` or `deck_deleted`. The field names identify what the journey failed to collect; no lead values are included. The email subscription for this event is on by default because the cause is a journey configuration your team can fix.
+`presentation.blocked` fires 24 hours after a presentation parks at `missing_data`, once for that presentation. The payload carries `presentationId`, `deckId`, a `missingFields` array of the token field names the journey never supplied (for example, `roof_squares` or `estimated_cost`), and a `reason` of either `missing_lead_data` or `deck_deleted`. The field names identify what the journey failed to collect; no lead values are included. The email subscription for this event is on by default because the cause is a journey configuration your team can fix.
 
 `presentation.generation_failed` fires once per presentation when generation dies against an upstream provider. The payload carries `presentationId`, `deckId`, the `phase` where the work stopped, and an `errorMessage`. The email subscription for this event is **off by default**: the cause is on our side rather than yours, and an upstream outage would otherwise email every company about every affected lead. Any organization that wants to see these can turn the subscription on in the template editor's **Settings** tab.
 
