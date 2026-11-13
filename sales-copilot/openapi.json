@@ -278,8 +278,14 @@
             "type": "string",
             "enum": [
               "standard",
-              "product_pricing_v1"
+              "product_pricing_v1",
+              "video"
             ]
+          },
+          "video_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Canonical YouTube link on a 'video' slide"
           }
         },
         "required": [
@@ -2208,9 +2214,14 @@
                     "type": "string",
                     "enum": [
                       "standard",
-                      "product_pricing_v1"
+                      "product_pricing_v1",
+                      "video"
                     ],
                     "default": "standard"
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "description": "YouTube link; only on 'video' slides. Stored in canonical watch form"
                   }
                 }
               }
@@ -2436,6 +2447,11 @@
                   },
                   "orderIndex": {
                     "type": "integer"
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "YouTube link; only on 'video' slides. Null or empty clears it"
                   }
                 }
               }
