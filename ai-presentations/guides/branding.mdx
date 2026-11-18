@@ -51,9 +51,11 @@ Customize the background color of chat messages:
 
 ## Call to action
 
-The label on the main action button homeowners see (in the header, on product cards, on the pre-contract screen, and on the loading signpost) is set on the **Action** tab, not here. The Action tab controls both the action type (letter of intent, product confirmation, appointment, external link, or none) and an optional custom button label. When you leave the button label blank, AI Presentations uses the default for the selected action type — for example, *"Schedule Appointment"* for appointment decks or *"Reserve Your Installation"* for a letter of intent.
+The label on the main action button homeowners see (in the header, on product cards, on the pre-contract screen, and on the loading signpost) is set on the **Action** tab, not here. The Action tab controls both the action type (letter of intent, product confirmation, appointment, external link, click to call, or none) and an optional custom button label. When you leave the button label blank, AI Presentations uses the default for the selected action type — for example, *"Schedule Appointment"* for appointment decks or *"Reserve Your Installation"* for a letter of intent.
 
 For letter-of-intent decks specifically, the fallback chain is: custom Action-tab label → the letter-of-intent template's button text → *"Reserve Your Installation"*.
+
+For **Click to Call**, enter the number homeowners should call in **Phone Number**. AI Presentations pre-fills it from the deck's contact phone, then your company phone, and the default button label is *"Call Us"*. When a homeowner taps the button on a phone, AI Presentations pauses the narration and opens their dialer with the number. On a computer, or when the homeowner asks for the CTA by voice, they see a card with the number and a **Call** button instead. AI Presentations rejects a missing or invalid number, or one with an extension, when you save.
 
 ## Intro page
 
