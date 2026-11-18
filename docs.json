@@ -210,7 +210,8 @@
                 "group": "Voices",
                 "expanded": false,
                 "pages": [
-                  "GET /api/voices/list"
+                  "GET /api/voices/list",
+                  "PUT /api/decks/{deckId}/voice"
                 ]
               },
               {

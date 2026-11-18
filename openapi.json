@@ -1100,31 +1100,39 @@
       "Voice": {
         "type": "object",
         "properties": {
-          "voice_id": {
+          "id": {
             "type": "string"
           },
           "name": {
             "type": "string"
           },
-          "category": {
+          "description": {
             "type": "string"
           },
-          "preview_url": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
+          "gender": {
+            "type": "string"
           },
-          "labels": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
+          "accent": {
+            "type": "string"
+          },
+          "age": {
+            "type": "string"
+          },
+          "useCase": {
+            "type": "string"
+          },
+          "previewUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "isDefault": {
+            "type": "boolean"
           }
         },
         "required": [
-          "voice_id",
+          "id",
           "name",
-          "category"
+          "isDefault"
         ]
       },
       "Error": {
@@ -6146,8 +6154,8 @@
         "tags": [
           "Voices"
         ],
-        "summary": "List available voices",
-        "description": "Returns a curated list of voices suitable for sales presentations.",
+        "summary": "List narrator voices",
+        "description": "Returns the narrator voices a template can use, including the default voice, with preview clips and gender, accent and age labels.",
         "security": [
           {
             "sessionCookie": []
@@ -6184,6 +6192,129 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Voice service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/voice": {
+      "put": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Set the deck's narrator voice",
+        "description": "Sets the voice that narrates every presentation from this deck. Send `null` to use the default voice. A change clears the deck's slide, FAQ, cached-answer and Q&A prompt audio and regenerates it in the background. Presentations already generated keep their audio.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "voiceId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "An `id` from `GET /api/voices/list`, or `null` for the default voice."
+                  }
+                },
+                "required": [
+                  "voiceId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated deck",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Voice service unavailable",
             "content": {
               "application/json": {
                 "schema": {

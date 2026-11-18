@@ -8,9 +8,18 @@ Every slide in a AI Presentations presentation is narrated by a synthesized voic
 
 ## Choosing a voice
 
-You set the voice when creating a template. In the **New Template** dialog, you'll see a **Use Premium Voice AI** toggle. This controls the voice quality used across all slides, FAQs, and Q&A responses in the template.
+Each template has one narrator voice. That voice narrates every slide, reads FAQ answers and Q&A prompts, and answers questions during live Q&A in presentations made from the template. New templates start with the default voice.
 
-Pick the option that fits your use case — premium voices sound more natural but take slightly longer to generate.
+To choose a different voice:
+
+1. Open the template and go to the **Settings** tab.
+2. In the **Narrator Voice** card, browse the list of voices. Each voice shows its name and traits such as gender, accent and age. The default voice is marked **Default**.
+3. Click the play button next to a voice to hear a sample. To narrow the list, pick an accent from the **Accent** menu.
+4. Click **Use voice** next to the voice you want, then click **Change voice** to confirm.
+
+When you change the voice, AI Presentations re-records slide narration, FAQ answers and Q&A prompts in the new voice in the background. Presentations homeowners have already started keep their existing slide narration.
+
+To set the voice through the API, call `GET /api/voices/list` to get the available voices, then send one voice's `id` to `PUT /api/decks/{deckId}/voice`. Send `null` to return to the default voice.
 
 ## Regenerating audio after edits
 
