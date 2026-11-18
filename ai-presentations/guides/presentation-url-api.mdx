@@ -231,7 +231,7 @@ All three paths return the same response, immediately:
 
 `url` is the link you deliver to the prospect. `deck_presentation_id` is its ID for status checks and other API calls.
 
-`url` is a short link such as `https://mypresi.co/bcd2345` when short links are enabled. It opens the presentation in the hosted viewer with the intro skipped. Presentations created before short links were available return the full `/p/{presentationId}` URL instead. Use `deck_presentation_id`, not the URL, to identify the presentation in API calls.
+`url` is a short link such as `https://mypresi.co/bcd2345` when short links are enabled. It opens the presentation in the hosted viewer. If the deck has an intro page, the link opens on the intro page. If it has none, the link skips straight to the slides. Presentation emails use the same link. A link keeps the behavior it had when the presentation was created, so adding an intro page to a deck later doesn't change existing links. Presentations created before links started opening on the intro page keep links that skip it. Presentations created before short links were available return the full `/p/{presentationId}` URL instead. Use `deck_presentation_id`, not the URL, to identify the presentation in API calls.
 
 </Step>
 

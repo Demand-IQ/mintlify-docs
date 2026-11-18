@@ -1384,6 +1384,10 @@
           "ctaButtonLabel": {
             "type": "string",
             "nullable": true
+          },
+          "homePhotoEnabled": {
+            "type": "boolean",
+            "description": "Whether the intro page shows a photo of the homeowner's home above the headline."
           }
         },
         "required": [
@@ -8449,7 +8453,7 @@
           "Decks"
         ],
         "summary": "Get intro page config",
-        "description": "Returns the intro page configuration for a deck, including the background image, headline, and CTA button label.",
+        "description": "Returns the intro page configuration for a deck, including the background image, headline, CTA button label, and home photo setting.",
         "parameters": [
           {
             "in": "path",
@@ -8551,6 +8555,10 @@
                     "maxLength": 30,
                     "description": "Get Started button text. Maximum 30 characters.",
                     "example": "View My Proposal"
+                  },
+                  "homePhotoEnabled": {
+                    "type": "boolean",
+                    "description": "Show a photo of the homeowner's home above the headline. Must be `true` or `false`; any other value returns `400`. Omit to keep the stored value. New intro pages start with it off."
                   }
                 }
               }
