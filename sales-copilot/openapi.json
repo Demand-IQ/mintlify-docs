@@ -826,31 +826,39 @@
       "Voice": {
         "type": "object",
         "properties": {
-          "voice_id": {
+          "id": {
             "type": "string"
           },
           "name": {
             "type": "string"
           },
-          "category": {
+          "description": {
             "type": "string"
           },
-          "preview_url": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
+          "gender": {
+            "type": "string"
           },
-          "labels": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
+          "accent": {
+            "type": "string"
+          },
+          "age": {
+            "type": "string"
+          },
+          "useCase": {
+            "type": "string"
+          },
+          "previewUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "isDefault": {
+            "type": "boolean"
           }
         },
         "required": [
-          "voice_id",
+          "id",
           "name",
-          "category"
+          "isDefault"
         ]
       },
       "Error": {
@@ -5152,8 +5160,8 @@
         "tags": [
           "Voices"
         ],
-        "summary": "List available voices",
-        "description": "Returns a curated list of ElevenLabs voices suitable for sales presentations.",
+        "summary": "List narrator voices",
+        "description": "Returns ElevenLabs' premade voices plus the app default, with preview clips and gender/accent/age labels.",
         "security": [
           {
             "sessionCookie": []
@@ -5190,6 +5198,129 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/voice": {
+      "put": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Set the deck's narrator voice",
+        "description": "Sets the voice that narrates every presentation from this deck (`null` = the app default). A change clears the deck's slide, FAQ, cached-answer and Q&A prompt audio; slide audio is regenerated on the next presentation start or preview, FAQ and prompt audio in the background. Presentations already generated keep their audio.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "voiceId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "An `id` from GET /api/voices/list"
+                  }
+                },
+                "required": [
+                  "voiceId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated deck",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deck": {
+                      "$ref": "#/components/schemas/Deck"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
             "content": {
               "application/json": {
                 "schema": {
