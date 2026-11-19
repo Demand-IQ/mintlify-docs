@@ -1195,6 +1195,10 @@
             "$ref": "#/components/schemas/EngagementRate",
             "description": "Homeowner starts (slides first shown, after the send) over human email opens. Opens sent before first starts were recorded are `unknown`."
           },
+          "clicked": {
+            "$ref": "#/components/schemas/EngagementRate",
+            "description": "Homeowner starts (slides first shown, after the send) over delivered: the Email tab’s \"Clicked\". Deliveries sent before first starts were recorded are `unknown`."
+          },
           "reportable": {
             "type": "boolean",
             "description": "False below `minimumDelivered`: label it directional internally, hide it from customers."
@@ -1213,6 +1217,7 @@
           "delivered",
           "emailOpened",
           "started",
+          "clicked",
           "reportable",
           "fallbackSent"
         ]
