@@ -10345,7 +10345,7 @@
                   },
                   "repMode": {
                     "type": "boolean",
-                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `cta_clicked`, `slides_shown`, `last_slide_reached`, `session_summary`, and `narration_session_summary`."
+                    "description": "Whether a sales rep is driving the presentation. Client-supplied; the server cannot resolve it. Applies to `presentation_opened`, `cta_clicked`, `slides_shown`, `last_slide_reached`, `session_summary`, and `narration_session_summary`."
                   },
                   "firstScreen": {
                     "type": "string",
