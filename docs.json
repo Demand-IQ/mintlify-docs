@@ -93,6 +93,8 @@
                   "GET /api/engagement/summary",
                   "GET /api/engagement/questions",
                   "GET /api/delivery/template-performance",
+                  "GET /api/delivery/template-performance/current",
+                  "PATCH /api/delivery/template-performance/{versionId}",
                   "DELETE /api/delivery/template-performance/{versionId}",
                   "POST /api/delivery/template-performance/{versionId}/activate"
                 ]

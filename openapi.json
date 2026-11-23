@@ -2170,6 +2170,13 @@
           {
             "type": "object",
             "properties": {
+              "name": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 40,
+                "example": "Spring roof offer",
+                "description": "The name you gave this version. `null` when it has none, in which case the Versions list shows its date."
+              },
               "firstSavedAt": {
                 "type": "string",
                 "format": "date-time",
@@ -2186,6 +2193,7 @@
               }
             },
             "required": [
+              "name",
               "firstSavedAt",
               "firstSentAt"
             ]
@@ -2218,6 +2226,233 @@
           "deckId",
           "minimumDelivered",
           "versions"
+        ]
+      },
+      "CurrentEmailEmailRow": {
+        "type": "object",
+        "description": "One email of the current version: the first email or the reminder. Rates are over that email's own sends.",
+        "properties": {
+          "sent": {
+            "type": "integer",
+            "example": 640
+          },
+          "delivered": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "opened": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "clicked": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "bounced": {
+            "$ref": "#/components/schemas/EngagementRate"
+          },
+          "unsubscribed": {
+            "$ref": "#/components/schemas/EngagementRate"
+          }
+        },
+        "required": [
+          "sent",
+          "delivered",
+          "opened",
+          "clicked",
+          "bounced",
+          "unsubscribed"
+        ]
+      },
+      "CurrentEmailPerformance": {
+        "type": "object",
+        "description": "Performance of a template's current email version. Each homeowner counts once, by their first send of the version. Their first reminder after it is joined to them. `opened`, `clicked` and `unsubscribed` are over delivered first emails and count an open, start or unsubscribe from either email. `bounced` is over sent. `clicked` counts homeowners who started the presentation. Starts are known from 2026-11-02; earlier sends count as `unknown`.",
+        "properties": {
+          "deckId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "not_sent",
+              "early",
+              "full"
+            ],
+            "example": "full",
+            "description": "Computed from the whole version, whatever the range. `not_sent` before the first send, `early` under 500 delivered emails, `full` from 500."
+          },
+          "range": {
+            "type": "string",
+            "enum": [
+              "version",
+              "30d",
+              "90d",
+              "custom"
+            ],
+            "example": "version"
+          },
+          "versionSince": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-10-06T14:12:40.000Z",
+            "description": "First send of the version. `null` before the first send."
+          },
+          "versionTotals": {
+            "type": "object",
+            "description": "Sent, delivered, opened and clicked for the whole version, whatever the range.",
+            "properties": {
+              "sent": {
+                "type": "integer",
+                "example": 1180
+              },
+              "delivered": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "opened": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "clicked": {
+                "$ref": "#/components/schemas/EngagementRate"
+              }
+            },
+            "required": [
+              "sent",
+              "delivered",
+              "opened",
+              "clicked"
+            ]
+          },
+          "cards": {
+            "type": "object",
+            "description": "Headline numbers for first sends inside the range.",
+            "properties": {
+              "sent": {
+                "type": "integer",
+                "example": 640
+              },
+              "delivered": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "opened": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "clicked": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "bounced": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "unsubscribed": {
+                "$ref": "#/components/schemas/EngagementRate"
+              },
+              "reminderSent": {
+                "type": "integer",
+                "example": 310
+              },
+              "reminderOpened": {
+                "$ref": "#/components/schemas/EngagementRate",
+                "description": "Reminder opens over delivered reminders."
+              }
+            },
+            "required": [
+              "sent",
+              "delivered",
+              "opened",
+              "clicked",
+              "bounced",
+              "unsubscribed",
+              "reminderSent",
+              "reminderOpened"
+            ]
+          },
+          "emails": {
+            "type": "object",
+            "description": "First email compared with the reminder.",
+            "properties": {
+              "first": {
+                "$ref": "#/components/schemas/CurrentEmailEmailRow"
+              },
+              "reminder": {
+                "$ref": "#/components/schemas/CurrentEmailEmailRow"
+              },
+              "reminderAddedOpens": {
+                "type": "integer",
+                "example": 48,
+                "description": "Homeowners who opened the reminder but not the first email."
+              }
+            },
+            "required": [
+              "first",
+              "reminder",
+              "reminderAddedOpens"
+            ]
+          },
+          "weeks": {
+            "type": "array",
+            "description": "One entry per week from the start of the range. Weeks start on Monday (UTC), and each first email counts in the week it was sent.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekStart": {
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2026-11-16T00:00:00.000Z"
+                },
+                "sent": {
+                  "type": "integer",
+                  "example": 84
+                },
+                "opened": {
+                  "$ref": "#/components/schemas/EngagementRate"
+                },
+                "clicked": {
+                  "$ref": "#/components/schemas/EngagementRate"
+                }
+              },
+              "required": [
+                "weekStart",
+                "sent",
+                "opened",
+                "clicked"
+              ]
+            }
+          },
+          "early": {
+            "type": "object",
+            "description": "Progress toward enough delivered emails for full numbers.",
+            "properties": {
+              "delivered": {
+                "type": "integer",
+                "example": 220
+              },
+              "target": {
+                "type": "integer",
+                "example": 500
+              },
+              "weeksToTarget": {
+                "type": "integer",
+                "nullable": true,
+                "example": 6,
+                "description": "Estimated weeks to reach `target` at the pace of the last four weeks. `null` when there were no recent deliveries."
+              }
+            },
+            "required": [
+              "delivered",
+              "target",
+              "weeksToTarget"
+            ]
+          }
+        },
+        "required": [
+          "deckId",
+          "state",
+          "range",
+          "versionSince",
+          "versionTotals",
+          "cards",
+          "emails",
+          "weeks",
+          "early"
         ]
       },
       "QuestionOutcomeCounts": {
@@ -6731,6 +6966,127 @@
         }
       }
     },
+    "/api/delivery/template-performance/current": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Get current email version performance",
+        "description": "Returns performance numbers for a template's current email version: headline counts, the first email compared with the reminder, and weekly opened and started counts. Only first sends inside `range` count. `state` and `versionTotals` always cover the whole version.\n\nEach homeowner counts once, by their first send of the version, and their first reminder after it is joined to them. A homeowner who opens only the reminder counts as opened. Sends only to Demand IQ staff or to your organization's own users, deleted presentations, and sends whose subject or preview text fell back to the default are left out, as in `GET /api/delivery/template-performance`.\n\nBounces and unsubscribes on older sends may no longer be known; they count as `unknown` rather than 0. A `deckId` that doesn't belong to your organization reads as never sent.\n\nReturns `404` when email template performance isn't enabled for your organization.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384",
+            "description": "The template whose current email version to report."
+          },
+          {
+            "in": "query",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "version",
+                "30d",
+                "90d",
+                "custom"
+              ],
+              "default": "version"
+            },
+            "example": "30d",
+            "description": "`version` (since the version was first sent, the default), `30d`, `90d`, or `custom`."
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-10-01",
+            "description": "First day of a `custom` range, as `YYYY-MM-DD` in UTC. Required with `custom`."
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-10-31",
+            "description": "Last day of a `custom` range, inclusive, as `YYYY-MM-DD` in UTC. Required with `custom`, and must be on or after `from`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current version's performance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentEmailPerformance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters, a date that isn't on the calendar, or a `custom` range missing `from` or `to` or with `from` after `to`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Email template performance isn't enabled for your organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/delivery/template-performance/{versionId}": {
       "delete": {
         "tags": [
@@ -6816,6 +7172,111 @@
           },
           "409": {
             "description": "The version is the template's active version and can't be removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Rename an email template version",
+        "description": "Sets the name a template's version list shows for a version. Without a name, the list shows the date. AI Presentations trims the name, which must be 1 to 40 characters. A blank or too-long name returns `400` with an `error` naming the problem, for example `\"Version name must be 40 characters or fewer\"`.\n\nReturns `404` when email template performance isn't enabled for your organization, or the template or version isn't on the list, including a removed version or a template that belongs to another organization.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "versionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "3f1c9a2e-7b4d-4e8a-9c21-5d6f0a8b1e47",
+            "description": "The template version ID."
+          },
+          {
+            "in": "query",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "8b2e4f10-3c6a-4d9e-a1f7-62c0b5d9e384",
+            "description": "The template whose version list the version is on."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "example": "Spring roof offer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The version was renamed"
+          },
+          "400": {
+            "description": "Invalid `versionId` or `deckId`, or a missing, blank, or too-long name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Email template performance isn't enabled for your organization, or the template or version isn't on the list",
             "content": {
               "application/json": {
                 "schema": {
