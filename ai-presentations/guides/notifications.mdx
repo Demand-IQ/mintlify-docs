@@ -327,6 +327,12 @@ Both fields are populated by the viewer's browser, so each can legitimately be a
 
 These fields ship as payload version 3. The webhook envelope's `event_version` is `3` for events that carry them, `2` for entries that carry only the deck and slide identity fields, and `1` for older entries. The change is additive: version 1 and version 2 payloads are unchanged, and existing consumers keep working without modification. Both fields survive the 90-day archive alongside the other classification fields.
 
+### Opened presentations
+
+`presentation.opened` fires every time the viewer page loads a presentation, including reloads, new tabs, and visits by your team. Webhook and console subscriptions receive every open.
+
+The **Presentation Opened** email is sent once per presentation, on the first open by a homeowner. Visits by Demand IQ staff, by signed-in members of your organization, and in rep mode don't count. Visits to a presentation whose opened emails all went to Demand IQ staff or your organization's own users don't count either. Neither do link scanners, such as Microsoft Safe Links. The event for the open that sent the email carries `firstHomeownerOpen: true` in its payload. Other opens omit the field.
+
 ### Started presentations
 
 `presentation.started` fires when a viewer presses Start on a presentation's intro screen. Presentations whose template has no intro, and visits that skip the intro, never emit it. Presentation previews never emit it either.
