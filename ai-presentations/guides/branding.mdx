@@ -90,6 +90,8 @@ The intro page and the presentation email share one stored photo per presentatio
 
 The intro page resolves homeowner data from a contact-only lookup, so only the following tokens render on the headline, subtitle, and CTA button label. Both `{{first_name}}` and `{{homeowner.first_name}}` are accepted.
 
+Under the headline, subtitle, and CTA button label, four inline chips insert `{{first_name}}`, `{{last_name}}`, `{{address}}`, and `{{city}}` at your cursor. **View all** opens a popover with every token in the table below, grouped into contact and journey tokens. Typing `{{` in any of the three fields opens the autocomplete dropdown. If inserting a token would push a field past its character limit, the Intro tab refuses the insert and shows a toast instead of truncating the token.
+
 | Token | Value |
 | --- | --- |
 | `{{first_name}}` | Homeowner first name |
