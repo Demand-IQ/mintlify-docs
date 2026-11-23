@@ -272,6 +272,7 @@ AI Presentations emits these events:
 | Event type | Fired when |
 |------------|------------|
 | `presentation.opened` | A viewer opens a presentation link |
+| `short_link.clicked` | Someone follows a presentation's short link. See [Short link clicks](#short-link-clicks) |
 | `presentation.started` | A viewer presses Start on a presentation's intro screen |
 | `slide.viewed` | A viewer leaves a slide (includes duration and a skipped flag) |
 | `narration.played` | A viewer leaves a slide that had narration (includes whether playback started, whether it completed, and seconds played vs. seconds available) |
@@ -344,6 +345,12 @@ The payload carries `presentationId` and `deckId`. `deckId` is `null` when the t
 `presentation.completed` fires when a viewer reaches the last slide of a ready presentation. Reaching the last slide is what counts, so a viewer who skims ahead still completes the presentation. Narration listen-through doesn't factor in; use `narration.played` to measure it. The event fires on every visit that reaches the last slide, the same way `presentation.opened` fires on every open. Rewatches, runs driven by a sales rep, and reloads on the last slide each emit another completion. To calculate a completion rate, count distinct `presentationId` values rather than events. Presentation previews never emit it.
 
 The payload carries `presentationId`, `deckId`, and `slideId` (the last slide). `deckId` is `null` when the template has been deleted. The email subscription for this event is **off by default**. To receive it, turn on **Presentation Completed** in the template editor's **Settings** tab. When it's on, you get an email for every completion.
+
+### Short link clicks
+
+`short_link.clicked` fires each time a short link such as `https://mypresi.co/bcd2345` redirects to the hosted viewer. Repeat clicks on the same link from the same device within a minute record one event. The payload carries `presentationId`, `slug`, `openSource` (the link's `utm_source`, when it has a valid one), `deviceClass`, and `bot`. `bot` is `true` when the click came from a known bot or link scanner, such as a messaging app building a link preview. Clicks by your own team can't be told apart from homeowner clicks.
+
+`short_link.clicked` is a background event. A subscription receives it only when its event type is `short_link.clicked`, and a `*` subscription never does. `GET /api/activity` never returns it, and `GET /api/notifications/events` returns it only when you pass `eventType=short_link.clicked`.
 
 ### Blocked and failed presentations
 

@@ -4840,7 +4840,7 @@
                     "url": {
                       "type": "string",
                       "format": "uri",
-                      "description": "Shareable presentation URL: the homeowner short link (`https://mypresi.co/<slug>`) where the short-link host is configured, else the `/p/` URL"
+                      "description": "Shareable presentation URL: the homeowner short link (`https://mypresi.co/<slug>`) where the short-link host is configured, else the `/p/` URL. Before sending the link, add `utm_source=sms` for a text or `utm_source=email` for an email you send yourself, after `?` (or `&` if the link already has a query string): `https://mypresi.co/<slug>?utm_source=sms`. Each open records it. Values are lower-cased; anything other than letters, digits, `_` and `-` (up to 40 characters) is ignored."
                     },
                     "status": {
                       "type": "string",
@@ -4943,6 +4943,168 @@
           },
           "503": {
             "description": "Upstream service is unreachable \u2014 retry with backoff",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/decks/{deckId}/ingest": {
+      "post": {
+        "tags": [
+          "Presentations"
+        ],
+        "summary": "Create a presentation from a Demand IQ prospect",
+        "description": "Creates a personalized presentation for a Demand IQ prospect and sends the homeowner the first email. AI Presentations fetches the prospect, roof and product data from Demand IQ with the caller's own credential, so send only the IDs.\n\nA repeated `(deckId, source_event_id)` returns the existing presentation with no side effects, so retry `503` with the same `source_event_id`. A lead missing data the deck needs is parked (`status: missing_data`, `send_status: blocked`) and sent once Demand IQ has it.\n\n**Link attribution:** Before sending the link, add `utm_source=sms` for a text or `utm_source=email` for an email you send yourself, after `?` (or `&` if the link already has a query string): `https://mypresi.co/<slug>?utm_source=sms`. Each open records it. Values are lower-cased; anything other than letters, digits, `_` and `-` (up to 40 characters) is ignored. The first email this endpoint sends is tagged `utm_source=email` already.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deckId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID of the deck to build the presentation from"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prospect_id",
+                  "source_event_id"
+                ],
+                "properties": {
+                  "prospect_id": {
+                    "type": "string",
+                    "description": "The Demand IQ prospect UUID"
+                  },
+                  "source_event_id": {
+                    "type": "string",
+                    "description": "Stable ID of the journey completion; the idempotency key"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created, or already existed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "presentation_id",
+                    "presentation_url",
+                    "send_status"
+                  ],
+                  "properties": {
+                    "presentation_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "presentation_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "The homeowner link"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "missing_data"
+                      ],
+                      "description": "Set only when the presentation is parked"
+                    },
+                    "send_status": {
+                      "type": "string",
+                      "description": "The first email: `sent`, `skipped`, `failed`, `blocked` (parked) or `not_requested` (repeated `source_event_id`)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
             "content": {
               "application/json": {
                 "schema": {

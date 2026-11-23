@@ -173,6 +173,7 @@
                 "pages": [
                   "GET /api/decks/{deckId}/presentations",
                   "POST /api/decks/{deckId}/presentations",
+                  "POST /api/decks/{deckId}/ingest",
                   "PATCH /api/presentations/{presentationId}",
                   "DELETE /api/presentations/{presentationId}",
                   "GET /api/presentations/{presentationId}/status",
