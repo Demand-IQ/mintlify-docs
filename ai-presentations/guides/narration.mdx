@@ -19,6 +19,8 @@ To choose a different voice:
 
 When you change the voice, AI Presentations re-records slide narration, FAQ answers and Q&A prompts in the new voice in the background. Presentations homeowners have already started keep their existing slide narration.
 
+While the editor stays open, the **FAQs** tab updates as the new FAQ and Q&A prompt audio arrives. FAQs and prompts still being re-recorded show **Generating...**, and **Generate Audio** stays disabled for a prompt until its audio is back.
+
 To set the voice through the API, call `GET /api/voices/list` to get the available voices, then send one voice's `id` to `PUT /api/decks/{deckId}/voice`. Send `null` to return to the default voice.
 
 ## Regenerating audio after edits
@@ -54,6 +56,7 @@ Throughout the template editor you'll see status indicators on audio content:
 - **Audio Ready** — the spoken audio is generated and ready
 - **Generating...** — audio is currently being produced
 - **Failed** — generation didn't complete; try regenerating
+- **Audio Missing**: a FAQ has no audio and none is being produced. Re-save the FAQ to generate it.
 
 Each slide and FAQ has an audio preview player so you can listen before sending anything to a homeowner.
 
