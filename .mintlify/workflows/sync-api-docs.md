@@ -1,6 +1,6 @@
 ---
 name: Sync API Docs from AI Presentations
-description: Updates documentation when a release ships in the AI Presentations repo
+description: Updates documentation when a release reaches production in the AI Presentations repo
 on:
   push:
     - repo: Demand-IQ/ai-presentations-demo
@@ -12,11 +12,13 @@ When this workflow triggers, review the changes pushed to `Demand-IQ/ai-presenta
 
 ## When to act
 
-Documentation tracks the **released** API surface, not in-flight work on `main`. Releases are cut as `release/X.Y.Z` branches and merged back, so each release arrives on `main` as a merge commit.
+Documentation tracks what is live in **production**, not in-flight work. In `Demand-IQ/ai-presentations-demo`, `main` is the development branch. Production runs from `release/X.Y.Z` branches, and each production deploy publishes a GitHub Release tagged `vX.Y.Z`.
 
-Only proceed when the pushed changes contain a release merge — a commit whose subject matches `Release: X.Y.Z`, or a merge of a `release/X.Y.Z` or `chore/release-X.Y.Z` branch. If the push contains no such commit, stop without changing anything, even when API routes changed.
+A release is cut as `release/X.Y.Z-rc`, tested, promoted to `release/X.Y.Z`, deployed to production, and then merged back into `main` with a merge commit.
 
-When a release merge is present, document the API surface as of that release, covering every API change that landed on `main` since the previous release merge — not just the changes in the triggering push.
+Only proceed when the pushed changes contain that merge of a `release/X.Y.Z-rc` branch into `main`, and a `release/X.Y.Z` branch exists for the same version. If the push contains no such merge, stop without changing anything, even when API routes changed. Ordinary feature and fix merges to `main` are never a reason to update the docs.
+
+When a release merge is present, document the product as of the `release/X.Y.Z` branch, covering every change between the previous `release/X.Y.Z` branch and this one. Do not document anything that is on `main` but not on the release branch: it is not in production yet.
 
 ## Instructions
 
